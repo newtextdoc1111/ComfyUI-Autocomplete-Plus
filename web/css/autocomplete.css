@@ -1,0 +1,49 @@
+/* Basic styles for autocomplete - will be refined later */
+
+#autocomplete-plus-list {
+    background-color: var(--comfy-input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    min-width: 200px; /* Increased min width */
+    overflow-y: auto;
+    position: absolute; /* Ensure position is absolute */
+    z-index: 10000; /* High z-index */
+    color: var(--input-text);
+    font-size: 0.9em; /* Slightly smaller font */
+}
+
+.autocomplete-plus-item {
+    padding: 5px 10px; /* Adjusted padding */
+    cursor: pointer;
+    white-space: nowrap; /* Prevent wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Show ellipsis if too long */
+    border-bottom: 1px solid var(--border-color); /* Separator line */
+}
+
+.autocomplete-plus-item:last-child {
+    border-bottom: none; /* No border for the last item */
+}
+
+/* Alternating row colors */
+.autocomplete-plus-item:nth-child(even) {
+    background-color: var(--comfy-menu-bg); /* Slightly different background for even rows */
+}
+
+.autocomplete-plus-item:nth-child(odd) {
+    background-color: var(--comfy-input-bg);
+}
+
+/* Hover effect */
+.autocomplete-plus-item:hover {
+    background-color: var(--comfy-hover-bg); /* Use a hover variable if available, or adjust */
+    color: var(--desc-text); /* Adjust text color on hover if needed */
+}
+
+/* Selected item style */
+.autocomplete-plus-item.selected {
+    background-color: var(--comfy-menu-bg-selected, var(--comfy-button-bg)); /* Use selection color, fallback to button */
+    color: var(--comfy-menu-text-selected, var(--button-text)); /* Use selected text color, fallback */
+    font-weight: bold;
+}
