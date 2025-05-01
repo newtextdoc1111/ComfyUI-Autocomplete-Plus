@@ -1,23 +1,30 @@
-
 // --- Autocomplete UI Class ---
 
-export class AutocompleteUI {
+class AutocompleteUI {
     constructor() {
-        this.element = document.createElement('div');
+        this.element = document.createElement('table'); // Use table instead of div
         this.element.id = 'autocomplete-plus-list';
         this.element.style.display = 'none'; // Initially hidden
         this.element.style.position = 'absolute'; // Position near the input
         this.element.style.zIndex = '10000'; // Ensure it's on top
+        this.element.style.borderCollapse = 'collapse'; // Optional: for table styling
+        this.element.style.width = 'auto'; // Adjust width automatically
+
+        const tbody = document.createElement('tbody');
+        this.element.appendChild(tbody);
+
         this.activeInput = null;
         this.selectedIndex = -1;
         this.candidates = [];
 
         document.body.appendChild(this.element);
 
-        // Add event listener for clicks on items
-        this.element.addEventListener('mousedown', (e) => {
-            if (e.target.tagName === 'DIV') {
-                const index = parseInt(e.target.dataset.index, 10);
+        // Add event listener for clicks on items (listen on tbody)
+        tbody.addEventListener('mousedown', (e) => {
+            // Check if the click target is a TD inside a TR with a data-index
+            const row = e.target.closest('tr');
+            if (row && row.dataset.index) {
+                const index = parseInt(row.dataset.index, 10);
                 if (!isNaN(index)) {
                     this.#selectItem(index);
                     e.preventDefault(); // Prevent focus loss from input
@@ -68,10 +75,6 @@ export class AutocompleteUI {
 
     /**
      * Shows the autocomplete list near the target input element.
-     * Position calculation logic inspired by:
-     * https://github.com/pythongosssss/ComfyUI-Custom-Scripts/blob/main/web/js/common/autocomplete.js
-     * License: MIT License (assumed based on repository root LICENSE file)
-     * Considers ComfyUI canvas scale.
      * Adjusts max-height and enables scrolling if the list exceeds viewport bounds.
      * @param {HTMLTextAreaElement} inputElement The textarea being typed into.
      */
@@ -80,28 +83,34 @@ export class AutocompleteUI {
         this.selectedIndex = 0;
 
         // Calculate caret position using the helper function (returns viewport-relative coordinates)
-        this.#updateCoordinate();
+        this.#updateListBounds();
 
         this.element.style.overflowY = 'auto';
         this.element.style.display = 'block'; // Make it visible
-        
+
         // Highlight the first item
         this.#highlightItem(this.selectedIndex);
     }
 
-    #updateCoordinate() {
+    /**
+     * Calculates the position of the autocomplete list based on the caret position in the input element.
+     * Position calculation logic inspired by:
+     * https://github.com/pythongosssss/ComfyUI-Custom-Scripts/blob/main/web/js/common/autocomplete.js
+     * License: MIT License (assumed based on repository root LICENSE file)
+     * Considers ComfyUI canvas scale.
+     */
+    #updateListBounds() {
         const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.activeInput);
 
         // Reset scroll position and max-height before calculating position
         this.element.scrollTop = 0;
         this.element.style.maxHeight = ''; // Reset max-height for accurate measurement
 
-
         // Get ComfyUI canvas scale if available, otherwise default to 1
         const scale = window.app?.canvas?.ds?.scale ?? 1.0;
 
         // Initial desired position: below the current text line where the caret is.
-        let topPosition = caretTop + (caretLineHeight * scale);
+        let topPosition = caretTop + ((caretLineHeight + 4) * scale);
         let leftPosition = caretLeft;
 
         // Make the list visible *before* getting its dimensions to ensure they are accurate
@@ -129,7 +138,6 @@ export class AutocompleteUI {
         // --- Vertical Collision Detection and Adjustment ---
         const availableSpaceBelow = viewportHeight - topPosition - margin;
         const availableSpaceAbove = caretTop - margin; // Space above the caret line
-
 
         // Reset max-height before deciding
         this.element.style.maxHeight = '';
@@ -188,27 +196,87 @@ export class AutocompleteUI {
      */
     #update(candidates) {
         this.candidates = candidates;
-        this.element.innerHTML = ''; // Clear previous items
+        const tbody = this.element.querySelector('tbody');
+        tbody.innerHTML = ''; // Clear previous items from tbody
         if (candidates.length === 0) {
             this.#hide();
             return;
         }
 
         candidates.forEach((candidate, index) => {
-            const item = document.createElement('div');
-            item.classList.add('autocomplete-plus-item');
-            item.dataset.index = index;
-            // Display tag and count (alias if matched by alias)
-            item.textContent = `${candidate.tag} (${candidate.count})${candidate.alias ? ` [${candidate.alias}]` : ''}`;
-            item.style.padding = '4px 8px';
-            item.style.cursor = 'pointer';
-            this.element.appendChild(item);
+            this.#createCandidateItem(index, candidate); // Pass candidate directly
         });
+
+        // If the list is already visible, update its position in case content changed size significantly
+        if (this.isVisible() && this.activeInput) {
+             this.#updateListBounds();
+        }
     }
 
-    /** Highlights the item at the given index */
+    /**
+     * Creates a table row (tr) for a candidate item.
+     * @param {number} index
+     * @param {{tag: string, count: number, alias?: string[]}} candidate
+     */
+    #createCandidateItem(index, candidate) {
+        const MAX_ALIAS_LENGTH = 25; // Maximum length for alias display
+        const tbody = this.element.querySelector('tbody');
+
+        const item = document.createElement('tr'); // Create a table row
+        item.classList.add('autocomplete-plus-item');
+        item.dataset.index = index;
+        item.style.cursor = 'pointer';
+        item.style.whiteSpace = 'nowrap'; // Prevent wrapping within the row
+        
+        // Left cell: Tag
+        const leftTd = document.createElement('td');
+        leftTd.style.padding = '4px 8px';
+        leftTd.style.overflow = 'hidden';
+        leftTd.style.textOverflow = 'ellipsis';
+        leftTd.style.maxWidth = '300px'; // Limit width of the tag/alias cell
+        leftTd.style.textAlign = 'left';
+        
+        leftTd.textContent = candidate.tag; // Display the tag
+
+        // Middle cell: Alias (if any)
+        const middleTd = document.createElement('td');
+        middleTd.style.padding = '4px 8px';
+        middleTd.style.overflow = 'hidden';
+        middleTd.style.textOverflow = 'ellipsis';
+        middleTd.style.maxWidth = '300px'; // Limit width of the tag/alias cell
+        middleTd.style.textAlign = 'left';
+
+        let displayText = "";
+        let displayAliasStr = '';
+        if (candidate.alias && candidate.alias.length > 0) {
+            displayAliasStr = candidate.alias.join(', '); // Join multiple aliases with commas
+            // Truncate long alias
+            if (displayAliasStr.length > MAX_ALIAS_LENGTH) {
+                displayAliasStr = displayAliasStr.substring(0, MAX_ALIAS_LENGTH) + '...';
+            }
+            displayText += ` [${displayAliasStr}]`;
+        }
+        middleTd.textContent = displayText;
+        middleTd.title = `${candidate.tag}${candidate.alias && candidate.alias.length > 0 ? ` [${candidate.alias.join(', ')}]` : ''}`; // Full text on hover
+
+        // Right cell: Count
+        const rightTd = document.createElement('td');
+        rightTd.textContent = formatCountHumanReadable(candidate.count);
+        rightTd.style.padding = '4px 8px';
+        rightTd.style.textAlign = 'right';
+        rightTd.style.minWidth = '50px'; // Ensure some minimum space for count alignment
+
+        item.appendChild(leftTd);
+        item.appendChild(middleTd);
+        item.appendChild(rightTd);
+        tbody.appendChild(item); // Append row to tbody
+    }
+
+    /** Highlights the item (row) at the given index */
     #highlightItem() {
-        const items = this.element.children;
+        const tbody = this.element.querySelector('tbody');
+        if (!tbody) return;
+        const items = tbody.children; // Get rows (tr) from tbody
         for (let i = 0; i < items.length; i++) {
             if (i === this.selectedIndex) {
                 items[i].classList.add('selected'); // Use CSS class for selection
@@ -376,4 +444,428 @@ export class AutocompleteUI {
 
         return coordinates;
     }
+}
+
+// --- Helper Functions ---
+
+/**
+ * Converts Hiragana to Katakana.
+ * @param {string} str Input string.
+ * @returns {string} Katakana string.
+ */
+function hiraToKata(str) {
+    return str.replace(/[\u3041-\u3096]/g, function (match) {
+        const chr = match.charCodeAt(0) + 0x60;
+        return String.fromCharCode(chr);
+    });
+}
+
+/**
+ * Converts Katakana to Hiragana.
+ * @param {string} str Input string.
+ * @returns {string} Hiragana string.
+ */
+function kataToHira(str) {
+    return str.replace(/[\u30a1-\u30f6]/g, function (match) {
+        const chr = match.charCodeAt(0) - 0x60;
+        return String.fromCharCode(chr);
+    });
+}
+
+/**
+ * Formats a number into a human-readable string with metric prefixes (k, M, G).
+ * @param {number} num The number to format.
+ * @returns {string} The formatted string.
+ */
+function formatCountHumanReadable(num) {
+    if (num === null || num === undefined || isNaN(num)) {
+        return '0'; // Or handle as an error/empty string
+    }
+    if (num < 1000) {
+        return num.toString();
+    }
+    const si = [
+        { value: 1, symbol: "" },
+        { value: 1E3, symbol: "k" },
+        { value: 1E6, symbol: "M" },
+        { value: 1E9, symbol: "G" },
+        // Add more prefixes if needed (T, P, E)
+    ];
+    const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
+    let i;
+    for (i = si.length - 1; i > 0; i--) {
+        if (num >= si[i].value) {
+            break;
+        }
+    }
+    // Format with one decimal place if needed, remove trailing zeros and '.'.
+    return (num / si[i].value).toFixed(1).replace(rx, "$1") + si[i].symbol;
+}
+
+// --- End Helper Functions ---
+
+// --- Autocomplete Logic ---
+
+const MAX_CANDIDATES = 50; // Max number of suggestions to show
+const autocompleteUI = new AutocompleteUI();
+
+/**
+ * Finds tag completion candidates based on the input query.
+ * Handles Hiragana/Katakana conversion for matching.
+ * @param {string} query The partial tag input.
+ * @returns {Array<{tag: string, count: number, alias?: string}>}
+ */
+function findCompletionCandidates(query) {
+    const startTime = performance.now(); // 検索開始時間を記録
+
+    if (!query) {
+        return [];
+    }
+
+    const lowerQuery = query.toLowerCase();
+    const candidates = [];
+    const addedTags = new Set(); // Keep track of added tags to avoid duplicates
+
+    // Generate Hiragana/Katakana variations if applicable
+    const queryVariations = new Set([lowerQuery]);
+    const kataQuery = hiraToKata(lowerQuery);
+    if (kataQuery !== lowerQuery) {
+        queryVariations.add(kataQuery);
+    }
+    const hiraQuery = kataToHira(lowerQuery);
+    if (hiraQuery !== lowerQuery) {
+        queryVariations.add(hiraQuery);
+    }
+
+    // Search in sortedTags (already sorted by count)
+    for (const tagData of sortedTags) {
+        let matched = false;
+        let matchedAlias = null;
+
+        // Check primary tag against all variations
+        for (const variation of queryVariations) {
+            // Ensure tagData.tag is treated as lowercase for comparison
+            if (tagData.tag.toLowerCase().includes(variation)) {
+                matched = true;
+                break;
+            }
+        }
+
+        // If primary tag didn't match, check aliases against all variations
+        if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
+            for (const alias of tagData.alias) {
+                const lowerAlias = alias.toLowerCase();
+                for (const variation of queryVariations) {
+                    if (lowerAlias.includes(variation)) {
+                        matched = true;
+                        matchedAlias = alias; // Store the alias that matched
+                        break;
+                    }
+                }
+                if (matched) break; // Stop checking aliases for this tag if one matched
+            }
+        }
+
+        // Add candidate if matched and not already added
+        if (matched && !addedTags.has(tagData.tag)) {
+            candidates.push({
+                tag: tagData.tag,
+                count: tagData.count,
+                alias: tagData.alias // Add alias property only if matched via alias
+            });
+            addedTags.add(tagData.tag);
+            if (candidates.length >= MAX_CANDIDATES) {
+                // 早期リターンする場合もログを出力
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                console.log(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates (max reached).`);
+                return candidates; // Early exit
+            }
+        }
+    }
+
+    // 検索終了時間を記録し、コンソールに出力
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    console.log(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
+
+    return candidates;
+}
+
+/**
+ * Extracts the current tag being typed before the cursor.
+ * Assumes tags are separated by commas.
+ * @param {HTMLTextAreaElement} inputElement
+ * @returns {string} The partial tag or empty string.
+ */
+function getCurrentPartialTag(inputElement) {
+    const text = inputElement.value;
+    const cursorPos = inputElement.selectionStart;
+    // Find the last comma before the cursor
+    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+    const start = lastComma === -1 ? 0 : lastComma + 1;
+    // Extract the text between the last comma (or start) and the cursor
+    const partial = text.substring(start, cursorPos).trimStart();
+    return partial;
+}
+
+/**
+ * Inserts the selected tag into the textarea, replacing the partial tag.
+ * @param {HTMLTextAreaElement} inputElement
+ * @param {string} tagToInsert
+ */
+function insertTag(inputElement, tagToInsert) {
+    const text = inputElement.value;
+    const cursorPos = inputElement.selectionStart;
+    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+    const start = lastComma === -1 ? 0 : lastComma + 1;
+    const actualTag = tagToInsert.replace("_", " ");
+
+    // Find the end of the word/tag at the cursor (if any)
+    // This basic version assumes we replace up to the next comma or end of string
+    let end = text.indexOf(',', cursorPos);
+    if (end === -1) {
+        end = text.length;
+    }
+    // More precise: find word boundary if not comma
+    const nextSpace = text.indexOf(' ', cursorPos);
+    if (nextSpace !== -1 && nextSpace < end) {
+        // This logic might need refinement depending on desired behavior
+        // For now, replace up to the original cursor position if inserting mid-word
+        end = cursorPos;
+    }
+
+    // Ensure space after comma if inserting after a comma
+    const prefix = text.substring(0, start).trimEnd();
+    const needsSpaceBefore = start > 0 && prefix[prefix.length - 1] === ',';
+
+    const textBefore = text.substring(0, start) + (needsSpaceBefore ? ' ' : '');
+    const textAfter = text.substring(cursorPos); // Use cursorPos to replace only typed part
+
+    // Add comma and space if needed after insertion
+    const suffix = ', '; // Standard separator
+
+    inputElement.value = textBefore + actualTag + suffix + textAfter;
+
+    // Set cursor position after the inserted tag and the following comma+space
+    const newCursorPos = textBefore.length + actualTag.length + suffix.length;
+    inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
+
+    // Trigger input event for ComfyUI to recognize change
+    inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// --- Event Handlers ---
+
+function handleInput(event) {
+    if (!autocompleteUI) return;
+
+    const textareaElement = event.target;
+    const partialTag = getCurrentPartialTag(textareaElement);
+    const ESCAPE_SEQUENCE = ["#", "/"];
+    if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
+        const candidates = findCompletionCandidates(partialTag);
+        autocompleteUI.show(textareaElement, candidates);
+    } else {
+        autocompleteUI.hide();
+    }
+}
+
+function handleFocus(event) {
+    // Potentially show suggestions immediately on focus?
+    // For now, only show on input
+    if (!autocompleteUI) {
+        autocompleteUI = new AutocompleteUI();
+    }
+    // Maybe check if there's already text and show suggestions?
+    // handleInput(event); // Trigger check immediately
+}
+
+function handleBlur(event) {
+    // Need a slight delay because clicking the autocomplete list causes blur
+    setTimeout(() => {
+        if (autocompleteUI && !autocompleteUI.element.contains(document.activeElement)) {
+            autocompleteUI.hide();
+        }
+    }, 150);
+}
+
+function handleKeyDown(event) {
+    if (!autocompleteUI || !autocompleteUI.isVisible()) return;
+    const textareaElement = event.target;
+
+    switch (event.key) {
+        case 'ArrowDown':
+            event.preventDefault();
+            autocompleteUI.navigate(1);
+            break;
+        case 'ArrowUp':
+            event.preventDefault();
+            autocompleteUI.navigate(-1);
+            break;
+        case 'Enter':
+        case 'Tab':
+            if (autocompleteUI.getSelectedTag() !== null) {
+                event.preventDefault();
+
+                insertTag(textareaElement, autocompleteUI.getSelectedTag());
+            } else {
+                // Allow default Tab/Enter if no item is selected
+                autocompleteUI.hide();
+            }
+            break;
+        case 'Escape':
+            event.preventDefault();
+            autocompleteUI.hide();
+            break;
+    }
+}
+
+// Data storage
+let tagMap = new Map();
+let aliasMap = new Map();
+let sortedTags = []; // Now populated directly from sorted API response
+let cooccurrenceMap = new Map(); // Structure remains Map<string, Map<string, number>>
+
+let tagsLoaded = false;
+let cooccurrenceLoaded = false;
+
+// --- Data Loading Functions ---
+
+/**
+ * Loads and processes tag data from the Python API endpoint.
+ */
+async function loadTags() {
+    const url = '/autocomplete-plus/tags';
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json(); // Data is already sorted by count
+
+        sortedTags = data; // Assign directly as it's pre-sorted
+
+        data.forEach(tagData => {
+            tagMap.set(tagData.tag, tagData);
+            if (tagData.alias && Array.isArray(tagData.alias)) {
+                tagData.alias.forEach(alias => {
+                    if (!aliasMap.has(alias)) {
+                        aliasMap.set(alias, tagData.tag); // Map alias back to the main tag
+                    }
+                });
+            }
+        });
+
+        tagsLoaded = true;
+        console.log(`[Autocomplete-Plus] Processed ${sortedTags.length} tags from API.`);
+
+    } catch (error) {
+        console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${url}:`, error);
+        tagsLoaded = false;
+    }
+}
+
+/**
+ * Loads and processes cooccurrence data from the Python API endpoint.
+ */
+async function loadCooccurrence() {
+    const url = '/autocomplete-plus/cooccurrence';
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json(); // Data is in { tag_a: { tag_b: count, ... }, ... } format
+
+        let primaryTagCount = 0;
+        let pairCount = 0;
+        for (const tagA in data) {
+            if (Object.hasOwnProperty.call(data, tagA)) {
+                const innerMap = new Map();
+                const pairs = data[tagA];
+                for (const tagB in pairs) {
+                    if (Object.hasOwnProperty.call(pairs, tagB)) {
+                        innerMap.set(tagB, pairs[tagB]);
+                        pairCount++;
+                    }
+                }
+                if (innerMap.size > 0) {
+                    cooccurrenceMap.set(tagA, innerMap);
+                    primaryTagCount++;
+                }
+            }
+        }
+
+        cooccurrenceLoaded = true;
+        console.log(`[Autocomplete-Plus] Processed ${pairCount} cooccurrence pairs for ${primaryTagCount} primary tags from API.`);
+
+    } catch (error) {
+        console.error(`[Autocomplete-Plus] Failed to fetch or process cooccurrence data from ${url}:`, error);
+        cooccurrenceLoaded = false;
+    }
+}
+
+// --- End Data Loading Functions ---
+
+// --- Initialization ---
+
+export function initializeAutocomplete() {
+    Promise.all([loadTags(), loadCooccurrence()])
+        .then(() => {
+            if (!tagsLoaded) {
+                console.warn("[Autocomplete-Plus] Tags not loaded, cannot initialize autocomplete.");
+                return;
+            }
+            console.log("[Autocomplete-Plus] Initializing autocomplete features...");
+
+            // Find relevant textareas (e.g., prompt inputs)
+            // This selector might need adjustment based on ComfyUI's structure
+            const targetSelectors = [
+                '.comfy-multiline-input',
+                // Add other selectors if needed
+            ];
+
+            // Use MutationObserver to detect dynamically added textareas
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            targetSelectors.forEach(selector => {
+                                // Check if the added node itself matches or contains matching elements
+                                if (node.matches(selector)) {
+                                    attachListeners(node);
+                                } else {
+                                    node.querySelectorAll(selector).forEach(attachListeners);
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+
+            // Function to attach listeners
+            function attachListeners(element) {
+                if (element.dataset.autocompleteAttached) return; // Prevent double attachment
+                // console.log("[Autocomplete-Plus] Attaching listeners to:", element);
+                element.addEventListener('input', handleInput);
+                element.addEventListener('focus', handleFocus);
+                element.addEventListener('blur', handleBlur);
+                element.addEventListener('keydown', handleKeyDown);
+                element.dataset.autocompleteAttached = 'true';
+            }
+
+            // Initial scan for existing elements
+            targetSelectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach(attachListeners);
+            });
+
+            // Start observing the document body for changes
+            observer.observe(document.body, { childList: true, subtree: true });
+
+            console.log("[Autocomplete-Plus] Autocomplete initialized and observer started.");
+        })
+        .catch(error => {
+            console.error("[Autocomplete-Plus] Error during API data loading:", error);
+        });
 }
