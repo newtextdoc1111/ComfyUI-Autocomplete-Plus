@@ -1,3 +1,4 @@
+import { settingValues, setupSettings} from './settings.js'; // Import setupSettings
 // --- Autocomplete UI Class ---
 
 class AutocompleteUI {
@@ -209,7 +210,7 @@ class AutocompleteUI {
 
         // If the list is already visible, update its position in case content changed size significantly
         if (this.isVisible() && this.activeInput) {
-             this.#updateListBounds();
+            this.#updateListBounds();
         }
     }
 
@@ -227,7 +228,7 @@ class AutocompleteUI {
         item.dataset.index = index;
         item.style.cursor = 'pointer';
         item.style.whiteSpace = 'nowrap'; // Prevent wrapping within the row
-        
+
         // Left cell: Tag
         const leftTd = document.createElement('td');
         leftTd.style.padding = '4px 8px';
@@ -235,7 +236,7 @@ class AutocompleteUI {
         leftTd.style.textOverflow = 'ellipsis';
         leftTd.style.maxWidth = '300px'; // Limit width of the tag/alias cell
         leftTd.style.textAlign = 'left';
-        
+
         leftTd.textContent = candidate.tag; // Display the tag
 
         // Middle cell: Alias (if any)
@@ -505,8 +506,6 @@ function formatCountHumanReadable(num) {
 // --- End Helper Functions ---
 
 // --- Autocomplete Logic ---
-
-const MAX_CANDIDATES = 50; // Max number of suggestions to show
 const autocompleteUI = new AutocompleteUI();
 
 /**
@@ -574,7 +573,7 @@ function findCompletionCandidates(query) {
                 alias: tagData.alias // Add alias property only if matched via alias
             });
             addedTags.add(tagData.tag);
-            if (candidates.length >= MAX_CANDIDATES) {
+            if (candidates.length >= settingValues.maxSuggestions) {
                 // 早期リターンする場合もログを出力
                 const endTime = performance.now();
                 const duration = endTime - startTime;
@@ -658,7 +657,7 @@ function insertTag(inputElement, tagToInsert) {
 // --- Event Handlers ---
 
 function handleInput(event) {
-    if (!autocompleteUI) return;
+    if (!settingValues.enabled || !autocompleteUI) return;
 
     const textareaElement = event.target;
     const partialTag = getCurrentPartialTag(textareaElement);
@@ -672,6 +671,7 @@ function handleInput(event) {
 }
 
 function handleFocus(event) {
+    if(!settingValues.enabled) return;
     // Potentially show suggestions immediately on focus?
     // For now, only show on input
     if (!autocompleteUI) {
@@ -691,7 +691,7 @@ function handleBlur(event) {
 }
 
 function handleKeyDown(event) {
-    if (!autocompleteUI || !autocompleteUI.isVisible()) return;
+    if (!settingValues.enabled || !autocompleteUI || !autocompleteUI.isVisible()) return;
     const textareaElement = event.target;
 
     switch (event.key) {
@@ -722,6 +722,7 @@ function handleKeyDown(event) {
 }
 
 // Data storage
+let settings = null;
 let tagMap = new Map();
 let aliasMap = new Map();
 let sortedTags = []; // Now populated directly from sorted API response
@@ -810,62 +811,63 @@ async function loadCooccurrence() {
 
 // --- Initialization ---
 
-export function initializeAutocomplete() {
-    Promise.all([loadTags(), loadCooccurrence()])
-        .then(() => {
-            if (!tagsLoaded) {
-                console.warn("[Autocomplete-Plus] Tags not loaded, cannot initialize autocomplete.");
-                return;
-            }
-            console.log("[Autocomplete-Plus] Initializing autocomplete features...");
+export async function initializeAutocomplete() {
+    try {
+        settings = await setupSettings();
+        await Promise.all([loadTags(), loadCooccurrence()]);
 
-            // Find relevant textareas (e.g., prompt inputs)
-            // This selector might need adjustment based on ComfyUI's structure
-            const targetSelectors = [
-                '.comfy-multiline-input',
-                // Add other selectors if needed
-            ];
+        if (!tagsLoaded) {
+            console.warn("[Autocomplete-Plus] Tags not loaded, cannot initialize autocomplete.");
+            return;
+        }
+        console.log("[Autocomplete-Plus] Initializing autocomplete features...");
 
-            // Use MutationObserver to detect dynamically added textareas
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            targetSelectors.forEach(selector => {
-                                // Check if the added node itself matches or contains matching elements
-                                if (node.matches(selector)) {
-                                    attachListeners(node);
-                                } else {
-                                    node.querySelectorAll(selector).forEach(attachListeners);
-                                }
-                            });
-                        }
-                    });
+        // Find relevant textareas (e.g., prompt inputs)
+        // This selector might need adjustment based on ComfyUI's structure
+        const targetSelectors = [
+            '.comfy-multiline-input',
+            // Add other selectors if needed
+        ];
+
+        // Use MutationObserver to detect dynamically added textareas
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        targetSelectors.forEach(selector => {
+                            // Check if the added node itself matches or contains matching elements
+                            if (node.matches(selector)) {
+                                attachListeners(node);
+                            } else {
+                                node.querySelectorAll(selector).forEach(attachListeners);
+                            }
+                        });
+                    }
                 });
             });
-
-            // Function to attach listeners
-            function attachListeners(element) {
-                if (element.dataset.autocompleteAttached) return; // Prevent double attachment
-                // console.log("[Autocomplete-Plus] Attaching listeners to:", element);
-                element.addEventListener('input', handleInput);
-                element.addEventListener('focus', handleFocus);
-                element.addEventListener('blur', handleBlur);
-                element.addEventListener('keydown', handleKeyDown);
-                element.dataset.autocompleteAttached = 'true';
-            }
-
-            // Initial scan for existing elements
-            targetSelectors.forEach(selector => {
-                document.querySelectorAll(selector).forEach(attachListeners);
-            });
-
-            // Start observing the document body for changes
-            observer.observe(document.body, { childList: true, subtree: true });
-
-            console.log("[Autocomplete-Plus] Autocomplete initialized and observer started.");
-        })
-        .catch(error => {
-            console.error("[Autocomplete-Plus] Error during API data loading:", error);
         });
+
+        // Function to attach listeners
+        function attachListeners(element) {
+            if (element.dataset.autocompleteAttached) return; // Prevent double attachment
+            // console.log("[Autocomplete-Plus] Attaching listeners to:", element);
+            element.addEventListener('input', handleInput);
+            element.addEventListener('focus', handleFocus);
+            element.addEventListener('blur', handleBlur);
+            element.addEventListener('keydown', handleKeyDown);
+            element.dataset.autocompleteAttached = 'true';
+        }
+
+        // Initial scan for existing elements
+        targetSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(attachListeners);
+        });
+
+        // Start observing the document body for changes
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        console.log("[Autocomplete-Plus] Autocomplete initialized and observer started.");
+    } catch (e) {
+        console.error("[Autocomplete-Plus] Error during API data loading:", error);
+    }
 }
