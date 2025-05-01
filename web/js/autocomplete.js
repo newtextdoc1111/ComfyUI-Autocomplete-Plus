@@ -1,4 +1,5 @@
-import { settingValues, setupSettings} from './settings.js'; // Import setupSettings
+import { settingValues } from './settings.js';
+
 // --- Autocomplete UI Class ---
 
 class AutocompleteUI {
@@ -111,7 +112,7 @@ class AutocompleteUI {
         const scale = window.app?.canvas?.ds?.scale ?? 1.0;
 
         // Initial desired position: below the current text line where the caret is.
-        let topPosition = caretTop + ((caretLineHeight + 4) * scale);
+        let topPosition = caretTop + ((caretLineHeight) * scale);
         let leftPosition = caretLeft;
 
         // Make the list visible *before* getting its dimensions to ensure they are accurate
@@ -297,6 +298,13 @@ class AutocompleteUI {
             this.#hide();
             return;
         }
+        
+        // Get the selected tag
+        const selectedTag = this.candidates[index].tag;
+        
+        // Insert the selected tag
+        insertTag(this.activeInput, selectedTag);
+        
         this.#hide();
     }
 
@@ -600,9 +608,11 @@ function findCompletionCandidates(query) {
 function getCurrentPartialTag(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
+
     // Find the last comma before the cursor
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
     const start = lastComma === -1 ? 0 : lastComma + 1;
+
     // Extract the text between the last comma (or start) and the cursor
     const partial = text.substring(start, cursorPos).trimStart();
     return partial;
@@ -616,41 +626,59 @@ function getCurrentPartialTag(inputElement) {
 function insertTag(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
+
+    // Find the last newline or comma before the cursor
+    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
-    const start = lastComma === -1 ? 0 : lastComma + 1;
+
+    // Get the position of the last separator (newline or comma) before cursor
+    const lastSeparator = Math.max(lastNewLine, lastComma);
+    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
+
     const actualTag = tagToInsert.replace("_", " ");
 
-    // Find the end of the word/tag at the cursor (if any)
-    // This basic version assumes we replace up to the next comma or end of string
-    let end = text.indexOf(',', cursorPos);
-    if (end === -1) {
+    // Find the next comma or newline after the cursor position
+    let endComma = text.indexOf(',', cursorPos);
+    let endNewLine = text.indexOf('\n', cursorPos);
+
+    // Find the next separator (comma or newline) or end of string
+    let end;
+    if (endComma === -1 && endNewLine === -1) {
         end = text.length;
+    } else if (endComma === -1) {
+        end = endNewLine;
+    } else if (endNewLine === -1) {
+        end = endComma;
+    } else {
+        end = Math.min(endComma, endNewLine);
     }
-    // More precise: find word boundary if not comma
+
+    // Check word boundary if in the middle of a word
     const nextSpace = text.indexOf(' ', cursorPos);
     if (nextSpace !== -1 && nextSpace < end) {
-        // This logic might need refinement depending on desired behavior
-        // For now, replace up to the original cursor position if inserting mid-word
         end = cursorPos;
     }
 
-    // Ensure space after comma if inserting after a comma
-    const prefix = text.substring(0, start).trimEnd();
-    const needsSpaceBefore = start > 0 && prefix[prefix.length - 1] === ',';
+    // Add space if the previous separator was a comma
+    const needsSpaceBefore = lastSeparator === lastComma && start > 0;
 
+    // Prepare text before the cursor (with space if needed)
     const textBefore = text.substring(0, start) + (needsSpaceBefore ? ' ' : '');
-    const textAfter = text.substring(cursorPos); // Use cursorPos to replace only typed part
 
-    // Add comma and space if needed after insertion
-    const suffix = ', '; // Standard separator
+    // Get text after the cursor
+    const textAfter = text.substring(cursorPos);
 
+    // Standard separator (comma + space)
+    const suffix = ', ';
+
+    // Set the new value
     inputElement.value = textBefore + actualTag + suffix + textAfter;
 
-    // Set cursor position after the inserted tag and the following comma+space
+    // Set cursor position after the tag and separator
     const newCursorPos = textBefore.length + actualTag.length + suffix.length;
     inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
 
-    // Trigger input event for ComfyUI to recognize change
+    // Trigger input event to notify ComfyUI about the change
     inputElement.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
@@ -671,7 +699,7 @@ function handleInput(event) {
 }
 
 function handleFocus(event) {
-    if(!settingValues.enabled) return;
+    if (!settingValues.enabled) return;
     // Potentially show suggestions immediately on focus?
     // For now, only show on input
     if (!autocompleteUI) {
@@ -813,7 +841,6 @@ async function loadCooccurrence() {
 
 export async function initializeAutocomplete() {
     try {
-        settings = await setupSettings();
         await Promise.all([loadTags(), loadCooccurrence()]);
 
         if (!tagsLoaded) {
@@ -850,11 +877,12 @@ export async function initializeAutocomplete() {
         // Function to attach listeners
         function attachListeners(element) {
             if (element.dataset.autocompleteAttached) return; // Prevent double attachment
-            // console.log("[Autocomplete-Plus] Attaching listeners to:", element);
+
             element.addEventListener('input', handleInput);
             element.addEventListener('focus', handleFocus);
             element.addEventListener('blur', handleBlur);
             element.addEventListener('keydown', handleKeyDown);
+            
             element.dataset.autocompleteAttached = 'true';
         }
 
