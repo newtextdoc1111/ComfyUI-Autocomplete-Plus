@@ -1,11 +1,17 @@
 import { settingValues } from './settings.js';
-import { 
-    findSimilarTags, 
-    getCurrentTag, 
-    showSimilarTags, 
-    hideSimilarTags, 
-    isSimilarTagsVisible 
+import { autoCompleteData, loadAllData } from './data.js';
+import {
+    hiraToKata,
+    kataToHira,
+    formatCountHumanReadable,
+    swapUnderscoresAndSpaces,
+    escapeParentheses,
+    unescapeParentheses
+} from './helper.js';
+import {
+    SimilarTagsEventHandler,
 } from './similar-tags.js';
+import { registerEventHandlers } from './event-handler.js';
 
 // --- Autocomplete UI Class ---
 
@@ -92,7 +98,7 @@ class AutocompleteUI {
         this.selectedIndex = 0;
 
         // Calculate caret position using the helper function (returns viewport-relative coordinates)
-        this.#updateListBounds();
+        this.#updateListPosition();
 
         this.element.style.overflowY = 'auto';
         this.element.style.display = 'block'; // Make it visible
@@ -108,7 +114,7 @@ class AutocompleteUI {
      * License: MIT License (assumed based on repository root LICENSE file)
      * Considers ComfyUI canvas scale.
      */
-    #updateListBounds() {
+    #updateListPosition() {
         const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.activeInput);
 
         // Reset scroll position and max-height before calculating position
@@ -218,7 +224,7 @@ class AutocompleteUI {
 
         // If the list is already visible, update its position in case content changed size significantly
         if (this.isVisible() && this.activeInput) {
-            this.#updateListBounds();
+            this.#updateListPosition();
         }
     }
 
@@ -305,13 +311,13 @@ class AutocompleteUI {
             this.#hide();
             return;
         }
-        
+
         // Get the selected tag
         const selectedTag = this.candidates[index].tag;
-        
+
         // Insert the selected tag
         insertTag(this.activeInput, selectedTag);
-        
+
         this.#hide();
     }
 
@@ -462,66 +468,9 @@ class AutocompleteUI {
     }
 }
 
-// --- Helper Functions ---
-
-/**
- * Converts Hiragana to Katakana.
- * @param {string} str Input string.
- * @returns {string} Katakana string.
- */
-function hiraToKata(str) {
-    return str.replace(/[\u3041-\u3096]/g, function (match) {
-        const chr = match.charCodeAt(0) + 0x60;
-        return String.fromCharCode(chr);
-    });
-}
-
-/**
- * Converts Katakana to Hiragana.
- * @param {string} str Input string.
- * @returns {string} Hiragana string.
- */
-function kataToHira(str) {
-    return str.replace(/[\u30a1-\u30f6]/g, function (match) {
-        const chr = match.charCodeAt(0) - 0x60;
-        return String.fromCharCode(chr);
-    });
-}
-
-/**
- * Formats a number into a human-readable string with metric prefixes (k, M, G).
- * @param {number} num The number to format.
- * @returns {string} The formatted string.
- */
-function formatCountHumanReadable(num) {
-    if (num === null || num === undefined || isNaN(num)) {
-        return '0'; // Or handle as an error/empty string
-    }
-    if (num < 1000) {
-        return num.toString();
-    }
-    const si = [
-        { value: 1, symbol: "" },
-        { value: 1E3, symbol: "k" },
-        { value: 1E6, symbol: "M" },
-        { value: 1E9, symbol: "G" },
-        // Add more prefixes if needed (T, P, E)
-    ];
-    const rx = /\.0+$|(\.[0-9]*[1-9])0+$/;
-    let i;
-    for (i = si.length - 1; i > 0; i--) {
-        if (num >= si[i].value) {
-            break;
-        }
-    }
-    // Format with one decimal place if needed, remove trailing zeros and '.'.
-    return (num / si[i].value).toFixed(1).replace(rx, "$1") + si[i].symbol;
-}
-
-// --- End Helper Functions ---
-
 // --- Autocomplete Logic ---
 const autocompleteUI = new AutocompleteUI();
+const similarTagsEventHandler = new SimilarTagsEventHandler(); // Pass the autocomplete UI instance
 
 /**
  * Finds tag completion candidates based on the input query.
@@ -552,7 +501,7 @@ function findCompletionCandidates(query) {
     }
 
     // Search in sortedTags (already sorted by count)
-    for (const tagData of sortedTags) {
+    for (const tagData of autoCompleteData.sortedTags) {
         let matched = false;
         let matchedAlias = null;
 
@@ -628,7 +577,7 @@ function getCurrentPartialTag(inputElement) {
 /**
  * Inserts the selected tag into the textarea, replacing the partial tag.
  * @param {HTMLTextAreaElement} inputElement
- * @param {string} tagToInsert
+ * @param {string} tagToInsert The raw tag string to insert.
  */
 function insertTag(inputElement, tagToInsert) {
     const text = inputElement.value;
@@ -642,13 +591,9 @@ function insertTag(inputElement, tagToInsert) {
     const lastSeparator = Math.max(lastNewLine, lastComma);
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
-    // Replace underscores with spaces and escape parentheses
-    const actualTag = tagToInsert
-        .replace(/_/g, " ")
-        .replace(/\\\(/g, "\\\\(") // Escape backslashes before parentheses first
-        .replace(/\\\)/g, "\\\\)")
-        .replace(/\(/g, "\\(") // Escape opening parenthesis
-        .replace(/\)/g, "\\)"); // Escape closing parenthesis
+    // Process the tag: swap underscores/spaces and escape parentheses
+    const processedTag = swapUnderscoresAndSpaces(tagToInsert);
+    const normalizedTag = escapeParentheses(processedTag); // Use helper functions
 
     // Find the next comma or newline after the cursor position
     let endComma = text.indexOf(',', cursorPos);
@@ -687,10 +632,10 @@ function insertTag(inputElement, tagToInsert) {
     const suffix = ', ';
 
     // Set the new value
-    inputElement.value = textBefore + actualTag + suffix + textAfter;
+    inputElement.value = textBefore + normalizedTag + suffix + textAfter;
 
     // Set cursor position after the tag and separator
-    const newCursorPos = textBefore.length + actualTag.length + suffix.length;
+    const newCursorPos = textBefore.length + normalizedTag.length + suffix.length;
     inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
 
     // Trigger input event to notify ComfyUI about the change
@@ -702,9 +647,9 @@ function insertTag(inputElement, tagToInsert) {
 function handleInput(event) {
     if (!settingValues.enabled || !autocompleteUI) return;
 
+    const ESCAPE_SEQUENCE = ["#", "/"];
     const textareaElement = event.target;
     const partialTag = getCurrentPartialTag(textareaElement);
-    const ESCAPE_SEQUENCE = ["#", "/"];
     if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
         const candidates = findCompletionCandidates(partialTag);
         autocompleteUI.show(textareaElement, candidates);
@@ -712,10 +657,7 @@ function handleInput(event) {
         autocompleteUI.hide();
     }
 
-    // Handle similar tags (if enabled and in click mode, hide until clicked)
-    if (settingValues.enableSimilarTags && settingValues.similarTagsDisplayMode !== 'hover') {
-        hideSimilarTags();
-    }
+    similarTagsEventHandler.handleInput(event);
 }
 
 function handleFocus(event) {
@@ -727,6 +669,8 @@ function handleFocus(event) {
     }
     // Maybe check if there's already text and show suggestions?
     // handleInput(event); // Trigger check immediately
+
+    similarTagsEventHandler.handleFocus(event);
 }
 
 function handleBlur(event) {
@@ -736,8 +680,7 @@ function handleBlur(event) {
             autocompleteUI.hide();
         }
 
-        // Don't hide similar tags panel on blur if it doesn't contain target
-        // This is handled by the similar-tags module
+        similarTagsEventHandler.handleBlur(event);
     }, 150);
 }
 
@@ -745,7 +688,7 @@ function handleKeyDown(event) {
     if (!settingValues.enabled) return;
 
     const textareaElement = event.target;
-    
+
     // Handle autocomplete navigation
     if (autocompleteUI && autocompleteUI.isVisible()) {
         switch (event.key) {
@@ -773,284 +716,21 @@ function handleKeyDown(event) {
                 break;
         }
     }
-    // For similar tags panel, handle Escape key
-    else if (isSimilarTagsVisible()) {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            hideSimilarTags();
-        }
-    }
-    // In click mode, show similar tags on Ctrl+Space
-    else if (settingValues.enableSimilarTags && settingValues.similarTagsDisplayMode === 'click') {
-        if (event.key === ' ' && event.ctrlKey) {
-            event.preventDefault();
-            showSimilarTagsForCurrentPosition(textareaElement);
-        }
-    }
+
+    similarTagsEventHandler.handleKeyDown(event);
 }
 
 // New event handler for mousemove to show similar tags on hover
 function handleMouseMove(event) {
-    if (!settingValues.enabled || !settingValues.enableSimilarTags || 
-        settingValues.similarTagsDisplayMode !== 'hover') return;
-    
-    const textareaElement = event.target;
-    
-    // Throttle the mousemove event to avoid too many calculations
-    if (!textareaElement.dataset.lastMoveTime || 
-        Date.now() - textareaElement.dataset.lastMoveTime > 200) {
-        
-        textareaElement.dataset.lastMoveTime = Date.now();
-        showSimilarTagsForCurrentPosition(textareaElement);
-    }
+    similarTagsEventHandler.handleMouseMove(event);
 }
 
 // New event handler for click to show similar tags
 function handleClick(event) {
-    if (!settingValues.enabled || !settingValues.enableSimilarTags || 
+    if (!settingValues.enabled || !settingValues.enableSimilarTags ||
         settingValues.similarTagsDisplayMode !== 'click') return;
-    
-    const textareaElement = event.target;
-    showSimilarTagsForCurrentPosition(textareaElement);
-}
 
-// Helper function to show similar tags based on cursor position
-function showSimilarTagsForCurrentPosition(textareaElement) {
-    // Get the tag at current cursor position
-    const currentTag = getCurrentTag(textareaElement);
-    
-    // If no valid tag or tag is too short, hide the panel
-    if (!currentTag || currentTag.length < 2) {
-        hideSimilarTags();
-        return;
-    }
-    
-    // Find similar tags
-    const similarTagsResults = findSimilarTags(currentTag, cooccurrenceMap, tagMap);
-    
-    // Always show the panel with current tag, even if there are no similar tags
-    showSimilarTags(textareaElement, currentTag, similarTagsResults);
-}
-
-// Data storage
-let tagMap = new Map();
-let aliasMap = new Map();
-let sortedTags = []; // Now populated directly from sorted API response
-let cooccurrenceMap = new Map(); // Structure remains Map<string, Map<string, number>>
-
-let tagsLoaded = false;
-let cooccurrenceLoaded = false;
-
-// --- Data Loading Functions ---
-
-/**
- * Loads and processes tag data from the CSV file.
- */
-async function loadTags(rootPath) {
-    const startTime = performance.now(); // 処理開始時間を記録
-    const url = rootPath + 'data/danbooru_tags.csv';
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const csvText = await response.text(); // Get raw CSV text
-        const lines = csvText.split('\n').filter(line => line.trim().length > 0);
-        
-        // Skip header row if present (tag,alias,count)
-        const startIndex = lines[0].startsWith('tag,alias,count') ? 1 : 0;
-        
-        const parsedData = [];
-        
-        for (let i = startIndex; i < lines.length; i++) {
-            const line = lines[i];
-            
-            // Handle CSV parsing properly (consider quotes and commas in values)
-            const columns = parseCSVLine(line);
-            
-            if (columns.length >= 3) {
-                const tag = columns[0].trim();
-                const aliasStr = columns[1].trim();
-                const count = parseInt(columns[2].trim(), 10);
-                
-                // Skip invalid entries
-                if (!tag || isNaN(count)) continue;
-                
-                // Parse aliases - might be comma-separated list inside quotes
-                const aliases = aliasStr ? aliasStr.split(',').map(a => a.trim()).filter(a => a.length > 0) : [];
-                
-                parsedData.push({
-                    tag,
-                    alias: aliases,
-                    count
-                });
-            }
-        }
-        
-        // Sort by count in descending order
-        parsedData.sort((a, b) => b.count - a.count);
-        sortedTags = parsedData;
-        
-        // Build maps as before
-        sortedTags.forEach(tagData => {
-            tagMap.set(tagData.tag, tagData);
-            if (tagData.alias && Array.isArray(tagData.alias)) {
-                tagData.alias.forEach(alias => {
-                    if (!aliasMap.has(alias)) {
-                        aliasMap.set(alias, tagData.tag); // Map alias back to the main tag
-                    }
-                });
-            }
-        });
-
-        tagsLoaded = true;
-        // 処理終了時間を記録し、パフォーマンスログを出力
-        const endTime = performance.now();
-        const duration = endTime - startTime;
-        console.log(`[Autocomplete-Plus] Processed ${sortedTags.length} tags from CSV in ${duration.toFixed(2)}ms.`);
-
-    } catch (error) {
-        console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${url}:`, error);
-        tagsLoaded = false;
-    }
-}
-
-/**
- * Loads and processes cooccurrence data from the CSV file using chunked processing.
- */
-async function loadCooccurrence(rootPath) {
-    const url = rootPath + 'data/danbooru_tags_cooccurrence.csv';
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const csvText = await response.text();
-        const lines = csvText.split('\n').filter(line => line.trim().length > 0);
-        
-        // Skip header row if present (tag_a,tag_b,count)
-        const startIndex = lines[0].startsWith('tag_a,tag_b,count') ? 1 : 0;
-        
-        // Create a new Map to store the bidirectional relationships
-        const bidirectionalMap = new Map();
-        
-        // Process CSV data in chunks
-        await processInChunks(lines, startIndex, bidirectionalMap);
-        
-        // Assign the bidirectional map to the cooccurrenceMap
-        let actualPairCount = 0;
-        let primaryTagCount = 0;
-        cooccurrenceMap.clear();
-        
-        for (const [tag, relatedTags] of bidirectionalMap) {
-            cooccurrenceMap.set(tag, relatedTags);
-            actualPairCount += relatedTags.size;
-            primaryTagCount++;
-        }
-        
-        cooccurrenceLoaded = true;
-        console.log(`[Autocomplete-Plus] Processed bidirectional relationships for ${primaryTagCount} tags from CSV.`);
-        
-    } catch (error) {
-        console.error(`[Autocomplete-Plus] Failed to fetch or process cooccurrence data from ${url}:`, error);
-        cooccurrenceLoaded = false;
-    }
-}
-
-/**
- * Process CSV data in chunks to avoid blocking the UI
- */
-function processInChunks(lines, startIndex, bidirectionalMap) {
-    return new Promise((resolve) => {
-        const CHUNK_SIZE = 10000; // Process 10,000 lines at a time
-        let i = startIndex;
-        let pairCount = 0;
-        
-        function processChunk() {
-            const endIndex = Math.min(i + CHUNK_SIZE, lines.length);
-            
-            for (; i < endIndex; i++) {
-                const line = lines[i];
-                const columns = parseCSVLine(line);
-                
-                if (columns.length >= 3) {
-                    const tagA = columns[0].trim();
-                    const tagB = columns[1].trim();
-                    const count = parseInt(columns[2].trim(), 10);
-                    
-                    // Skip invalid entries
-                    if (!tagA || !tagB || isNaN(count)) continue;
-                    
-                    // Add tagA -> tagB relationship
-                    if (!bidirectionalMap.has(tagA)) {
-                        bidirectionalMap.set(tagA, new Map());
-                    }
-                    bidirectionalMap.get(tagA).set(tagB, count);
-                    
-                    // Add tagB -> tagA relationship (bidirectional)
-                    if (!bidirectionalMap.has(tagB)) {
-                        bidirectionalMap.set(tagB, new Map());
-                    }
-                    bidirectionalMap.get(tagB).set(tagA, count);
-                    
-                    pairCount++;
-                }
-            }
-            
-            if (i < lines.length) {
-                // Report progress
-                const progress = Math.round((i / lines.length) * 100);
-                console.log(`[Autocomplete-Plus] Processing: ${progress}% complete (${pairCount} pairs processed)`);
-                
-                // Schedule next chunk with setTimeout to allow UI updates
-                setTimeout(processChunk, 0);
-            } else {
-                console.log(`[Autocomplete-Plus] Finished processing ${pairCount} one-way cooccurrence pairs`);
-                resolve();
-            }
-        }
-        
-        // Start processing the first chunk
-        processChunk();
-    });
-}
-
-/**
- * Parse a CSV line properly, handling quoted values that may contain commas.
- * @param {string} line A single CSV line
- * @returns {string[]} Array of column values
- */
-function parseCSVLine(line) {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        
-        if (char === '"') {
-            if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-                // Escaped quote (double quote inside quotes)
-                current += '"';
-                i++; // Skip the next quote
-            } else {
-                // Toggle quote mode
-                inQuotes = !inQuotes;
-            }
-        } else if (char === ',' && !inQuotes) {
-            // End of column
-            result.push(current);
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-    
-    // Don't forget to add the last column
-    result.push(current);
-    
-    return result;
+    similarTagsEventHandler.handleClick(event);
 }
 
 // --- End Data Loading Functions ---
@@ -1059,62 +739,16 @@ function parseCSVLine(line) {
 
 export async function initializeAutocomplete(rootPath) {
     try {
-        await Promise.all([loadTags(rootPath), loadCooccurrence(rootPath)]);
+        await loadAllData(rootPath);
 
-        if (!tagsLoaded) {
-            console.warn("[Autocomplete-Plus] Tags not loaded, cannot initialize autocomplete.");
-            return;
-        }
-        console.log("[Autocomplete-Plus] Initializing autocomplete features...");
-
-        // Find relevant textareas (e.g., prompt inputs)
-        // This selector might need adjustment based on ComfyUI's structure
-        const targetSelectors = [
-            '.comfy-multiline-input',
-            // Add other selectors if needed
-        ];
-
-        // Use MutationObserver to detect dynamically added textareas
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        targetSelectors.forEach(selector => {
-                            // Check if the added node itself matches or contains matching elements
-                            if (node.matches(selector)) {
-                                attachListeners(node);
-                            } else {
-                                node.querySelectorAll(selector).forEach(attachListeners);
-                            }
-                        });
-                    }
-                });
-            });
+        registerEventHandlers({
+            handleInput: handleInput,
+            handleFocus: handleFocus,
+            handleBlur: handleBlur,
+            handleKeyDown: handleKeyDown,
+            handleMouseMove: handleMouseMove,
+            handleClick: handleClick
         });
-
-        // Function to attach listeners
-        function attachListeners(element) {
-            if (element.dataset.autocompleteAttached) return; // Prevent double attachment
-
-            element.addEventListener('input', handleInput);
-            element.addEventListener('focus', handleFocus);
-            element.addEventListener('blur', handleBlur);
-            element.addEventListener('keydown', handleKeyDown);
-            
-            // Add new event listeners for similar tags feature
-            element.addEventListener('mousemove', handleMouseMove);
-            element.addEventListener('click', handleClick);
-            
-            element.dataset.autocompleteAttached = 'true';
-        }
-
-        // Initial scan for existing elements
-        targetSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(attachListeners);
-        });
-
-        // Start observing the document body for changes
-        observer.observe(document.body, { childList: true, subtree: true });
 
         console.log("[Autocomplete-Plus] Autocomplete and similar tags features initialized.");
     } catch (e) {

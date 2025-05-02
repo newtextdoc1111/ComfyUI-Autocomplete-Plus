@@ -11,7 +11,7 @@ function loadCSS(href) {
     // Ensure the CSS is loaded before other scripts might rely on its styles
     // by adding it to the head.
     document.head.appendChild(link);
-    console.log(`Loaded CSS: ${href}`); // Optional: Log loading
+    console.debug(`Loaded CSS: ${href}`); // Optional: Log loading
 }
 
 const id = "AutocompletePlus";
