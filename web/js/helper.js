@@ -93,4 +93,17 @@ export function unescapeParentheses(str) {
     if (!str) return str;
     return str.replace(/\\\(/g, '(').replace(/\\\)/g, ')');
 }
+
 // --- End String Helper Functions ---
+
+// Function to load a CSS file
+export function loadCSS(href) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = href;
+    // Ensure the CSS is loaded before other scripts might rely on its styles
+    // by adding it to the head.
+    document.head.appendChild(link);
+    console.debug(`Loaded CSS: ${href}`); // Optional: Log loading
+}

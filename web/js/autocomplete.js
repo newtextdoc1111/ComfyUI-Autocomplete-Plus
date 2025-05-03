@@ -8,10 +8,6 @@ import {
     escapeParentheses,
     unescapeParentheses
 } from './helper.js';
-import {
-    SimilarTagsEventHandler,
-} from './similar-tags.js';
-import { registerEventHandlers } from './event-handler.js';
 
 // --- Autocomplete UI Class ---
 
@@ -470,7 +466,6 @@ class AutocompleteUI {
 
 // --- Autocomplete Logic ---
 const autocompleteUI = new AutocompleteUI();
-const similarTagsEventHandler = new SimilarTagsEventHandler(); // Pass the autocomplete UI instance
 
 /**
  * Finds tag completion candidates based on the input query.
@@ -642,116 +637,82 @@ function insertTag(inputElement, tagToInsert) {
     inputElement.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-// --- Event Handlers ---
-
-function handleInput(event) {
-    if (!settingValues.enabled || !autocompleteUI) return;
-
-    const ESCAPE_SEQUENCE = ["#", "/"];
-    const textareaElement = event.target;
-    const partialTag = getCurrentPartialTag(textareaElement);
-    if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
-        const candidates = findCompletionCandidates(partialTag);
-        autocompleteUI.show(textareaElement, candidates);
-    } else {
-        autocompleteUI.hide();
-    }
-
-    similarTagsEventHandler.handleInput(event);
-}
-
-function handleFocus(event) {
-    if (!settingValues.enabled) return;
-    // Potentially show suggestions immediately on focus?
-    // For now, only show on input
-    if (!autocompleteUI) {
-        autocompleteUI = new AutocompleteUI();
-    }
-    // Maybe check if there's already text and show suggestions?
-    // handleInput(event); // Trigger check immediately
-
-    similarTagsEventHandler.handleFocus(event);
-}
-
-function handleBlur(event) {
-    // Need a slight delay because clicking the autocomplete list causes blur
-    setTimeout(() => {
-        if (autocompleteUI && !autocompleteUI.element.contains(document.activeElement)) {
+export class AutocompleteEventHandler {
+    handleInput(event) {
+        if (!settingValues.enabled || !autocompleteUI) return;
+    
+        const ESCAPE_SEQUENCE = ["#", "/"]; // prevent autocomplete for these sequences
+        const textareaElement = event.target;
+        const partialTag = getCurrentPartialTag(textareaElement);
+        if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
+            const candidates = findCompletionCandidates(partialTag);
+            autocompleteUI.show(textareaElement, candidates);
+        } else {
             autocompleteUI.hide();
         }
-
-        similarTagsEventHandler.handleBlur(event);
-    }, 150);
-}
-
-function handleKeyDown(event) {
-    if (!settingValues.enabled) return;
-
-    const textareaElement = event.target;
-
-    // Handle autocomplete navigation
-    if (autocompleteUI && autocompleteUI.isVisible()) {
-        switch (event.key) {
-            case 'ArrowDown':
-                event.preventDefault();
-                autocompleteUI.navigate(1);
-                break;
-            case 'ArrowUp':
-                event.preventDefault();
-                autocompleteUI.navigate(-1);
-                break;
-            case 'Enter':
-            case 'Tab':
-                if (autocompleteUI.getSelectedTag() !== null) {
-                    event.preventDefault();
-                    insertTag(textareaElement, autocompleteUI.getSelectedTag());
-                } else {
-                    // Allow default Tab/Enter if no item is selected
-                    autocompleteUI.hide();
-                }
-                break;
-            case 'Escape':
-                event.preventDefault();
+    }
+    
+    handleFocus(event) {
+        if (!settingValues.enabled) return;
+        // Potentially show suggestions immediately on focus?
+        // For now, only show on input
+        if (!autocompleteUI) {
+            autocompleteUI = new AutocompleteUI();
+        }
+        // Maybe check if there's already text and show suggestions?
+        // handleInput(event); // Trigger check immediately
+    }
+    
+    handleBlur(event) {
+        // Need a slight delay because clicking the autocomplete list causes blur
+        setTimeout(() => {
+            if (autocompleteUI && !autocompleteUI.element.contains(document.activeElement)) {
                 autocompleteUI.hide();
-                break;
+            }
+        }, 150);
+    }
+    
+    handleKeyDown(event) {
+        if (!settingValues.enabled) return;
+    
+        const textareaElement = event.target;
+    
+        // Handle autocomplete navigation
+        if (autocompleteUI && autocompleteUI.isVisible()) {
+            switch (event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    autocompleteUI.navigate(1);
+                    break;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    autocompleteUI.navigate(-1);
+                    break;
+                case 'Enter':
+                case 'Tab':
+                    if (autocompleteUI.getSelectedTag() !== null) {
+                        event.preventDefault();
+                        insertTag(textareaElement, autocompleteUI.getSelectedTag());
+                    } else {
+                        // Allow default Tab/Enter if no item is selected
+                        autocompleteUI.hide();
+                    }
+                    break;
+                case 'Escape':
+                    event.preventDefault();
+                    autocompleteUI.hide();
+                    break;
+            }
         }
     }
-
-    similarTagsEventHandler.handleKeyDown(event);
-}
-
-// New event handler for mousemove to show similar tags on hover
-function handleMouseMove(event) {
-    similarTagsEventHandler.handleMouseMove(event);
-}
-
-// New event handler for click to show similar tags
-function handleClick(event) {
-    if (!settingValues.enabled || !settingValues.enableSimilarTags ||
-        settingValues.similarTagsDisplayMode !== 'click') return;
-
-    similarTagsEventHandler.handleClick(event);
-}
-
-// --- End Data Loading Functions ---
-
-// --- Initialization ---
-
-export async function initializeAutocomplete(rootPath) {
-    try {
-        await loadAllData(rootPath);
-
-        registerEventHandlers({
-            handleInput: handleInput,
-            handleFocus: handleFocus,
-            handleBlur: handleBlur,
-            handleKeyDown: handleKeyDown,
-            handleMouseMove: handleMouseMove,
-            handleClick: handleClick
-        });
-
-        console.log("[Autocomplete-Plus] Autocomplete and similar tags features initialized.");
-    } catch (e) {
-        console.error("[Autocomplete-Plus] Error during API data loading:", e);
+    
+    // New event handler for mousemove to show similar tags on hover
+    handleMouseMove(event) {
+    }
+    
+    // New event handler for click to show similar tags
+    handleClick(event) {
+        if (!settingValues.enabled || !settingValues.enableSimilarTags ||
+            settingValues.similarTagsDisplayMode !== 'click') return;
     }
 }

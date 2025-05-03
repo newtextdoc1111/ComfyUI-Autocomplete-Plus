@@ -6,3 +6,7 @@ export const settingValues = {
     maxSimilarTags: 20,
     similarTagsDisplayMode: 'click', // 'hover' or 'click'
 }
+
+export function initSettings(){
+    
+}

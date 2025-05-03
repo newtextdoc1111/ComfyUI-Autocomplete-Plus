@@ -1,17 +1,95 @@
 import { app } from "/scripts/app.js";
-import { initializeAutocomplete } from './autocomplete.js';
 import { settingValues } from "./settings.js";
+import { loadCSS } from "./helper.js";
+import { loadAllData } from "./data.js";
+import { AutocompleteEventHandler } from "./autocomplete.js";
+import { SimilarTagsEventHandler } from "./similar-tags.js";
 
-// Function to load a CSS file
-function loadCSS(href) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = href;
-    // Ensure the CSS is loaded before other scripts might rely on its styles
-    // by adding it to the head.
-    document.head.appendChild(link);
-    console.debug(`Loaded CSS: ${href}`); // Optional: Log loading
+function initializeEventHandlers() {
+    // Singletons for event handlers
+    const autocompleteEventHandler = new AutocompleteEventHandler();
+    const similarTagsEventHandler = new SimilarTagsEventHandler();
+
+    // Find relevant textareas (e.g., prompt inputs)
+    // This selector might need adjustment based on ComfyUI's structure
+    const targetSelectors = [
+        '.comfy-multiline-input',
+        // Add other selectors if needed
+    ];
+
+    // Use MutationObserver to detect dynamically added textareas
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    targetSelectors.forEach(selector => {
+                        // Check if the added node itself matches or contains matching elements
+                        if (node.matches(selector)) {
+                            attachListeners(node);
+                        } else {
+                            node.querySelectorAll(selector).forEach(attachListeners);
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Function to attach listeners
+    function attachListeners(element) {
+        if (element.dataset.autocompleteAttached) return; // Prevent double attachment
+
+        element.addEventListener('input', handleInput);
+        element.addEventListener('focus', handleFocus);
+        element.addEventListener('blur', handleBlur);
+        element.addEventListener('keydown', handleKeyDown);
+
+        // Add new event listeners for similar tags feature
+        element.addEventListener('mousemove', handleMouseMove);
+        element.addEventListener('click', handleClick);
+
+        element.dataset.autocompleteAttached = 'true';
+    }
+
+    // Initial scan for existing elements
+    targetSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(attachListeners);
+    });
+
+    // Start observing the document body for changes
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    function handleInput(event) {
+        autocompleteEventHandler.handleInput(event);
+        similarTagsEventHandler.handleInput(event);
+    }
+
+    function handleFocus(event) {
+        autocompleteEventHandler.handleFocus(event);
+        similarTagsEventHandler.handleFocus(event);
+    }
+
+    function handleBlur(event) {
+        autocompleteEventHandler.handleBlur(event);
+        similarTagsEventHandler.handleBlur(event);
+    }
+
+    function handleKeyDown(event) {
+        autocompleteEventHandler.handleKeyDown(event);
+        similarTagsEventHandler.handleKeyDown(event);
+    }
+
+    // New event handler for mousemove to show similar tags on hover
+    function handleMouseMove(event) {
+        autocompleteEventHandler.handleMouseMove(event);
+        similarTagsEventHandler.handleMouseMove(event);
+    }
+
+    // New event handler for click to show similar tags
+    function handleClick(event) {
+        autocompleteEventHandler.handleClick(event);
+        similarTagsEventHandler.handleClick(event);
+    }
 }
 
 const id = "AutocompletePlus";
@@ -20,10 +98,12 @@ app.registerExtension({
     id: id,
     name: name,
     setup() {
+        initializeEventHandlers();
+        
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
-        initializeAutocomplete(rootPath); // Initialize after tags are loaded
+        loadAllData(rootPath);
     },
     settings: [
         {
