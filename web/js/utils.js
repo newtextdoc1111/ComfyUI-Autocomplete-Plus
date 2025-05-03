@@ -55,22 +55,6 @@ export function formatCountHumanReadable(num) {
 }
 
 /**
- * Swaps underscores and spaces in a given string.
- * Example: "hello_world example" becomes "hello world_example"
- * @param {string} str The input string.
- * @returns {string} The string with underscores and spaces swapped.
- */
-export function swapUnderscoresAndSpaces(str) {
-    if (!str) return str;
-    // Use a temporary placeholder to avoid conflicts during replacement
-    const tempPlaceholder = "__TEMP_SWAP__";
-    return str
-        .replace(/_/g, tempPlaceholder) // Replace underscores with placeholder
-        .replace(/ /g, "_")             // Replace spaces with underscores
-        .replace(new RegExp(tempPlaceholder, 'g'), " "); // Replace placeholder with spaces
-}
-
-/**
  * Escapes parentheses in a string for use in prompts.
  * Replaces '(' with '\(' and ')' with '\)'.
  * Ignores already escaped parentheses like '\('.
@@ -92,6 +76,25 @@ export function escapeParentheses(str) {
 export function unescapeParentheses(str) {
     if (!str) return str;
     return str.replace(/\\\(/g, '(').replace(/\\\)/g, ')');
+}
+
+/**
+ * Normalizes a tag string for input.
+ * @param {string} str 
+ * @returns 
+ */
+export function normalizeTagToSearch(str) {
+    if(!str) return str;
+    return unescapeParentheses(str.replace(/ /g, "_"));
+}
+
+/**
+ * Normalizes a tag string for input.
+ * @param {string} str 
+ * @returns 
+ */
+export function normalizeTagToInsert(str) {
+    return escapeParentheses(str.replace(/_/g, " "));
 }
 
 // --- End String Helper Functions ---

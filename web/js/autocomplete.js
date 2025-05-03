@@ -1,10 +1,10 @@
 import { autoCompleteData } from './data.js';
 import {
-    escapeParentheses,
     formatCountHumanReadable,
     hiraToKata,
     kataToHira,
-    swapUnderscoresAndSpaces
+    normalizeTagToInsert,
+    normalizeTagToSearch,
 } from './utils.js';
 import { settingValues } from './settings.js';
 
@@ -119,7 +119,6 @@ class AutocompleteUI {
 
         // Get ComfyUI canvas scale if available, otherwise default to 1
         const scale = window.app?.canvas?.ds?.scale ?? 1.0;
-        console.debug(`Canvas scale: ${scale}`);
 
         // Initial desired position: below the current text line where the caret is.
         let topPosition = elOffset.top - (elScroll.top * scale) + ((caretTop - elOffset.top) + caretLineHeight) * scale;
@@ -542,7 +541,7 @@ function findCompletionCandidates(query) {
     const addedTags = new Set(); // Keep track of added tags to avoid duplicates
 
     // Generate Hiragana/Katakana variations if applicable
-    const queryVariations = new Set([lowerQuery, swapUnderscoresAndSpaces(lowerQuery)]);
+    const queryVariations = new Set([lowerQuery, normalizeTagToSearch(lowerQuery)]);
     const kataQuery = hiraToKata(lowerQuery);
     if (kataQuery !== lowerQuery) {
         queryVariations.add(kataQuery);
@@ -617,9 +616,13 @@ function getCurrentPartialTag(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    // Find the last comma before the cursor
+    // Find the last newline or comma before the cursor
+    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
-    const start = lastComma === -1 ? 0 : lastComma + 1;
+
+    // Get the position of the last separator (newline or comma) before cursor
+    const lastSeparator = Math.max(lastNewLine, lastComma);
+    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
     // Extract the text between the last comma (or start) and the cursor
     const partial = text.substring(start, cursorPos).trimStart();
@@ -645,17 +648,22 @@ function insertTag(inputElement, tagToInsert) {
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
     // Process the tag: swap underscores/spaces and escape parentheses
-    const processedTag = swapUnderscoresAndSpaces(tagToInsert);
-    const normalizedTag = escapeParentheses(processedTag);
+    const normalizedTag = normalizeTagToInsert(tagToInsert);
 
     // Find the start of the word/tag being typed (skip leading whitespace after separator)
     const currentWordStart = text.substring(start, cursorPos).search(/\S|$/) + start;
 
     // Find the end of the word/tag at the cursor position, stopping at comma, newline, or end of string.
     // Match non-whitespace, non-comma, non-newline characters.
-    const currentWordEndMatch = text.substring(cursorPos).match(/^([^\s,\n]*)/); // Changed regex to exclude \n
+    const currentWordEndMatch = text.substring(cursorPos).match(/^([^\s,\n]*)/);
     // currentWordEnd is the position *after* the matched word part.
-    const currentWordEnd = currentWordEndMatch ? cursorPos + currentWordEndMatch[1].length : cursorPos; // Use group 1
+    // const currentWordEnd = currentWordEndMatch ? cursorPos + currentWordEndMatch[1].length : cursorPos;
+    let currentWordEnd = cursorPos;
+
+    // If the match was found and the cursor is within the matched word, extend currentWordEnd to include it.
+    if(currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[1]) !== -1){
+        currentWordEnd = cursorPos + currentWordEndMatch[1].length;
+    }
 
     // The range to replace is from the start of the current partial tag
     // up to the end of the word segment at the cursor.
@@ -668,7 +676,8 @@ function insertTag(inputElement, tagToInsert) {
     const prefix = needsSpaceBefore ? ' ' : '';
 
     // Standard separator (comma + space)
-    const suffix = ', ';
+    const needsSuffixAfter = text[replaceEnd] !== ','
+    const suffix = needsSuffixAfter ? ', ' : '';
 
     // Text to insert (including prefix and suffix)
     const textToInsertWithAffixes = prefix + normalizedTag + suffix;

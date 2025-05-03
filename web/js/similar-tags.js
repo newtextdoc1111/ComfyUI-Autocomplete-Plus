@@ -2,12 +2,8 @@
 import { settingValues } from './settings.js';
 import { autoCompleteData } from './data.js';
 import {
-    hiraToKata,
-    kataToHira,
-    formatCountHumanReadable,
-    swapUnderscoresAndSpaces,
-    escapeParentheses,
-    unescapeParentheses
+    normalizeTagToSearch,
+    normalizeTagToInsert
 } from './utils.js';
 
 // --- SimilarTags UI Class ---
@@ -396,7 +392,7 @@ function getCurrentTag(inputElement) {
     if (!tag) return null;
 
     // Process the tag: swap underscores/spaces and unescape parentheses
-    const normalizedTag = unescapeParentheses(swapUnderscoresAndSpaces(tag)); // Use helper functions
+    const normalizedTag = normalizeTagToSearch(tag);
 
     return normalizedTag;
 }
@@ -448,8 +444,7 @@ function insertTag(inputElement, tagToInsert) {
         effectiveEndPos--;
     }
 
-    // Prepare the tag to be inserted (escape parentheses, replace underscores)
-    const normalizedTag = escapeParentheses(swapUnderscoresAndSpaces(tagToInsert));
+    const normalizedTag = normalizeTagToInsert(tagToInsert);
 
     // Text before the insertion point (end of the current tag)
     const textBefore = text.substring(0, effectiveEndPos);
