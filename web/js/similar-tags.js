@@ -93,10 +93,13 @@ class SimilarTagsUI {
         this.tagsContainer.innerHTML = '';
 
         // Update header with current tag
-        this.header.innerHTML = '';
-        const tagName = document.createElement('span');
-        tagName.textContent = this.currentTag;
-        this.header.appendChild(tagName);
+        this.header.innerHTML = ''; // Clear previous content
+        const headerText = document.createTextNode('Similar to: ');
+        this.header.appendChild(headerText);
+        const tagNameSpan = document.createElement('span');
+        tagNameSpan.className = 'similar-tags-header-tag-name';
+        tagNameSpan.textContent = this.currentTag;
+        this.header.appendChild(tagNameSpan);
 
         if(!autoCompleteData.cooccurrenceLoaded){
             const noTags = document.createElement('div');
