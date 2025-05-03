@@ -8,7 +8,7 @@ import {
     swapUnderscoresAndSpaces,
     escapeParentheses,
     unescapeParentheses
-} from './helper.js';
+} from './utils.js';
 
 // --- SimilarTags UI Class ---
 
@@ -97,11 +97,22 @@ class SimilarTagsUI {
         this.tagsContainer.innerHTML = '';
 
         // Update header with current tag
-        this.header.textContent = `Similar to: ${this.currentTag}`;
+        this.header.innerHTML = '';
+        const tagName = document.createElement('span');
+        tagName.textContent = this.currentTag;
+        this.header.appendChild(tagName);
+
+        if(!autoCompleteData.cooccurrenceLoaded){
+            const noTags = document.createElement('div');
+            // noTags.className = 'similar-tags-empty';
+            noTags.textContent = 'Initializing cooccurrence data...';
+            this.tagsContainer.appendChild(noTags);
+            return;
+        }
 
         if (!similarTags || similarTags.length === 0) {
             const noTags = document.createElement('div');
-            noTags.className = 'similar-tags-empty';
+            // noTags.className = 'similar-tags-empty';
             noTags.textContent = 'No similar tags found';
             this.tagsContainer.appendChild(noTags);
             return;
@@ -148,8 +159,9 @@ class SimilarTagsUI {
 
     /**
      * Updates the position of the similar tags panel.
-     * Position is calculated based on the input element and available space.
-     * @param {HTMLElement} inputElement 
+     * Position is calculated based on the input element, available space,
+     * and the setting `similarTagsDisplayPosition`.
+     * @param {HTMLElement} inputElement
      */
     updatePosition(inputElement) {
 
@@ -166,7 +178,7 @@ class SimilarTagsUI {
         const mergin = 10; // Margin around the element
 
         // Get ComfyUI canvas scale if available
-        const scale = window.app?.canvas?.ds?.scale ?? 1.0;
+        const scale = window.app?.canvas?.ds?.scale ?? 1.0; // Note: scale is not currently used in positioning logic
 
         // Make element briefly visible for measurement but not actually showing
         this.element.style.visibility = 'hidden';
@@ -179,36 +191,62 @@ class SimilarTagsUI {
         const elemWidth = elemRect.width;
         const elemHeight = elemRect.height;
 
-        // Set initial position to be to the right of the textarea
-        let left = inputRect.right + mergin;
-        let top = inputRect.top;
+        let left, top;
 
-        // Check if we have enough space to the right
-        const rightSpace = viewportWidth - left;
-        if (rightSpace < elemWidth) {
-            // Not enough space to the right, try placing it to the left
-            left = inputRect.left - elemWidth - mergin;
+        // Determine initial position based on setting
+        if (settingValues.similarTagsDisplayPosition === 'vertical') {
+            // --- Vertical Positioning ---
+            // Initial position: below the textarea
+            left = inputRect.left;
+            top = inputRect.bottom + mergin;
 
-            // If still not enough space, place it below the textarea
+            // Check if enough space below
+            const bottomSpace = viewportHeight - top;
+            if (bottomSpace < elemHeight && top > viewportHeight / 2) { // Only move above if it fits better
+                // Not enough space below, try placing it above
+                top = inputRect.top - elemHeight - mergin;
+            }
+
+            // Fallback to horizontal if vertical doesn't fit well (e.g., goes off top)
+            if (top < 0) {
+                left = inputRect.right + mergin;
+                top = inputRect.top;
+                const rightSpace = viewportWidth - left;
+                if (rightSpace < elemWidth) {
+                    left = inputRect.left - elemWidth - mergin;
+                }
+            }
+             // Ensure horizontal alignment within viewport if placed vertically
+            left = Math.max(mergin, Math.min(viewportWidth - elemWidth - mergin, left));
+
+        } else {
+            // --- Horizontal Positioning (Default) ---
+            // Initial position: to the right of the textarea
+            left = inputRect.right + mergin;
+            top = inputRect.top;
+
+            // Check if we have enough space to the right
+            const rightSpace = viewportWidth - left;
+            if (rightSpace < elemWidth && left > viewportWidth / 2) { // Only move left if it fits better
+                // Not enough space to the right, try placing it to the left
+                left = inputRect.left - elemWidth - mergin;
+            }
+
+            // Fallback to vertical if horizontal doesn't fit well (e.g., goes off left)
             if (left < 0) {
                 left = inputRect.left;
                 top = inputRect.bottom + mergin;
-
-                // If not enough space below either, place it above
                 const bottomSpace = viewportHeight - top;
                 if (bottomSpace < elemHeight) {
                     top = inputRect.top - elemHeight - mergin;
-
-                    // If still not enough space, just center it on screen
-                    if (top < 0) {
-                        left = Math.max(mergin, (viewportWidth - elemWidth) / 2);
-                        top = Math.max(mergin, (viewportHeight - elemHeight) / 2);
-                    }
                 }
             }
+            // Ensure vertical alignment within viewport if placed horizontally
+            top = Math.max(mergin, Math.min(viewportHeight - elemHeight - mergin, top));
         }
 
-        // Ensure the element stays within viewport
+
+        // Ensure the element stays within viewport (final check for both cases)
         left = Math.max(mergin, Math.min(viewportWidth - elemWidth - mergin, left));
         top = Math.max(mergin, Math.min(viewportHeight - elemHeight - mergin, top));
 
@@ -217,9 +255,12 @@ class SimilarTagsUI {
         this.element.style.top = `${top}px`;
 
         // Set max dimensions to ensure scrolling if content is too large
+        // Adjust max height based on final top position
         const maxHeight = viewportHeight - top - 20;
         this.element.style.maxHeight = `${maxHeight}px`;
-        this.element.style.maxWidth = '300px';
+        // Adjust max width based on final left position (less critical usually)
+        const maxWidth = Math.min(300, viewportWidth - left - 20); // Example: limit width and ensure it fits
+        this.element.style.maxWidth = `${maxWidth}px`;
     }
 
     /**

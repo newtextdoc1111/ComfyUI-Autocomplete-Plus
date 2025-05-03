@@ -1,6 +1,6 @@
 import { app } from "/scripts/app.js";
 import { settingValues } from "./settings.js";
-import { loadCSS } from "./helper.js";
+import { loadCSS } from "./utils.js";
 import { loadAllData } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { SimilarTagsEventHandler } from "./similar-tags.js";
@@ -99,7 +99,7 @@ app.registerExtension({
     name: name,
     setup() {
         initializeEventHandlers();
-        
+
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
@@ -170,6 +170,18 @@ app.registerExtension({
             category: [name, "Similar Tags", "Display Mode"],
             onChange: (newVal, oldVal) => {
                 settingValues.similarTagsDisplayMode = newVal;
+            }
+        },
+        {
+            id: id + ".similar_tags_position",
+            name: "Similar Tags Display Position",
+            description: "Position of similar tags display",
+            type: "combo",
+            options: ["horizontal", "vertical"],
+            defaultValue: "horizontal",
+            category: [name, "Similar Tags", "Display Position"],
+            onChange: (newVal, oldVal) => {
+                settingValues.similarTagsDisplayPosition = newVal;
             }
         }
     ]

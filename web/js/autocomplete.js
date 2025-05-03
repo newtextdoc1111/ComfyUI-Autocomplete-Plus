@@ -1,13 +1,12 @@
-import { settingValues } from './settings.js';
-import { autoCompleteData, loadAllData } from './data.js';
+import { autoCompleteData } from './data.js';
 import {
+    escapeParentheses,
+    formatCountHumanReadable,
     hiraToKata,
     kataToHira,
-    formatCountHumanReadable,
-    swapUnderscoresAndSpaces,
-    escapeParentheses,
-    unescapeParentheses
-} from './helper.js';
+    swapUnderscoresAndSpaces
+} from './utils.js';
+import { settingValues } from './settings.js';
 
 // --- Autocomplete UI Class ---
 
@@ -113,16 +112,18 @@ class AutocompleteUI {
     #updateListPosition() {
         const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.activeInput);
 
-        // Reset scroll position and max-height before calculating position
+        const elOffset = this.#calculateElementOffset(this.activeInput);
+		const elScroll = { top: this.element.scrollTop, left: this.element.scrollLeft };
         this.element.scrollTop = 0;
         this.element.style.maxHeight = ''; // Reset max-height for accurate measurement
 
         // Get ComfyUI canvas scale if available, otherwise default to 1
         const scale = window.app?.canvas?.ds?.scale ?? 1.0;
+        console.debug(`Canvas scale: ${scale}`);
 
         // Initial desired position: below the current text line where the caret is.
-        let topPosition = caretTop + ((caretLineHeight) * scale);
-        let leftPosition = caretLeft;
+        let topPosition = elOffset.top - (elScroll.top * scale) + ((caretTop - elOffset.top) + caretLineHeight) * scale;
+        let leftPosition = elScroll.left - elScroll.left + caretLeft;
 
         // Make the list visible *before* getting its dimensions to ensure they are accurate
         // Use visibility instead of display to measure without affecting layout yet
@@ -369,6 +370,12 @@ class AutocompleteUI {
         const isBrowser = typeof window !== 'undefined';
         const isFirefox = isBrowser && window.mozInnerScreenX != null;
 
+        var debug = false;
+		if (debug) {
+			var el = document.querySelector("#input-textarea-caret-position-mirror-div");
+			if (el) el.parentNode.removeChild(el);
+		}
+
         // The mirror div will replicate the textarea's style
         const div = document.createElement('div');
         div.id = 'input-textarea-caret-position-mirror-div';
@@ -384,7 +391,7 @@ class AutocompleteUI {
 
         // Position off-screen
         style.position = 'absolute'; // required to return coordinates properly
-        style.visibility = 'hidden'; // not 'display: none' because we want rendering
+        if (!debug) style.visibility = 'hidden'; // not 'display: none' because we want rendering
 
         // Transfer the element's properties to the div
         properties.forEach(prop => {
@@ -418,17 +425,13 @@ class AutocompleteUI {
         let numericLineHeight;
         if (computedLineHeight === 'normal') {
             // Calculate fallback based on font size
-            const fontSize = parseFloat(computed.fontSize);
-            numericLineHeight = Math.round(fontSize * 1.2); // Common approximation
+            // const fontSize = parseFloat(computed.fontSize);
+            // numericLineHeight = Math.round(fontSize * 1.2); // Common approximation
+            numericLineHeight = this.#calculateLineHeightPx(element.nodeName, computed);
         } else {
             numericLineHeight = parseFloat(computedLineHeight); // Use parseFloat for pixel values like "16px"
         }
-        // Ensure we have a valid number, fallback if somehow still NaN
-        if (isNaN(numericLineHeight)) {
-            const fontSize = parseFloat(computed.fontSize);
-            numericLineHeight = Math.round(fontSize * 1.2) || 16; // Final fallback
-        }
-
+    
         if (isFirefox) {
             // Firefox lies about the overflow property for textareas: https://bugzilla.mozilla.org/show_bug.cgi?id=984275
             if (element.scrollHeight > parseInt(computed.height)) style.overflowY = 'scroll';
@@ -458,10 +461,64 @@ class AutocompleteUI {
         coordinates.top = rect.top + element.scrollTop + coordinates.top;
         coordinates.left = rect.left + element.scrollLeft + coordinates.left;
 
-        document.body.removeChild(div);
+        if(debug){
+            span.style.backgroundColor = "#aaa";
+        }else{
+            document.body.removeChild(div);
+        }
 
         return coordinates;
     }
+
+    /**
+	 * Returns calculated line-height of the given node in pixels.
+	 */
+	#calculateLineHeightPx(nodeName, computedStyle) {
+		const body = document.body;
+		if (!body) return 0;
+
+		const tempNode = document.createElement(nodeName);
+		tempNode.innerHTML = "&nbsp;";
+		Object.assign(tempNode.style, {
+			fontSize: computedStyle.fontSize,
+			fontFamily: computedStyle.fontFamily,
+			padding: "0",
+			position: "absolute",
+		});
+		body.appendChild(tempNode);
+
+		// Make sure textarea has only 1 row
+		if (tempNode instanceof HTMLTextAreaElement) {
+			tempNode.rows = 1;
+		}
+
+		// Assume the height of the element is the line-height
+		const height = tempNode.offsetHeight;
+		body.removeChild(tempNode);
+
+		return height;
+	}
+
+    #calculateElementOffset(element) {
+		const rect = element.getBoundingClientRect();
+		const owner = element.ownerDocument;
+		if (owner == null) {
+			throw new Error("Given element does not belong to document");
+		}
+		const { defaultView, documentElement } = owner;
+		if (defaultView == null) {
+			throw new Error("Given element does not belong to window");
+		}
+		const offset = {
+			top: rect.top + defaultView.pageYOffset,
+			left: rect.left + defaultView.pageXOffset,
+		};
+		if (documentElement) {
+			offset.top -= documentElement.clientTop;
+			offset.left -= documentElement.clientLeft;
+		}
+		return offset;
+	}
 }
 
 // --- Autocomplete Logic ---
@@ -485,7 +542,7 @@ function findCompletionCandidates(query) {
     const addedTags = new Set(); // Keep track of added tags to avoid duplicates
 
     // Generate Hiragana/Katakana variations if applicable
-    const queryVariations = new Set([lowerQuery]);
+    const queryVariations = new Set([lowerQuery, swapUnderscoresAndSpaces(lowerQuery)]);
     const kataQuery = hiraToKata(lowerQuery);
     if (kataQuery !== lowerQuery) {
         queryVariations.add(kataQuery);
@@ -536,16 +593,16 @@ function findCompletionCandidates(query) {
                 // 早期リターンする場合もログを出力
                 const endTime = performance.now();
                 const duration = endTime - startTime;
-                console.log(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates (max reached).`);
+                // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates (max reached).`);
                 return candidates; // Early exit
             }
         }
     }
 
     // 検索終了時間を記録し、コンソールに出力
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-    console.log(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
+    // const endTime = performance.now();
+    // const duration = endTime - startTime;
+    // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
 
     return candidates;
 }
@@ -570,7 +627,8 @@ function getCurrentPartialTag(inputElement) {
 }
 
 /**
- * Inserts the selected tag into the textarea, replacing the partial tag.
+ * Inserts the selected tag into the textarea, replacing the partial tag,
+ * making the change undoable.
  * @param {HTMLTextAreaElement} inputElement
  * @param {string} tagToInsert The raw tag string to insert.
  */
@@ -588,53 +646,59 @@ function insertTag(inputElement, tagToInsert) {
 
     // Process the tag: swap underscores/spaces and escape parentheses
     const processedTag = swapUnderscoresAndSpaces(tagToInsert);
-    const normalizedTag = escapeParentheses(processedTag); // Use helper functions
+    const normalizedTag = escapeParentheses(processedTag);
 
-    // Find the next comma or newline after the cursor position
-    let endComma = text.indexOf(',', cursorPos);
-    let endNewLine = text.indexOf('\n', cursorPos);
+    // Find the start of the word/tag being typed (skip leading whitespace after separator)
+    const currentWordStart = text.substring(start, cursorPos).search(/\S|$/) + start;
 
-    // Find the next separator (comma or newline) or end of string
-    let end;
-    if (endComma === -1 && endNewLine === -1) {
-        end = text.length;
-    } else if (endComma === -1) {
-        end = endNewLine;
-    } else if (endNewLine === -1) {
-        end = endComma;
-    } else {
-        end = Math.min(endComma, endNewLine);
-    }
+    // Find the end of the word/tag at the cursor position, stopping at comma, newline, or end of string.
+    // Match non-whitespace, non-comma, non-newline characters.
+    const currentWordEndMatch = text.substring(cursorPos).match(/^([^\s,\n]*)/); // Changed regex to exclude \n
+    // currentWordEnd is the position *after* the matched word part.
+    const currentWordEnd = currentWordEndMatch ? cursorPos + currentWordEndMatch[1].length : cursorPos; // Use group 1
 
-    // Check word boundary if in the middle of a word
-    const nextSpace = text.indexOf(' ', cursorPos);
-    if (nextSpace !== -1 && nextSpace < end) {
-        end = cursorPos;
-    }
+    // The range to replace is from the start of the current partial tag
+    // up to the end of the word segment at the cursor.
+    const replaceStart = currentWordStart;
+    // replaceEnd should be at least the cursor position, but extend to cover the word segment if cursor is within it.
+    const replaceEnd = Math.max(cursorPos, currentWordEnd);
 
-    // Add space if the previous separator was a comma
-    const needsSpaceBefore = lastSeparator === lastComma && start > 0;
-
-    // Prepare text before the cursor (with space if needed)
-    const textBefore = text.substring(0, start) + (needsSpaceBefore ? ' ' : '');
-
-    // Get text after the cursor
-    // We need to determine the correct end position for replacement
-    // It should be the end of the word/tag being replaced, not just the cursor position
-    const textAfter = text.substring(end); // Use 'end' instead of 'cursorPos'
+    // Add space if the previous separator was a comma and we are not at the beginning
+    const needsSpaceBefore = lastSeparator === lastComma && replaceStart > 0 && text[replaceStart - 1] === ',';
+    const prefix = needsSpaceBefore ? ' ' : '';
 
     // Standard separator (comma + space)
     const suffix = ', ';
 
-    // Set the new value
-    inputElement.value = textBefore + normalizedTag + suffix + textAfter;
+    // Text to insert (including prefix and suffix)
+    const textToInsertWithAffixes = prefix + normalizedTag + suffix;
 
-    // Set cursor position after the tag and separator
-    const newCursorPos = textBefore.length + normalizedTag.length + suffix.length;
-    inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
+    // --- Use execCommand for Undo support ---
+    // 1. Select the text range to be replaced
+    inputElement.focus(); // Ensure the element has focus
+    inputElement.setSelectionRange(replaceStart, replaceEnd);
 
-    // Trigger input event to notify ComfyUI about the change
-    inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    // 2. Execute the 'insertText' command
+    // This replaces the selection and should add the change to the undo stack
+    const insertTextSuccess = document.execCommand('insertText', false, textToInsertWithAffixes);
+
+    // Fallback for browsers where execCommand might fail or is not supported
+    if (!insertTextSuccess) {
+        console.warn('[Autocomplete-Plus] execCommand("insertText") failed. Falling back to direct value manipulation (Undo might not work).');
+        const textBefore = text.substring(0, replaceStart);
+        const textAfter = text.substring(replaceEnd);
+        inputElement.value = textBefore + textToInsertWithAffixes + textAfter;
+        // Manually set cursor position after the inserted text
+        const newCursorPos = replaceStart + textToInsertWithAffixes.length;
+        inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
+        // Trigger input event manually as a fallback
+        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // Note: execCommand usually triggers the necessary events,
+    // so explicitly dispatching 'input' might be redundant or cause issues.
+    // Test carefully. If ComfyUI doesn't update, uncomment the dispatchEvent line in the fallback.
+    // inputElement.dispatchEvent(new Event('input', { bubbles: true })); // Keep commented unless needed
 }
 
 export class AutocompleteEventHandler {
