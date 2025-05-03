@@ -1,126 +1,148 @@
 /* Basic styles for autocomplete - will be refined later */
 
 #autocomplete-plus-list {
-    background-color: var(--comfy-input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    min-width: 200px; /* Increased min width */
-    overflow-y: auto;
-    position: absolute; /* Ensure position is absolute */
-    z-index: 10000; /* High z-index */
-    color: var(--input-text);
-    font-size: 0.9em; /* Slightly smaller font */
+  background-color: var(--comfy-input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  min-width: 200px; /* Increased min width */
+  overflow-y: auto;
+  position: absolute; /* Ensure position is absolute */
+  z-index: 10000; /* High z-index */
+  color: var(--input-text);
+  font-size: 0.9em; /* Slightly smaller font */
 }
 
 .autocomplete-plus-item {
-    padding: 5px 10px; /* Adjusted padding */
-    cursor: pointer;
-    white-space: nowrap; /* Prevent wrapping */
-    overflow: hidden;
-    text-overflow: ellipsis; /* Show ellipsis if too long */
-    border-bottom: 1px solid var(--border-color); /* Separator line */
+  padding: 5px 10px; /* Adjusted padding */
+  cursor: pointer;
+  white-space: nowrap; /* Prevent wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Show ellipsis if too long */
+  border-bottom: 1px solid var(--border-color); /* Separator line */
 }
 
 .autocomplete-plus-item:last-child {
-    border-bottom: none; /* No border for the last item */
+  border-bottom: none; /* No border for the last item */
 }
 
 /* Alternating row colors */
 .autocomplete-plus-item:nth-child(even) {
-    background-color: var(--comfy-menu-bg); /* Slightly different background for even rows */
+  background-color: var(
+    --comfy-menu-bg
+  ); /* Slightly different background for even rows */
 }
 
 .autocomplete-plus-item:nth-child(odd) {
-    background-color: var(--comfy-input-bg);
+  background-color: var(--comfy-input-bg);
 }
 
 /* Hover effect */
 .autocomplete-plus-item:hover {
-    background-color: var(--comfy-hover-bg); /* Use a hover variable if available, or adjust */
-    color: var(--desc-text); /* Adjust text color on hover if needed */
+  background-color: var(
+    --comfy-hover-bg
+  ); /* Use a hover variable if available, or adjust */
+  color: var(--desc-text); /* Adjust text color on hover if needed */
 }
 
 /* Selected item style */
 .autocomplete-plus-item.selected {
-    background-color: var(--comfy-menu-bg-selected, var(--comfy-button-bg)); /* Use selection color, fallback to button */
-    color: var(--comfy-menu-text-selected, var(--button-text)); /* Use selected text color, fallback */
-    font-weight: bold;
+  background-color: var(
+    --comfy-menu-bg-selected,
+    var(--comfy-button-bg)
+  ); /* Use selection color, fallback to button */
+  color: var(
+    --comfy-menu-text-selected,
+    var(--button-text)
+  ); /* Use selected text color, fallback */
+  font-weight: bold;
 }
 
 /* Similar Tags UI Styles */
 #similar-tags-container {
-    background-color: var(--comfy-input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    min-width: 200px;
-    max-width: 300px;
-    overflow-y: auto;
-    position: absolute;
-    z-index: 10000;
-    color: var(--input-text);
-    font-size: 0.9em;
+  top: 0;
+  left: 0;
+  background-color: var(--comfy-input-bg);
+  position: absolute;
+  display: none;
+  z-index: 10000;
+  color: var(--input-text);
+  width: 800px;
 }
 
-#similar-tags-header {
-    background-color: var(--comfy-menu-bg);
-    color: var(--desc-text);
-    padding: 8px 12px;
-    font-weight: bold;
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    z-index: 1;
+#similar-tags-container table {
+  table-layout: fixed;
+  width: 100%;
 }
 
-#similar-tags-list {
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 5px;
+#similar-tags-container thead {
+  background-color: var(--comfy-menu-bg);
+  color: var(--desc-text);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.similar-tags-header-tag-name {
+  font-weight: bold;
+}
+
+#similar-tags-container tbody {
+  display: grid;
+  grid-auto-rows: auto;
+  grid-template-columns: max-content 1fr auto;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding: 5px;
 }
 
 .similar-tag-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 8px;
-    margin: 2px 0;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: background-color 0.2s;
-    border-bottom: 1px solid var(--border-color-translucent);
+  display: contents;
+  padding: 5px 10px; /* Adjusted padding */
+  cursor: pointer;
+  white-space: nowrap; /* Prevent wrapping */
+  border-bottom: 1px solid var(--border-color); /* Separator line */
 }
 
 .similar-tag-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .similar-tag-item:hover {
-    background-color: var(--comfy-hover-bg);
+  background-color: var(--comfy-hover-bg);
 }
 
 .similar-tag-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-right: 8px;
+  white-space: nowrap;
+}
+
+.similar-tag-alias {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .similar-tag-similarity {
-    color: var(--desc-text);
-    font-size: 0.85em;
-    padding: 2px 6px;
-    background-color: var(--comfy-menu-bg);
-    border-radius: 10px;
-    min-width: 36px;
-    text-align: center;
+  color: var(--desc-text);
+  background-color: var(--comfy-menu-bg);
+  border-radius: 10px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.similar-tags-loading-message {
+  padding: 12px;
+  text-align: center;
+  font-style: italic;
 }
 
 .similar-tags-empty {
-    padding: 12px;
-    text-align: center;
-    color: var(--error-text);
-    font-style: italic;
+  padding: 12px;
+  text-align: center;
+  color: var(--error-text);
+  font-style: italic;
 }

@@ -15,35 +15,40 @@ import {
 class SimilarTagsUI {
     constructor() {
         // Create the main container
-        this.element = document.createElement('div');
-        this.element.id = 'similar-tags-container';
-        this.element.style.display = 'none'; // Initially hidden
-        this.element.style.position = 'absolute';
-        this.element.style.zIndex = '10000';
+        this.root = document.createElement('div');
+        this.root.id = 'similar-tags-container';
 
-        // Header with title
-        this.header = document.createElement('div');
-        this.header.id = 'similar-tags-header';
-        this.header.textContent = 'Similar Tags';
-        this.element.appendChild(this.header);
+        // Create the table element
+        this.table = document.createElement('table');
+        this.table.id = 'similar-tags-table';
+        this.root.appendChild(this.table);
 
-        // Container for tags list
-        this.tagsContainer = document.createElement('div');
-        this.tagsContainer.id = 'similar-tags-list';
-        this.element.appendChild(this.tagsContainer);
+        // Create header row
+        this.thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headerCell = document.createElement('th');
+        // headerCell.colSpan = 3; // Span across all columns
+        headerCell.textContent = 'Similar Tags';
+        headerRow.appendChild(headerCell);
+        this.thead.appendChild(headerRow);
+        this.table.appendChild(this.thead);
+
+        // Create a tbody for the tags
+        this.tbody = document.createElement('tbody');
+        this.table.appendChild(this.tbody);
 
         // Add to DOM
-        document.body.appendChild(this.element);
+        document.body.appendChild(this.root);
 
         // Track the active input and current tag
         this.activeInput = null;
         this.currentTag = null;
 
         // Add click handler for tag selection
-        this.tagsContainer.addEventListener('click', (e) => {
-            const tagElement = e.target.closest('.similar-tag-item');
-            if (tagElement && tagElement.dataset.tag) {
-                this.selectTag(tagElement.dataset.tag);
+        this.tbody.addEventListener('mousedown', (e) => {
+            const row = e.target.closest('tr');
+            if (row && row.dataset.tag) {
+                this.selectTag(row.dataset.tag);
                 e.preventDefault();
                 e.stopPropagation();
             }
@@ -72,17 +77,17 @@ class SimilarTagsUI {
         this.updatePosition(inputElement);
 
         // Make visible
-        this.element.style.display = 'block';
+        this.root.style.display = 'block';
     }
 
     /**
      * Hides the similar tags UI.
      */
     hide() {
-        this.element.style.display = 'none';
+        this.root.style.display = 'none';
         this.activeInput = null;
         this.currentTag = null;
-        this.tagsContainer.innerHTML = '';
+        this.tbody.innerHTML = '';
     }
 
     /**
@@ -90,83 +95,107 @@ class SimilarTagsUI {
      * @param {Array<{tag: string, similarity: number, count: number, alias?: string[]}>} similarTags
      */
     updateContent(similarTags) {
-        this.tagsContainer.innerHTML = '';
+        this.tbody.innerHTML = '';
 
         // Update header with current tag
-        this.header.innerHTML = ''; // Clear previous content
-        const headerText = document.createTextNode('Similar to: ');
-        this.header.appendChild(headerText);
+        this.thead.innerHTML = ''; // Clear previous content
+        const headerRow = document.createElement('tr');
+        const headerCell = document.createElement('th');
+        // headerCell.colSpan = 3;
+        headerCell.textContent = 'Similar Tags: ';
         const tagNameSpan = document.createElement('span');
         tagNameSpan.className = 'similar-tags-header-tag-name';
         tagNameSpan.textContent = this.currentTag;
-        this.header.appendChild(tagNameSpan);
+        headerCell.appendChild(tagNameSpan);
+        headerRow.appendChild(headerCell);
+        this.thead.appendChild(headerRow);
+        this.table.appendChild(this.thead);
 
-        if(!autoCompleteData.cooccurrenceLoaded){
-            const noTags = document.createElement('div');
-            // noTags.className = 'similar-tags-empty';
-            noTags.textContent = 'Initializing cooccurrence data...';
-            this.tagsContainer.appendChild(noTags);
+        if (!autoCompleteData.cooccurrenceLoaded) {
+            const emptyRow = document.createElement('tr');
+            const messageCell = document.createElement('td');
+            messageCell.className = 'similar-tags-loading-message';
+            // messageCell.colSpan = 3; // Span across all columns
+            messageCell.textContent = 'Initializing cooccurrence data...';
+            emptyRow.appendChild(messageCell);
+            this.tbody.appendChild(emptyRow);
             return;
         }
 
         if (!similarTags || similarTags.length === 0) {
-            const noTags = document.createElement('div');
-            // noTags.className = 'similar-tags-empty';
-            noTags.textContent = 'No similar tags found';
-            this.tagsContainer.appendChild(noTags);
+            const emptyRow = document.createElement('tr');
+            const messageCell = document.createElement('td');
+            // messageCell.colSpan = 3; // Span across all columns
+            messageCell.textContent = 'No similar tags found';
+            emptyRow.appendChild(messageCell);
+            this.tbody.appendChild(emptyRow);
             return;
         }
 
-        // Create tag items
+        // Create tag rows
         similarTags.forEach(tagData => {
-            const tagElement = this.createTagElement(tagData);
-            this.tagsContainer.appendChild(tagElement);
+            const tagRow = this.createTagElement(tagData);
+            this.tbody.appendChild(tagRow);
         });
     }
 
     /**
-     * Creates an HTML element for a similar tag.
+     * Creates an HTML table row for a similar tag.
      * @param {{tag: string, similarity: number, count: number, alias?: string[]}} tagData
-     * @returns {HTMLElement} The tag element
+     * @returns {HTMLTableRowElement} The tag row element
      */
     createTagElement(tagData) {
-        const tagElement = document.createElement('div');
-        tagElement.className = 'similar-tag-item';
-        tagElement.dataset.tag = tagData.tag;
+        const tagRow = document.createElement('tr');
+        tagRow.className = 'similar-tag-item';
+        tagRow.dataset.tag = tagData.tag;
+        tagRow.style.cursor = 'pointer';
 
-        // Tag name
-        const tagName = document.createElement('span');
-        tagName.className = 'similar-tag-name';
-        tagName.textContent = tagData.tag;
-        tagElement.appendChild(tagName);
+        // Tag name cell
+        const tagNameCell = document.createElement('td');
+        tagNameCell.className = 'similar-tag-name';
+        tagNameCell.textContent = tagData.tag;
 
-        // Tag similarity (as percentage)
-        const similarity = document.createElement('span');
-        similarity.className = 'similar-tag-similarity';
-        similarity.textContent = `${(tagData.similarity * 100).toFixed(2)}%`;
-        tagElement.appendChild(similarity);
+        // Alias cell (middle column)
+        const aliasCell = document.createElement('td');
+        aliasCell.className = 'similar-tag-alias';
+        
+        // Display alias if available
+        if (tagData.alias && tagData.alias.length > 0) {
+            let aliasText = tagData.alias.join(', ');
+            aliasCell.textContent = aliasText;
+            aliasCell.title = tagData.alias.join(', '); // Full alias on hover
+        }
+
+        // Similarity cell
+        const similarityCell = document.createElement('td');
+        similarityCell.className = 'similar-tag-similarity';
+        similarityCell.textContent = `${(tagData.similarity * 100).toFixed(2)}%`;
 
         // Create tooltip with more info
-        let tooltipText = `Tag: ${tagData.tag}\nSimilarity: ${tagData.similarity}\nCount: ${tagData.count}`;
+        let tooltipText = `Tag: ${tagData.tag}\nSimilarity: ${(tagData.similarity * 100).toFixed(2)}%\nCount: ${tagData.count}`;
         if (tagData.alias && tagData.alias.length > 0) {
             tooltipText += `\nAlias: ${tagData.alias.join(', ')}`;
         }
-        tagElement.title = tooltipText;
+        tagRow.title = tooltipText;
 
-        return tagElement;
+        // Add cells to row
+        tagRow.appendChild(tagNameCell);
+        tagRow.appendChild(aliasCell);
+        tagRow.appendChild(similarityCell);
+
+        return tagRow;
     }
 
     /**
      * Updates the position of the similar tags panel.
      * Position is calculated based on the input element, available space,
      * and the setting `similarTagsDisplayPosition`.
-     * @param {HTMLElement} inputElement
+     * @param {HTMLElement} inputElement The input element to position
      */
     updatePosition(inputElement) {
-
         // Reset position for accurate measurement
-        this.element.style.maxHeight = '';
-        this.element.style.maxWidth = '';
+        this.root.style.maxHeight = '';
+        this.root.style.maxWidth = '';
 
         // Get the bounds of the input element
         const inputRect = inputElement.getBoundingClientRect();
@@ -174,49 +203,46 @@ class SimilarTagsUI {
         // Get viewport dimensions
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        const mergin = 10; // Margin around the element
+        const mergin = 10;
 
         // Get ComfyUI canvas scale if available
         const scale = window.app?.canvas?.ds?.scale ?? 1.0; // Note: scale is not currently used in positioning logic
 
         // Make element briefly visible for measurement but not actually showing
-        this.element.style.visibility = 'hidden';
-        this.element.style.display = 'block';
-        const elemRect = this.element.getBoundingClientRect();
-        this.element.style.display = 'none';
-        this.element.style.visibility = 'visible';
+        this.root.style.visibility = 'hidden';
+        this.root.style.display = 'block';
+        const elemRect = this.root.getBoundingClientRect();
+        this.root.style.display = 'none';
+        this.root.style.visibility = 'visible';
 
-        // Calculate dimensions
-        const elemWidth = elemRect.width;
-        const elemHeight = elemRect.height;
-
-        let left, top;
+        let [left, top] = [0, 0];
 
         // Determine initial position based on setting
         if (settingValues.similarTagsDisplayPosition === 'vertical') {
             // --- Vertical Positioning ---
-            // Initial position: below the textarea
+            // Calculate available space above and below the input
+            const spaceAbove = inputRect.top;
+            const spaceBelow = viewportHeight - inputRect.bottom;
+            
+            // Determine if we should place above or below based on which has more space
+            const placeAbove = spaceAbove > spaceBelow;
+            
+            if (placeAbove) {
+                // Place above the input with appropriate margin
+                top = inputRect.top - elemRect.height - mergin;
+                // Adjust max height to not exceed available space
+                this.root.style.maxHeight = `${spaceAbove - (mergin * 2)}px`;
+            } else {
+                // Place below the input with appropriate margin
+                top = inputRect.bottom + mergin;
+                // Adjust max height to not exceed available space
+                this.root.style.maxHeight = `${spaceBelow - (mergin * 2)}px`;
+            }
+
+            // Ensure horizontal alignment within viewport if placed vertically
+            left = Math.max(mergin, Math.min(viewportWidth - elemRect.width - mergin, left));
+            // Align left edge with input where possible
             left = inputRect.left;
-            top = inputRect.bottom + mergin;
-
-            // Check if enough space below
-            const bottomSpace = viewportHeight - top;
-            if (bottomSpace < elemHeight && top > viewportHeight / 2) { // Only move above if it fits better
-                // Not enough space below, try placing it above
-                top = inputRect.top - elemHeight - mergin;
-            }
-
-            // Fallback to horizontal if vertical doesn't fit well (e.g., goes off top)
-            if (top < 0) {
-                left = inputRect.right + mergin;
-                top = inputRect.top;
-                const rightSpace = viewportWidth - left;
-                if (rightSpace < elemWidth) {
-                    left = inputRect.left - elemWidth - mergin;
-                }
-            }
-             // Ensure horizontal alignment within viewport if placed vertically
-            left = Math.max(mergin, Math.min(viewportWidth - elemWidth - mergin, left));
 
         } else {
             // --- Horizontal Positioning (Default) ---
@@ -226,9 +252,9 @@ class SimilarTagsUI {
 
             // Check if we have enough space to the right
             const rightSpace = viewportWidth - left;
-            if (rightSpace < elemWidth && left > viewportWidth / 2) { // Only move left if it fits better
+            if (rightSpace < elemRect.width && left > viewportWidth / 2) { // Only move left if it fits better
                 // Not enough space to the right, try placing it to the left
-                left = inputRect.left - elemWidth - mergin;
+                left = inputRect.left - elemRect.width - mergin;
             }
 
             // Fallback to vertical if horizontal doesn't fit well (e.g., goes off left)
@@ -236,30 +262,29 @@ class SimilarTagsUI {
                 left = inputRect.left;
                 top = inputRect.bottom + mergin;
                 const bottomSpace = viewportHeight - top;
-                if (bottomSpace < elemHeight) {
-                    top = inputRect.top - elemHeight - mergin;
+                if (bottomSpace < elemRect.height) {
+                    top = inputRect.top - elemRect.height - mergin;
                 }
             }
             // Ensure vertical alignment within viewport if placed horizontally
-            top = Math.max(mergin, Math.min(viewportHeight - elemHeight - mergin, top));
+            top = Math.max(mergin, Math.min(viewportHeight - elemRect.height - mergin, top));
         }
 
-
         // Ensure the element stays within viewport (final check for both cases)
-        left = Math.max(mergin, Math.min(viewportWidth - elemWidth - mergin, left));
-        top = Math.max(mergin, Math.min(viewportHeight - elemHeight - mergin, top));
+        // left = Math.max(mergin, Math.min(viewportWidth - elw - mergin, left));
+        // top = Math.max(mergin, Math.min(viewportHeight - elemHeight - mergin, top));
 
         // Update element position
-        this.element.style.left = `${left}px`;
-        this.element.style.top = `${top}px`;
+        this.root.style.left = `${left}px`;
+        this.root.style.top = `${top}px`;
 
         // Set max dimensions to ensure scrolling if content is too large
         // Adjust max height based on final top position
         const maxHeight = viewportHeight - top - 20;
-        this.element.style.maxHeight = `${maxHeight}px`;
+        this.root.style.maxHeight = `${maxHeight}px`;
         // Adjust max width based on final left position (less critical usually)
-        const maxWidth = Math.min(300, viewportWidth - left - 20); // Example: limit width and ensure it fits
-        this.element.style.maxWidth = `${maxWidth}px`;
+        const maxWidth = Math.min(elemRect.width, viewportWidth - left - 20); 
+        this.root.style.maxWidth = `${maxWidth}px`;
     }
 
     /**
@@ -282,7 +307,7 @@ class SimilarTagsUI {
      * @returns {boolean}
      */
     isVisible() {
-        return this.element.style.display !== 'none';
+        return this.root.style.display !== 'none';
     }
 }
 
@@ -513,7 +538,19 @@ export class SimilarTagsEventHandler {
     }
 
     handleBlur(event) {
-        // Handle blur event
+        // Use setTimeout to delay hiding. This allows clicks on the similar tags UI
+        // to be processed before the UI is hidden.
+        setTimeout(() => {
+            // Check if the new focused element is part of the similar tags UI.
+            // document.activeElement refers to the currently focused element.
+            const activeElement = document.activeElement;
+            const similarTagsElement = similarTagsUI.root;
+
+            // If the focus is not within the similar tags UI, hide it.
+            if (similarTagsUI && !similarTagsElement.contains(activeElement)) {
+                // similarTagsUI.hide();
+            }
+        }, 150); // Delay in milliseconds (adjust if necessary)
     }
 
     handleKeyDown(event) {
