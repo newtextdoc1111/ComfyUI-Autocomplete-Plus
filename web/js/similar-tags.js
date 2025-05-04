@@ -237,7 +237,7 @@ class SimilarTagsUI {
         return this.root.style.display !== 'none';
     }
 
-    
+
     /**
      * Calculates the optimal placement area for the panel based on available space.
      * @param {DOMRect} inputRect - Bounding rectangle of the input element.
@@ -425,73 +425,156 @@ function getCurrentTag(inputElement) {
 /**
  * Function to insert a tag into the textarea.
  * Appends the selected tag after the current tag.
+ * Supports undo by using document.execCommand.
+ * Checks if the tag already exists in the next position.
+ * If the tag already exists anywhere in the input, it selects that tag instead.
  * @param {HTMLTextAreaElement} inputElement
  * @param {string} tagToInsert
  */
 function insertTag(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
-
-    // Find the boundaries of the current tag the cursor is in or near
-    let startPos = text.lastIndexOf(',', cursorPos - 1);
+    
+    // Normalize the tag to insert for consistent comparison
+    const normalizedTagToInsert = normalizeTagToSearch(tagToInsert);
+    
+    // First check if the tag exists anywhere in the textarea and select it if found
+    const tagPositions = findAllTagPositions(text);
+    for (const { start, end, tag } of tagPositions) {
+        const normalizedExistingTag = normalizeTagToSearch(tag.trim());
+        if (normalizedExistingTag === normalizedTagToInsert) {
+            // Tag already exists, select it and exit
+            inputElement.focus();
+            inputElement.setSelectionRange(start, end);
+            return;
+        }
+    }
+    
+    // Find the current tag boundaries
+    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+    const lastNewline = text.lastIndexOf('\n', cursorPos - 1);
+    let startPos = Math.max(lastComma, lastNewline);
     startPos = startPos === -1 ? 0 : startPos + 1;
-
-    let endPos = text.indexOf(',', cursorPos);
-    endPos = endPos === -1 ? text.length : endPos;
-
-    // Find the end of the word/tag at the cursor position, even if there's no comma after it
-    // This helps find the true end of the tag we want to append after
-    // Search for the next comma, newline, or end of string after the start position
-    let potentialEndComma = text.indexOf(',', startPos);
-    let potentialEndNewline = text.indexOf('\n', startPos);
-
-    if (potentialEndComma === -1) potentialEndComma = text.length;
-    if (potentialEndNewline === -1) potentialEndNewline = text.length;
-
-    let currentTagEndPos = Math.min(potentialEndComma, potentialEndNewline);
-
-    // Ensure the end position is not before the cursor if the cursor is within the tag
-    currentTagEndPos = Math.max(cursorPos, currentTagEndPos);
-
-    // Find the actual end of the tag by trimming trailing whitespace before the determined end position
-    // Adjust endPos based on the actual content boundary, not just separators
-    let boundarySearchStart = startPos;
-    let firstSeparatorAfterStart = text.substring(boundarySearchStart).search(/[,\n]/);
-    if (firstSeparatorAfterStart !== -1) {
-        currentTagEndPos = boundarySearchStart + firstSeparatorAfterStart;
-    } else {
-        currentTagEndPos = text.length; // If no separator found, tag goes to the end
+    
+    // Find the end of the current tag
+    let endPosComma = text.indexOf(',', startPos);
+    let endPosNewline = text.indexOf('\n', startPos);
+    
+    if (endPosComma === -1) endPosComma = text.length;
+    if (endPosNewline === -1) endPosNewline = text.length;
+    
+    const endPos = Math.min(endPosComma, endPosNewline);
+    
+    // Find the start of the next tag (if any)
+    let nextTagStartPos = endPos;
+    if (nextTagStartPos < text.length) {
+        // Skip the separator (comma or newline)
+        nextTagStartPos += 1;
     }
-
-    // Trim trailing spaces from the identified tag segment to find the precise end
-    let effectiveEndPos = currentTagEndPos;
-    while (effectiveEndPos > startPos && /\s/.test(text[effectiveEndPos - 1])) {
-        effectiveEndPos--;
+    
+    // Find the end of the next tag (if any)
+    let nextTagEndPosComma = text.indexOf(',', nextTagStartPos);
+    let nextTagEndPosNewline = text.indexOf('\n', nextTagStartPos);
+    
+    if (nextTagEndPosComma === -1) nextTagEndPosComma = text.length;
+    if (nextTagEndPosNewline === -1) nextTagEndPosNewline = text.length;
+    
+    const nextTagEndPos = Math.min(nextTagEndPosComma, nextTagEndPosNewline);
+    
+    // Extract the next tag and check if it matches the tag to insert
+    if (nextTagStartPos < text.length && nextTagStartPos < nextTagEndPos) {
+        const nextTag = text.substring(nextTagStartPos, nextTagEndPos).trim();
+        // Check if the next tag is the same as what we want to insert
+        if (nextTag && normalizeTagToSearch(nextTag) === normalizedTagToInsert) {
+            // The tag already exists as the next tag, so select it and exit
+            inputElement.focus();
+            inputElement.setSelectionRange(nextTagStartPos, nextTagEndPos);
+            return;
+        }
     }
-
+    
+    // Set effective insertion position to the end of current tag
+    let effectiveEndPos = endPos;
+    
+    // Prepare the text to insert
     const normalizedTag = normalizeTagToInsert(tagToInsert);
+    let textToInsert = ", " + normalizedTag;
+    
+    // --- Use execCommand for Undo support ---
+    // 1. Select the range where the tag will be inserted
+    inputElement.focus();
+    inputElement.setSelectionRange(effectiveEndPos, effectiveEndPos);
+    
+    // 2. Execute the insertText command to add the tag
+    const insertTextSuccess = document.execCommand('insertText', false, textToInsert);
 
-    // Text before the insertion point (end of the current tag)
-    const textBefore = text.substring(0, effectiveEndPos);
+    // Fallback for browsers where execCommand might not be supported or might fail
+    if (!insertTextSuccess) {
+        console.warn('[Autocomplete-Plus] execCommand("insertText") failed. Falling back to direct value manipulation (Undo might not work).');
 
-    // Text after the insertion point
-    const textAfter = text.substring(effectiveEndPos);
+        // Text before the insertion point
+        const textBefore = text.substring(0, effectiveEndPos);
 
-    // Standard separator (comma + space)
-    const separator = ', ';
+        // Text after the insertion point
+        const textAfter = text.substring(effectiveEndPos);
 
-    // Construct the new value: keep existing tag, add separator and new tag
-    const newValue = textBefore + separator + normalizedTag + textAfter;
+        // Construct the new value
+        const newValue = textBefore + textToInsert + textAfter;
 
-    // Set the new value
-    inputElement.value = newValue;
+        // Set the new value
+        inputElement.value = newValue;
 
-    // Set cursor position after the newly inserted tag and separator
-    const newCursorPos = textBefore.length + separator.length + normalizedTag.length;
-    inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
+        // Set cursor position after the newly inserted tag
+        const newCursorPos = effectiveEndPos + textToInsert.length;
+        inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
 
-    // Trigger input event to notify ComfyUI about the change
-    inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+        // Trigger input event to notify ComfyUI about the change
+        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
+
+/**
+ * Finds all tag positions in the given text.
+ * Searches for tags separated by commas or newlines.
+ * @param {string} text The text to search in
+ * @returns {Array<{start: number, end: number, tag: string}>} Array of tag positions and content
+ */
+function findAllTagPositions(text) {
+    const positions = [];
+    let startPos = 0;
+    
+    while (startPos < text.length) {
+        // Skip any leading whitespace, commas, or newlines
+        while (startPos < text.length && 
+              (text[startPos] === ' ' || text[startPos] === ',' || text[startPos] === '\n')) {
+            startPos++;
+        }
+        
+        if (startPos >= text.length) break;
+        
+        // Find the end of this tag (next comma or newline)
+        let endPosComma = text.indexOf(',', startPos);
+        let endPosNewline = text.indexOf('\n', startPos);
+        
+        if (endPosComma === -1) endPosComma = text.length;
+        if (endPosNewline === -1) endPosNewline = text.length;
+        
+        const endPos = Math.min(endPosComma, endPosNewline);
+        const tag = text.substring(startPos, endPos);
+        
+        if (tag.trim().length > 0) {
+            positions.push({
+                start: startPos,
+                end: endPos,
+                tag: tag
+            });
+        }
+        
+        // Move to the next tag
+        startPos = endPos + 1;
+    }
+    
+    return positions;
 }
 
 // --- Main Exports ---
