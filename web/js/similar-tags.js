@@ -18,24 +18,16 @@ class SimilarTagsUI {
         this.root = document.createElement('div');
         this.root.id = 'similar-tags-container';
 
-        // Create the table element
-        this.table = document.createElement('table');
-        this.table.id = 'similar-tags-table';
-        this.root.appendChild(this.table);
-
         // Create header row
-        this.thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        const headerCell = document.createElement('th');
-        // headerCell.colSpan = 3; // Span across all columns
-        headerCell.textContent = 'Similar Tags';
-        headerRow.appendChild(headerCell);
-        this.thead.appendChild(headerRow);
-        this.table.appendChild(this.thead);
+        this.header = document.createElement('div');
+        this.header.id = 'similar-tags-header';
+        this.header.textContent = 'Similar Tags';
+        this.root.appendChild(this.header);
 
         // Create a tbody for the tags
-        this.tbody = document.createElement('tbody');
-        this.table.appendChild(this.tbody);
+        this.tagsContainer = document.createElement('ul');
+        this.tagsContainer.id = 'similar-tags-list';
+        this.root.appendChild(this.tagsContainer);
 
         // Add to DOM
         document.body.appendChild(this.root);
@@ -45,8 +37,8 @@ class SimilarTagsUI {
         this.currentTag = null;
 
         // Add click handler for tag selection
-        this.tbody.addEventListener('mousedown', (e) => {
-            const row = e.target.closest('tr');
+        this.tagsContainer.addEventListener('mousedown', (e) => {
+            const row = e.target.closest('.similar-tag-item');
             if (row && row.dataset.tag) {
                 this.selectTag(row.dataset.tag);
                 e.preventDefault();
@@ -87,7 +79,7 @@ class SimilarTagsUI {
         this.root.style.display = 'none';
         this.activeInput = null;
         this.currentTag = null;
-        this.tbody.innerHTML = '';
+        this.tagsContainer.innerHTML = '';
     }
 
     /**
@@ -95,47 +87,35 @@ class SimilarTagsUI {
      * @param {Array<{tag: string, similarity: number, count: number, alias?: string[]}>} similarTags
      */
     updateContent(similarTags) {
-        this.tbody.innerHTML = '';
+        this.tagsContainer.innerHTML = '';
 
         // Update header with current tag
-        this.thead.innerHTML = ''; // Clear previous content
-        const headerRow = document.createElement('tr');
-        const headerCell = document.createElement('th');
-        // headerCell.colSpan = 3;
-        headerCell.textContent = 'Similar Tags: ';
+        this.header.innerHTML = ''; // Clear previous content
+        this.header.textContent = 'Similar Tags: ';
         const tagNameSpan = document.createElement('span');
         tagNameSpan.className = 'similar-tags-header-tag-name';
         tagNameSpan.textContent = this.currentTag;
-        headerCell.appendChild(tagNameSpan);
-        headerRow.appendChild(headerCell);
-        this.thead.appendChild(headerRow);
-        this.table.appendChild(this.thead);
+        this.header.appendChild(tagNameSpan);
 
         if (!autoCompleteData.cooccurrenceLoaded) {
-            const emptyRow = document.createElement('tr');
-            const messageCell = document.createElement('td');
-            messageCell.className = 'similar-tags-loading-message';
-            // messageCell.colSpan = 3; // Span across all columns
-            messageCell.textContent = 'Initializing cooccurrence data...';
-            emptyRow.appendChild(messageCell);
-            this.tbody.appendChild(emptyRow);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'similar-tags-loading-message';
+            messageDiv.textContent = 'Initializing cooccurrence data...';
+            this.tagsContainer.appendChild(messageDiv);
             return;
         }
 
         if (!similarTags || similarTags.length === 0) {
-            const emptyRow = document.createElement('tr');
-            const messageCell = document.createElement('td');
-            // messageCell.colSpan = 3; // Span across all columns
+            const messageCell = document.createElement('div');
             messageCell.textContent = 'No similar tags found';
-            emptyRow.appendChild(messageCell);
-            this.tbody.appendChild(emptyRow);
+            this.tagsContainer.appendChild(messageCell);
             return;
         }
 
         // Create tag rows
         similarTags.forEach(tagData => {
             const tagRow = this.createTagElement(tagData);
-            this.tbody.appendChild(tagRow);
+            this.tagsContainer.appendChild(tagRow);
         });
     }
 
@@ -145,18 +125,18 @@ class SimilarTagsUI {
      * @returns {HTMLTableRowElement} The tag row element
      */
     createTagElement(tagData) {
-        const tagRow = document.createElement('tr');
+        const tagRow = document.createElement('li');
         tagRow.className = 'similar-tag-item';
         tagRow.dataset.tag = tagData.tag;
         tagRow.style.cursor = 'pointer';
 
         // Tag name cell
-        const tagNameCell = document.createElement('td');
+        const tagNameCell = document.createElement('span');
         tagNameCell.className = 'similar-tag-name';
         tagNameCell.textContent = tagData.tag;
 
         // Alias cell (middle column)
-        const aliasCell = document.createElement('td');
+        const aliasCell = document.createElement('span');
         aliasCell.className = 'similar-tag-alias';
         
         // Display alias if available
@@ -167,7 +147,7 @@ class SimilarTagsUI {
         }
 
         // Similarity cell
-        const similarityCell = document.createElement('td');
+        const similarityCell = document.createElement('span');
         similarityCell.className = 'similar-tag-similarity';
         similarityCell.textContent = `${(tagData.similarity * 100).toFixed(2)}%`;
 

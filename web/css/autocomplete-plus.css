@@ -1,25 +1,25 @@
 /* Basic styles for autocomplete - will be refined later */
 
 #autocomplete-plus-list {
-  background-color: var(--comfy-input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  min-width: 200px; /* Increased min width */
-  overflow-y: auto;
   position: absolute; /* Ensure position is absolute */
   z-index: 10000; /* High z-index */
+  min-width: 200px; /* Increased min width */
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--comfy-input-bg);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 20%);
   color: var(--input-text);
   font-size: 0.9em; /* Slightly smaller font */
+  overflow-y: auto;
 }
 
 .autocomplete-plus-item {
-  padding: 5px 10px; /* Adjusted padding */
-  cursor: pointer;
-  white-space: nowrap; /* Prevent wrapping */
   overflow: hidden;
-  text-overflow: ellipsis; /* Show ellipsis if too long */
+  padding: 5px 10px; /* Adjusted padding */
   border-bottom: 1px solid var(--border-color); /* Separator line */
+  cursor: pointer;
+  text-overflow: ellipsis; /* Show ellipsis if too long */
+  white-space: nowrap; /* Prevent wrapping */
 }
 
 .autocomplete-plus-item:last-child {
@@ -42,6 +42,7 @@
   background-color: var(
     --comfy-hover-bg
   ); /* Use a hover variable if available, or adjust */
+
   color: var(--desc-text); /* Adjust text color on hover if needed */
 }
 
@@ -51,61 +52,58 @@
     --comfy-menu-bg-selected,
     var(--comfy-button-bg)
   ); /* Use selection color, fallback to button */
+
   color: var(
     --comfy-menu-text-selected,
     var(--button-text)
   ); /* Use selected text color, fallback */
+
   font-weight: bold;
 }
 
 /* Similar Tags UI Styles */
 #similar-tags-container {
+  position: absolute;
+  z-index: 10000;
   top: 0;
   left: 0;
-  background-color: var(--comfy-input-bg);
-  position: absolute;
   display: none;
-  z-index: 10000;
-  color: var(--input-text);
   width: 800px;
+  background-color: var(--comfy-input-bg);
+  color: var(--input-text);
 }
 
-#similar-tags-container table {
-  table-layout: fixed;
-  width: 100%;
-}
-
-#similar-tags-container thead {
-  background-color: var(--comfy-menu-bg);
-  color: var(--desc-text);
+#similar-tags-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  background-color: var(--comfy-menu-bg);
+  color: var(--desc-text);
 }
 
 .similar-tags-header-tag-name {
   font-weight: bold;
 }
 
-#similar-tags-container tbody {
+#similar-tags-list {
   display: grid;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
   grid-template-columns: max-content 1fr auto;
   overflow-y: auto;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  padding: 5px;
 }
 
 .similar-tag-item {
   display: contents;
   padding: 5px 10px; /* Adjusted padding */
+  border-bottom: 1px solid var(--border-color); /* Separator line */
   cursor: pointer;
   white-space: nowrap; /* Prevent wrapping */
-  border-bottom: 1px solid var(--border-color); /* Separator line */
 }
 
 .similar-tag-item:last-child {
@@ -127,22 +125,22 @@
 }
 
 .similar-tag-similarity {
-  color: var(--desc-text);
-  background-color: var(--comfy-menu-bg);
   border-radius: 10px;
-  white-space: nowrap;
+  background-color: var(--comfy-menu-bg);
+  color: var(--desc-text);
   text-align: right;
+  white-space: nowrap;
 }
 
 .similar-tags-loading-message {
   padding: 12px;
-  text-align: center;
   font-style: italic;
+  text-align: center;
 }
 
 .similar-tags-empty {
   padding: 12px;
-  text-align: center;
   color: var(--error-text);
   font-style: italic;
+  text-align: center;
 }
