@@ -25,7 +25,7 @@ class SimilarTagsUI {
         this.root.appendChild(this.header);
 
         // Create a tbody for the tags
-        this.tagsContainer = document.createElement('ul');
+        this.tagsContainer = document.createElement('div');
         this.tagsContainer.id = 'similar-tags-list';
         this.root.appendChild(this.tagsContainer);
 
@@ -87,6 +87,10 @@ class SimilarTagsUI {
      * @param {Array<{tag: string, similarity: number, count: number, alias?: string[]}>} similarTags
      */
     updateContent(similarTags) {
+        this.root.style.left = 0;
+        this.root.style.top = 0;
+        this.root.style.maxWidth = `${window.innerWidth / 2}px`;
+        this.root.style.maxHeight = `${window.innerHeight / 2}px`;
         this.tagsContainer.innerHTML = '';
 
         // Update header with current tag
@@ -125,10 +129,9 @@ class SimilarTagsUI {
      * @returns {HTMLTableRowElement} The tag row element
      */
     createTagElement(tagData) {
-        const tagRow = document.createElement('li');
+        const tagRow = document.createElement('div');
         tagRow.className = 'similar-tag-item';
         tagRow.dataset.tag = tagData.tag;
-        tagRow.style.cursor = 'pointer';
 
         // Tag name cell
         const tagNameCell = document.createElement('span');
@@ -138,11 +141,11 @@ class SimilarTagsUI {
         // Alias cell (middle column)
         const aliasCell = document.createElement('span');
         aliasCell.className = 'similar-tag-alias';
-        
+
         // Display alias if available
         if (tagData.alias && tagData.alias.length > 0) {
             let aliasText = tagData.alias.join(', ');
-            aliasCell.textContent = aliasText;
+            aliasCell.textContent = `${aliasText}`;
             aliasCell.title = tagData.alias.join(', '); // Full alias on hover
         }
 
@@ -173,98 +176,42 @@ class SimilarTagsUI {
      * @param {HTMLElement} inputElement The input element to position
      */
     updatePosition(inputElement) {
-        // Reset position for accurate measurement
-        this.root.style.maxHeight = '';
-        this.root.style.maxWidth = '';
+        const margin = 10;
 
-        // Get the bounds of the input element
-        const inputRect = inputElement.getBoundingClientRect();
-
-        // Get viewport dimensions
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const mergin = 10;
-
-        // Get ComfyUI canvas scale if available
-        const scale = window.app?.canvas?.ds?.scale ?? 1.0; // Note: scale is not currently used in positioning logic
-
-        // Make element briefly visible for measurement but not actually showing
+        // Measure the element size without causing reflow
         this.root.style.visibility = 'hidden';
+        this.root.style.position = 'absolute'; // Ensure position is absolute for measurement
         this.root.style.display = 'block';
+        this.root.style.left = '-9999px';
+        this.root.style.top = '-9999px';
+        this.root.style.maxWidth = ''; // Reset max dimensions before measuring
+        this.root.style.maxHeight = '';
         const elemRect = this.root.getBoundingClientRect();
+        // Hide it again after measurement
         this.root.style.display = 'none';
         this.root.style.visibility = 'visible';
+        this.root.style.position = ''; // Reset position style
+        this.root.style.left = '';
+        this.root.style.top = '';
 
-        let [left, top] = [0, 0];
+        // Get the optimal placement area
+        const placementArea = this.#getOptimalPlacementArea(inputElement.getBoundingClientRect(), elemRect.width, elemRect.height, margin);
 
-        // Determine initial position based on setting
-        if (settingValues.similarTagsDisplayPosition === 'vertical') {
-            // --- Vertical Positioning ---
-            // Calculate available space above and below the input
-            const spaceAbove = inputRect.top;
-            const spaceBelow = viewportHeight - inputRect.bottom;
-            
-            // Determine if we should place above or below based on which has more space
-            const placeAbove = spaceAbove > spaceBelow;
-            
-            if (placeAbove) {
-                // Place above the input with appropriate margin
-                top = inputRect.top - elemRect.height - mergin;
-                // Adjust max height to not exceed available space
-                this.root.style.maxHeight = `${spaceAbove - (mergin * 2)}px`;
-            } else {
-                // Place below the input with appropriate margin
-                top = inputRect.bottom + mergin;
-                // Adjust max height to not exceed available space
-                this.root.style.maxHeight = `${spaceBelow - (mergin * 2)}px`;
-            }
+        // Calculate final styles, fitting the element within the placement area
+        const finalMaxWidth = Math.min(elemRect.width, placementArea.width);
+        const finalMaxHeight = Math.min(elemRect.height, placementArea.height);
 
-            // Ensure horizontal alignment within viewport if placed vertically
-            left = Math.max(mergin, Math.min(viewportWidth - elemRect.width - mergin, left));
-            // Align left edge with input where possible
-            left = inputRect.left;
+        // Adjust position if the element is smaller than the area (e.g., center or align based on mode)
+        // For simplicity, we'll just use the calculated top-left corner of the area for now.
+        // More sophisticated alignment could be added here if needed.
+        let finalLeft = placementArea.x;
+        let finalTop = placementArea.y;
 
-        } else {
-            // --- Horizontal Positioning (Default) ---
-            // Initial position: to the right of the textarea
-            left = inputRect.right + mergin;
-            top = inputRect.top;
-
-            // Check if we have enough space to the right
-            const rightSpace = viewportWidth - left;
-            if (rightSpace < elemRect.width && left > viewportWidth / 2) { // Only move left if it fits better
-                // Not enough space to the right, try placing it to the left
-                left = inputRect.left - elemRect.width - mergin;
-            }
-
-            // Fallback to vertical if horizontal doesn't fit well (e.g., goes off left)
-            if (left < 0) {
-                left = inputRect.left;
-                top = inputRect.bottom + mergin;
-                const bottomSpace = viewportHeight - top;
-                if (bottomSpace < elemRect.height) {
-                    top = inputRect.top - elemRect.height - mergin;
-                }
-            }
-            // Ensure vertical alignment within viewport if placed horizontally
-            top = Math.max(mergin, Math.min(viewportHeight - elemRect.height - mergin, top));
-        }
-
-        // Ensure the element stays within viewport (final check for both cases)
-        // left = Math.max(mergin, Math.min(viewportWidth - elw - mergin, left));
-        // top = Math.max(mergin, Math.min(viewportHeight - elemHeight - mergin, top));
-
-        // Update element position
-        this.root.style.left = `${left}px`;
-        this.root.style.top = `${top}px`;
-
-        // Set max dimensions to ensure scrolling if content is too large
-        // Adjust max height based on final top position
-        const maxHeight = viewportHeight - top - 20;
-        this.root.style.maxHeight = `${maxHeight}px`;
-        // Adjust max width based on final left position (less critical usually)
-        const maxWidth = Math.min(elemRect.width, viewportWidth - left - 20); 
-        this.root.style.maxWidth = `${maxWidth}px`;
+        // Apply Styles
+        this.root.style.left = `${finalLeft}px`;
+        this.root.style.top = `${finalTop}px`;
+        this.root.style.maxWidth = `${finalMaxWidth}px`;
+        this.root.style.maxHeight = `${finalMaxHeight}px`;
     }
 
     /**
@@ -288,6 +235,76 @@ class SimilarTagsUI {
      */
     isVisible() {
         return this.root.style.display !== 'none';
+    }
+
+    
+    /**
+     * Calculates the optimal placement area for the panel based on available space.
+     * @param {DOMRect} inputRect - Bounding rectangle of the input element.
+     * @param {number} elemWidth - Width of the panel element.
+     * @param {number} elemHeight - Height of the panel element.
+     * @param {number} margin - Margin around the element.
+     * @returns {{ x: number, y: number, width: number, height: number }} The calculated placement area.
+     */
+    #getOptimalPlacementArea(inputRect, elemWidth, elemHeight, margin) {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Calculate available space around the input element
+        const spaceAbove = inputRect.top - margin;
+        const spaceBelow = viewportHeight - inputRect.bottom - margin;
+        const spaceLeft = inputRect.left - margin;
+        const spaceRight = viewportWidth - inputRect.right - margin;
+
+        const isVertical = settingValues.similarTagsDisplayPosition === 'vertical';
+
+        let area = { x: 0, y: 0, width: 0, height: 0 };
+
+        if (isVertical) {
+            // --- Vertical Placement ---
+            // Determine available width first (usually aligned with input)
+            area.width = viewportWidth - margin * 2; // Max available width within viewport margins
+            area.x = margin; // Default x position
+
+            // Decide whether to place above or below
+            if (spaceAbove >= elemHeight || spaceAbove > spaceBelow) {
+                // Place Above
+                area.y = inputRect.top - margin - Math.min(elemHeight, spaceAbove); // Position below the available space top edge
+                area.height = Math.min(elemHeight, spaceAbove); // Fit height within available space
+            } else {
+                // Place Below
+                area.y = inputRect.bottom + margin;
+                area.height = Math.min(elemHeight, spaceBelow);
+            }
+            // Adjust x and width to align with input if possible, while staying in viewport
+            area.x = Math.max(margin, inputRect.left);
+            area.width = Math.min(elemWidth, viewportWidth - area.x - margin);
+        } else {
+            // --- Horizontal Placement ---
+            // Determine available height first (usually aligned with input top)
+            area.height = viewportHeight - margin * 2; // Max available height within viewport margins
+            area.y = margin; // Default y position
+
+            // Decide whether to place left or right
+            if (spaceLeft >= elemWidth || spaceLeft > spaceRight) {
+                // Place Left
+                area.x = inputRect.left - margin - Math.min(elemWidth, spaceLeft);
+                area.width = Math.min(elemWidth, spaceLeft);
+            } else {
+                // Place Right
+                area.x = inputRect.right + margin;
+                area.width = Math.min(elemWidth, spaceRight);
+            }
+            // Adjust y and height to align with input top if possible, while staying in viewport
+            area.y = Math.max(margin, inputRect.top);
+            area.height = Math.min(elemHeight, viewportHeight - area.y - margin);
+        }
+
+        // Ensure dimensions are non-negative
+        area.width = Math.max(0, area.width);
+        area.height = Math.max(0, area.height);
+
+        return area;
     }
 }
 
@@ -528,7 +545,7 @@ export class SimilarTagsEventHandler {
 
             // If the focus is not within the similar tags UI, hide it.
             if (similarTagsUI && !similarTagsElement.contains(activeElement)) {
-                // similarTagsUI.hide();
+                similarTagsUI.hide();
             }
         }, 150); // Delay in milliseconds (adjust if necessary)
     }
@@ -543,7 +560,7 @@ export class SimilarTagsEventHandler {
                 similarTagsUI.hide();
             }
         }
-        
+
         // Show similar tags on Ctrl+Space
         if (settingValues.enableSimilarTags) {
             if (event.key === ' ' && event.ctrlKey) {

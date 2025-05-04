@@ -43,7 +43,7 @@
     --comfy-hover-bg
   ); /* Use a hover variable if available, or adjust */
 
-  color: var(--desc-text); /* Adjust text color on hover if needed */
+  color: var(--descrip-text); /* Adjust text color on hover if needed */
 }
 
 /* Selected item style */
@@ -68,9 +68,10 @@
   top: 0;
   left: 0;
   display: none;
-  width: 800px;
+  width: fit-content;
   background-color: var(--comfy-input-bg);
   color: var(--input-text);
+  overflow-y: auto;
 }
 
 #similar-tags-header {
@@ -80,7 +81,7 @@
   padding: 8px 12px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--comfy-menu-bg);
-  color: var(--desc-text);
+  color: var(--descrip-text);
 }
 
 .similar-tags-header-tag-name {
@@ -89,45 +90,48 @@
 
 #similar-tags-list {
   display: grid;
-  padding: 5px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
   grid-template-columns: max-content 1fr auto;
-  overflow-y: auto;
 }
 
 .similar-tag-item {
   display: contents;
-  padding: 5px 10px; /* Adjusted padding */
-  border-bottom: 1px solid var(--border-color); /* Separator line */
   cursor: pointer;
-  white-space: nowrap; /* Prevent wrapping */
 }
 
-.similar-tag-item:last-child {
-  border-bottom: none;
+.similar-tag-item span {
+  align-content: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.similar-tag-item:hover {
-  background-color: var(--comfy-hover-bg);
+.similar-tag-item:nth-child(even) span {
+  background-color: var(--comfy-menu-bg);
+}
+
+.similar-tag-item:nth-child(odd) span {
+  background-color: var(--comfy-input-bg);
+}
+
+.similar-tag-item:hover span {
+  background-color: var(--p-form-field-filled-hover-background);
 }
 
 .similar-tag-name {
+  padding: 8px;
   white-space: nowrap;
 }
 
 .similar-tag-alias {
   overflow: hidden;
+  color: var(--descrip-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .similar-tag-similarity {
-  border-radius: 10px;
-  background-color: var(--comfy-menu-bg);
-  color: var(--desc-text);
+  color: var(--descrip-text);
   text-align: right;
   white-space: nowrap;
 }
