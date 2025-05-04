@@ -655,7 +655,7 @@ function insertTag(inputElement, tagToInsert) {
 
     // Find the end of the word/tag at the cursor position, stopping at comma, newline, or end of string.
     // Match non-whitespace, non-comma, non-newline characters.
-    const currentWordEndMatch = text.substring(cursorPos).match(/^([^\s,\n]*)/);
+    const currentWordEndMatch = text.substring(cursorPos).match(/^([^\s]*[,\n]{1})/);
     // currentWordEnd is the position *after* the matched word part.
     // const currentWordEnd = currentWordEndMatch ? cursorPos + currentWordEndMatch[1].length : cursorPos;
     let currentWordEnd = cursorPos;
