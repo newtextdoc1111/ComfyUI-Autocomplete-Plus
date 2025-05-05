@@ -559,7 +559,12 @@ function findCompletionCandidates(query) {
         // Check primary tag against all variations
         for (const variation of queryVariations) {
             // Ensure tagData.tag is treated as lowercase for comparison
-            if (tagData.tag.toLowerCase().includes(variation)) {
+            const lowerTag = tagData.tag.toLowerCase();
+            if (lowerTag.includes(variation)) {
+                matched = true;
+                break;
+            } else if (lowerTag.replace(/[\-_]/g, '').includes(variation)) {
+                // Try to match with underscores removed
                 matched = true;
                 break;
             }
