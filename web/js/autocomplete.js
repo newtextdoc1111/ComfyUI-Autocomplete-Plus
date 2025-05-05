@@ -113,7 +113,7 @@ class AutocompleteUI {
         const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.activeInput);
 
         const elOffset = this.#calculateElementOffset(this.activeInput);
-		const elScroll = { top: this.element.scrollTop, left: this.element.scrollLeft };
+        const elScroll = { top: this.element.scrollTop, left: this.element.scrollLeft };
         this.element.scrollTop = 0;
         this.element.style.maxHeight = ''; // Reset max-height for accurate measurement
 
@@ -370,10 +370,10 @@ class AutocompleteUI {
         const isFirefox = isBrowser && window.mozInnerScreenX != null;
 
         var debug = false;
-		if (debug) {
-			var el = document.querySelector("#input-textarea-caret-position-mirror-div");
-			if (el) el.parentNode.removeChild(el);
-		}
+        if (debug) {
+            var el = document.querySelector("#input-textarea-caret-position-mirror-div");
+            if (el) el.parentNode.removeChild(el);
+        }
 
         // The mirror div will replicate the textarea's style
         const div = document.createElement('div');
@@ -430,7 +430,7 @@ class AutocompleteUI {
         } else {
             numericLineHeight = parseFloat(computedLineHeight); // Use parseFloat for pixel values like "16px"
         }
-    
+
         if (isFirefox) {
             // Firefox lies about the overflow property for textareas: https://bugzilla.mozilla.org/show_bug.cgi?id=984275
             if (element.scrollHeight > parseInt(computed.height)) style.overflowY = 'scroll';
@@ -460,9 +460,9 @@ class AutocompleteUI {
         coordinates.top = rect.top + element.scrollTop + coordinates.top;
         coordinates.left = rect.left + element.scrollLeft + coordinates.left;
 
-        if(debug){
+        if (debug) {
             span.style.backgroundColor = "#aaa";
-        }else{
+        } else {
             document.body.removeChild(div);
         }
 
@@ -470,54 +470,54 @@ class AutocompleteUI {
     }
 
     /**
-	 * Returns calculated line-height of the given node in pixels.
-	 */
-	#calculateLineHeightPx(nodeName, computedStyle) {
-		const body = document.body;
-		if (!body) return 0;
+     * Returns calculated line-height of the given node in pixels.
+     */
+    #calculateLineHeightPx(nodeName, computedStyle) {
+        const body = document.body;
+        if (!body) return 0;
 
-		const tempNode = document.createElement(nodeName);
-		tempNode.innerHTML = "&nbsp;";
-		Object.assign(tempNode.style, {
-			fontSize: computedStyle.fontSize,
-			fontFamily: computedStyle.fontFamily,
-			padding: "0",
-			position: "absolute",
-		});
-		body.appendChild(tempNode);
+        const tempNode = document.createElement(nodeName);
+        tempNode.innerHTML = "&nbsp;";
+        Object.assign(tempNode.style, {
+            fontSize: computedStyle.fontSize,
+            fontFamily: computedStyle.fontFamily,
+            padding: "0",
+            position: "absolute",
+        });
+        body.appendChild(tempNode);
 
-		// Make sure textarea has only 1 row
-		if (tempNode instanceof HTMLTextAreaElement) {
-			tempNode.rows = 1;
-		}
+        // Make sure textarea has only 1 row
+        if (tempNode instanceof HTMLTextAreaElement) {
+            tempNode.rows = 1;
+        }
 
-		// Assume the height of the element is the line-height
-		const height = tempNode.offsetHeight;
-		body.removeChild(tempNode);
+        // Assume the height of the element is the line-height
+        const height = tempNode.offsetHeight;
+        body.removeChild(tempNode);
 
-		return height;
-	}
+        return height;
+    }
 
     #calculateElementOffset(element) {
-		const rect = element.getBoundingClientRect();
-		const owner = element.ownerDocument;
-		if (owner == null) {
-			throw new Error("Given element does not belong to document");
-		}
-		const { defaultView, documentElement } = owner;
-		if (defaultView == null) {
-			throw new Error("Given element does not belong to window");
-		}
-		const offset = {
-			top: rect.top + defaultView.pageYOffset,
-			left: rect.left + defaultView.pageXOffset,
-		};
-		if (documentElement) {
-			offset.top -= documentElement.clientTop;
-			offset.left -= documentElement.clientLeft;
-		}
-		return offset;
-	}
+        const rect = element.getBoundingClientRect();
+        const owner = element.ownerDocument;
+        if (owner == null) {
+            throw new Error("Given element does not belong to document");
+        }
+        const { defaultView, documentElement } = owner;
+        if (defaultView == null) {
+            throw new Error("Given element does not belong to window");
+        }
+        const offset = {
+            top: rect.top + defaultView.pageYOffset,
+            left: rect.left + defaultView.pageXOffset,
+        };
+        if (documentElement) {
+            offset.top -= documentElement.clientTop;
+            offset.left -= documentElement.clientLeft;
+        }
+        return offset;
+    }
 }
 
 // --- Autocomplete Logic ---
@@ -666,7 +666,7 @@ function insertTag(inputElement, tagToInsert) {
     let currentWordEnd = cursorPos;
 
     // If the match was found and the cursor is within the matched word, extend currentWordEnd to include it.
-    if(currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[1]) !== -1){
+    if (currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[1]) !== -1) {
         currentWordEnd = cursorPos + currentWordEndMatch[1].length;
     }
 
@@ -718,7 +718,7 @@ function insertTag(inputElement, tagToInsert) {
 export class AutocompleteEventHandler {
     handleInput(event) {
         if (!settingValues.enabled || !autocompleteUI) return;
-    
+
         const ESCAPE_SEQUENCE = ["#", "/"]; // prevent autocomplete for these sequences
         const textareaElement = event.target;
         const partialTag = getCurrentPartialTag(textareaElement);
@@ -729,7 +729,7 @@ export class AutocompleteEventHandler {
             autocompleteUI.hide();
         }
     }
-    
+
     handleFocus(event) {
         if (!settingValues.enabled) return;
         // Potentially show suggestions immediately on focus?
@@ -740,7 +740,7 @@ export class AutocompleteEventHandler {
         // Maybe check if there's already text and show suggestions?
         // handleInput(event); // Trigger check immediately
     }
-    
+
     handleBlur(event) {
         // Need a slight delay because clicking the autocomplete list causes blur
         setTimeout(() => {
@@ -749,12 +749,12 @@ export class AutocompleteEventHandler {
             }
         }, 150);
     }
-    
+
     handleKeyDown(event) {
         if (!settingValues.enabled) return;
-    
+
         const textareaElement = event.target;
-    
+
         // Handle autocomplete navigation
         if (autocompleteUI && autocompleteUI.isVisible()) {
             switch (event.key) {
@@ -783,11 +783,11 @@ export class AutocompleteEventHandler {
             }
         }
     }
-    
+
     // New event handler for mousemove to show similar tags on hover
     handleMouseMove(event) {
     }
-    
+
     // New event handler for click to show similar tags
     handleClick(event) {
         if (!settingValues.enabled || !settingValues.enableSimilarTags ||
