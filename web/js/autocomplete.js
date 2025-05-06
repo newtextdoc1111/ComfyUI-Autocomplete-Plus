@@ -16,7 +16,6 @@ class AutocompleteUI {
         this.element.id = 'autocomplete-plus-list';
         this.element.style.display = 'none'; // Initially hidden
         this.element.style.position = 'absolute'; // Position near the input
-        this.element.style.zIndex = '10000'; // Ensure it's on top
         this.element.style.borderCollapse = 'collapse'; // Optional: for table styling
         this.element.style.width = 'auto'; // Adjust width automatically
 
@@ -537,7 +536,8 @@ function findCompletionCandidates(query) {
     }
 
     const lowerQuery = query.toLowerCase();
-    const candidates = [];
+    const exactMatches = []; // Array for exact matches (will be displayed first)
+    const partialMatches = []; // Array for partial matches (will be displayed after exact matches)
     const addedTags = new Set(); // Keep track of added tags to avoid duplicates
 
     // Generate Hiragana/Katakana variations if applicable
@@ -554,19 +554,32 @@ function findCompletionCandidates(query) {
     // Search in sortedTags (already sorted by count)
     for (const tagData of autoCompleteData.sortedTags) {
         let matched = false;
+        let isExactMatch = false;
         let matchedAlias = null;
 
-        // Check primary tag against all variations
+        // Ensure tagData.tag is treated as lowercase for comparison
+        const lowerTag = tagData.tag.toLowerCase();
+        
+        // Check primary tag against all variations for exact match first
         for (const variation of queryVariations) {
-            // Ensure tagData.tag is treated as lowercase for comparison
-            const lowerTag = tagData.tag.toLowerCase();
-            if (lowerTag.includes(variation)) {
+            if (lowerTag === variation || lowerTag === variation.replace(/[\-_\s]/g, '')) {
+                isExactMatch = true;
                 matched = true;
                 break;
-            } else if (lowerTag.replace(/[\-_]/g, '').includes(variation)) {
-                // Try to match with underscores removed
-                matched = true;
-                break;
+            }
+        }
+        
+        // If not an exact match, check for partial matches in the tag
+        if (!isExactMatch) {
+            for (const variation of queryVariations) {
+                if (lowerTag.includes(variation)) {
+                    matched = true;
+                    break;
+                } else if (lowerTag.replace(/[\-_]/g, '').includes(variation)) {
+                    // Try to match with underscores/hyphens removed
+                    matched = true;
+                    break;
+                }
             }
         }
 
@@ -574,36 +587,66 @@ function findCompletionCandidates(query) {
         if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
             for (const alias of tagData.alias) {
                 const lowerAlias = alias.toLowerCase();
+                
+                // Check for exact matches in aliases first
                 for (const variation of queryVariations) {
-                    if (lowerAlias.includes(variation)) {
+                    if (lowerAlias === variation) {
+                        isExactMatch = true;
                         matched = true;
-                        matchedAlias = alias; // Store the alias that matched
+                        matchedAlias = alias;
                         break;
                     }
                 }
+                
+                // If not an exact match in alias, check for partial matches
+                if (!isExactMatch) {
+                    for (const variation of queryVariations) {
+                        if (lowerAlias.includes(variation)) {
+                            matched = true;
+                            matchedAlias = alias;
+                            break;
+                        }
+                    }
+                }
+                
                 if (matched) break; // Stop checking aliases for this tag if one matched
             }
         }
 
         // Add candidate if matched and not already added
         if (matched && !addedTags.has(tagData.tag)) {
-            candidates.push({
+            const candidateItem = {
                 tag: tagData.tag,
                 count: tagData.count,
-                alias: tagData.alias // Add alias property only if matched via alias
-            });
+                alias: tagData.alias
+            };
+            
+            // Add to exact matches or partial matches based on match type
+            if (isExactMatch) {
+                exactMatches.push(candidateItem);
+            } else {
+                partialMatches.push(candidateItem);
+            }
+            
             addedTags.add(tagData.tag);
-            if (candidates.length >= settingValues.maxSuggestions) {
-                // 早期リターンする場合もログを出力
-                const endTime = performance.now();
-                const duration = endTime - startTime;
-                // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates (max reached).`);
-                return candidates; // Early exit
+            
+            // Check if we've reached the maximum suggestions limit combining both arrays
+            if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
+                // Return the combined results, prioritizing exact matches
+                const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
+
+                // const endTime = performance.now();
+                // const duration = endTime - startTime;
+                // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
+                
+                return result; // Early exit
             }
         }
     }
 
-    // 検索終了時間を記録し、コンソールに出力
+    // Combine results, with exact matches first
+    const candidates = [...exactMatches, ...partialMatches];
+    
     // const endTime = performance.now();
     // const duration = endTime - startTime;
     // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
@@ -732,13 +775,8 @@ export class AutocompleteEventHandler {
 
     handleFocus(event) {
         if (!settingValues.enabled) return;
-        // Potentially show suggestions immediately on focus?
-        // For now, only show on input
-        if (!autocompleteUI) {
-            autocompleteUI = new AutocompleteUI();
-        }
-        // Maybe check if there's already text and show suggestions?
-        // handleInput(event); // Trigger check immediately
+
+        // Add code if needed for focus events
     }
 
     handleBlur(event) {
