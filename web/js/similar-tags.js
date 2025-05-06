@@ -2,8 +2,9 @@
 import { settingValues } from './settings.js';
 import { autoCompleteData } from './data.js';
 import {
+    normalizeTagToInsert,
     normalizeTagToSearch,
-    normalizeTagToInsert
+    getViewportMargin
 } from './utils.js';
 
 // --- SimilarTags UI Class ---
@@ -176,7 +177,6 @@ class SimilarTagsUI {
      * @param {HTMLElement} inputElement The input element to position
      */
     updatePosition(inputElement) {
-        const margin = 10;
 
         // Measure the element size without causing reflow
         this.root.style.visibility = 'hidden';
@@ -195,7 +195,7 @@ class SimilarTagsUI {
         this.root.style.top = '';
 
         // Get the optimal placement area
-        const placementArea = this.#getOptimalPlacementArea(inputElement.getBoundingClientRect(), elemRect.width, elemRect.height, margin);
+        const placementArea = this.#getOptimalPlacementArea(inputElement.getBoundingClientRect(), elemRect.width, elemRect.height);
 
         // Calculate final styles, fitting the element within the placement area
         const finalMaxWidth = Math.min(elemRect.width, placementArea.width);
@@ -217,7 +217,7 @@ class SimilarTagsUI {
     /**
      * Handles the selection of a similar tag.
      * Inserts the tag into the active input.
-     * @param {string} tag 
+     * @param {string} tag
      */
     selectTag(tag) {
         if (!this.activeInput) return;
@@ -243,66 +243,53 @@ class SimilarTagsUI {
      * @param {DOMRect} inputRect - Bounding rectangle of the input element.
      * @param {number} elemWidth - Width of the panel element.
      * @param {number} elemHeight - Height of the panel element.
-     * @param {number} margin - Margin around the element.
      * @returns {{ x: number, y: number, width: number, height: number }} The calculated placement area.
      */
-    #getOptimalPlacementArea(inputRect, elemWidth, elemHeight, margin) {
+    #getOptimalPlacementArea(inputRect, elemWidth, elemHeight) {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
+        let margin = getViewportMargin();
 
-        // Calculate available space around the input element
-        const spaceAbove = inputRect.top - margin;
-        const spaceBelow = viewportHeight - inputRect.bottom - margin;
-        const spaceLeft = inputRect.left - margin;
-        const spaceRight = viewportWidth - inputRect.right - margin;
+        let area = {
+            x: Math.max(inputRect.x, margin.left),
+            y: Math.max(inputRect.y, margin.top),
+            width: Math.min(elemWidth, (viewportWidth - margin.left - margin.right) / 2),
+            height: Math.min(elemHeight, viewportHeight - margin.top - margin.bottom)
+        };
 
-        const isVertical = settingValues.similarTagsDisplayPosition === 'vertical';
-
-        let area = { x: 0, y: 0, width: 0, height: 0 };
-
-        if (isVertical) {
-            // --- Vertical Placement ---
-            // Determine available width first (usually aligned with input)
-            area.width = viewportWidth - margin * 2; // Max available width within viewport margins
-            area.x = margin; // Default x position
-
-            // Decide whether to place above or below
-            if (spaceAbove >= elemHeight || spaceAbove > spaceBelow) {
-                // Place Above
-                area.y = inputRect.top - margin - Math.min(elemHeight, spaceAbove); // Position below the available space top edge
-                area.height = Math.min(elemHeight, spaceAbove); // Fit height within available space
-            } else {
-                // Place Below
-                area.y = inputRect.bottom + margin;
-                area.height = Math.min(elemHeight, spaceBelow);
+        if(settingValues.similarTagsDisplayPosition === 'vertical') {
+            // Vertical placement
+            const topSpace = inputRect.top - margin.top;
+            const bottomSpace = viewportHeight - inputRect.bottom - margin.bottom;
+            if(topSpace > bottomSpace) {
+                // Place above
+                area.height = Math.min(area.height, topSpace);
+                area.y = Math.max(inputRect.y - area.height, margin.top);
+            }else{
+                // Place below
+                area.height = Math.min(area.height, bottomSpace);
+                area.y = inputRect.bottom;
             }
-            // Adjust x and width to align with input if possible, while staying in viewport
-            area.x = Math.max(margin, inputRect.left);
-            area.width = Math.min(elemWidth, viewportWidth - area.x - margin);
-        } else {
-            // --- Horizontal Placement ---
-            // Determine available height first (usually aligned with input top)
-            area.height = viewportHeight - margin * 2; // Max available height within viewport margins
-            area.y = margin; // Default y position
 
-            // Decide whether to place left or right
-            if (spaceLeft >= elemWidth || spaceLeft > spaceRight) {
-                // Place Left
-                area.x = inputRect.left - margin - Math.min(elemWidth, spaceLeft);
-                area.width = Math.min(elemWidth, spaceLeft);
-            } else {
-                // Place Right
-                area.x = inputRect.right + margin;
-                area.width = Math.min(elemWidth, spaceRight);
+            // Adjust x position to avoid overflow
+            area.x = Math.min(area.x, viewportWidth - area.width - margin.right);
+        }else{
+            // Horizontal placement
+            const leftSpace = inputRect.x - margin.left;
+            const rightSpace = viewportWidth - inputRect.right - margin.right;
+            if(leftSpace > rightSpace) {
+                // Place left
+                area.width = Math.min(area.width, leftSpace);
+                area.x = Math.max(inputRect.x - area.width, margin.left);
+            }else{
+                // Place right
+                area.width = Math.min(area.width, rightSpace);
+                area.x = inputRect.right;
             }
-            // Adjust y and height to align with input top if possible, while staying in viewport
-            area.y = Math.max(margin, inputRect.top);
-            area.height = Math.min(elemHeight, viewportHeight - area.y - margin);
+
+            // Adjust y position to avoid overflow
+            area.y = Math.min(area.y, viewportHeight - area.height - margin.bottom);
         }
-
-        // Ensure dimensions are non-negative
-        area.width = Math.max(0, area.width);
-        area.height = Math.max(0, area.height);
 
         return area;
     }
@@ -315,8 +302,6 @@ class SimilarTagsUI {
  * Jaccard similarity = (A ∩ B) / (A ∪ B) = (A ∩ B) / (|A| + |B| - |A ∩ B|)
  * @param {string} tagA The first tag
  * @param {string} tagB The second tag
- * @param {Map<string, Map<string, number>>} cooccurrenceMap The cooccurrence data
- * @param {Map<string, {tag: string, count: number}>} tagMap The tag data map
  * @returns {number} Similarity score between 0 and 1
  */
 function calculateJaccardSimilarity(tagA, tagB) {
@@ -340,8 +325,6 @@ function calculateJaccardSimilarity(tagA, tagB) {
 /**
  * Finds similar tags for a given tag.
  * @param {string} tag The tag to find similar tags for
- * @param {Map<string, Map<string, number>>} cooccurrenceMap Map of cooccurrence data
- * @param {Map<string, {tag: string, count: number, alias?: string[]}>} tagMap Map of tag data
  * @returns {Array<{tag: string, similarity: number, count: number, alias?: string[]}>}
  */
 function findSimilarTags(tag) {
@@ -417,9 +400,7 @@ function getCurrentTag(inputElement) {
     if (!tag) return null;
 
     // Process the tag: swap underscores/spaces and unescape parentheses
-    const normalizedTag = normalizeTagToSearch(tag);
-
-    return normalizedTag;
+    return normalizeTagToSearch(tag);
 }
 
 /**
@@ -434,10 +415,10 @@ function getCurrentTag(inputElement) {
 function insertTag(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
-    
+
     // Normalize the tag to insert for consistent comparison
     const normalizedTagToInsert = normalizeTagToSearch(tagToInsert);
-    
+
     // First check if the tag exists anywhere in the textarea and select it if found
     const tagPositions = findAllTagPositions(text);
     for (const { start, end, tag } of tagPositions) {
@@ -449,38 +430,38 @@ function insertTag(inputElement, tagToInsert) {
             return;
         }
     }
-    
+
     // Find the current tag boundaries
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
     const lastNewline = text.lastIndexOf('\n', cursorPos - 1);
     let startPos = Math.max(lastComma, lastNewline);
     startPos = startPos === -1 ? 0 : startPos + 1;
-    
+
     // Find the end of the current tag
     let endPosComma = text.indexOf(',', startPos);
     let endPosNewline = text.indexOf('\n', startPos);
-    
+
     if (endPosComma === -1) endPosComma = text.length;
     if (endPosNewline === -1) endPosNewline = text.length;
-    
+
     const endPos = Math.min(endPosComma, endPosNewline);
-    
+
     // Find the start of the next tag (if any)
     let nextTagStartPos = endPos;
     if (nextTagStartPos < text.length) {
         // Skip the separator (comma or newline)
         nextTagStartPos += 1;
     }
-    
+
     // Find the end of the next tag (if any)
     let nextTagEndPosComma = text.indexOf(',', nextTagStartPos);
     let nextTagEndPosNewline = text.indexOf('\n', nextTagStartPos);
-    
+
     if (nextTagEndPosComma === -1) nextTagEndPosComma = text.length;
     if (nextTagEndPosNewline === -1) nextTagEndPosNewline = text.length;
-    
+
     const nextTagEndPos = Math.min(nextTagEndPosComma, nextTagEndPosNewline);
-    
+
     // Extract the next tag and check if it matches the tag to insert
     if (nextTagStartPos < text.length && nextTagStartPos < nextTagEndPos) {
         const nextTag = text.substring(nextTagStartPos, nextTagEndPos).trim();
@@ -492,19 +473,19 @@ function insertTag(inputElement, tagToInsert) {
             return;
         }
     }
-    
+
     // Set effective insertion position to the end of current tag
     let effectiveEndPos = endPos;
-    
+
     // Prepare the text to insert
     const normalizedTag = normalizeTagToInsert(tagToInsert);
     let textToInsert = ", " + normalizedTag;
-    
+
     // --- Use execCommand for Undo support ---
     // 1. Select the range where the tag will be inserted
     inputElement.focus();
     inputElement.setSelectionRange(effectiveEndPos, effectiveEndPos);
-    
+
     // 2. Execute the insertText command to add the tag
     const insertTextSuccess = document.execCommand('insertText', false, textToInsert);
 
@@ -512,17 +493,11 @@ function insertTag(inputElement, tagToInsert) {
     if (!insertTextSuccess) {
         console.warn('[Autocomplete-Plus] execCommand("insertText") failed. Falling back to direct value manipulation (Undo might not work).');
 
-        // Text before the insertion point
         const textBefore = text.substring(0, effectiveEndPos);
-
-        // Text after the insertion point
         const textAfter = text.substring(effectiveEndPos);
 
-        // Construct the new value
-        const newValue = textBefore + textToInsert + textAfter;
-
-        // Set the new value
-        inputElement.value = newValue;
+        // Insert the tag directly into the value
+        inputElement.value = textBefore + textToInsert + textAfter;
 
         // Set cursor position after the newly inserted tag
         const newCursorPos = effectiveEndPos + textToInsert.length;
@@ -542,26 +517,26 @@ function insertTag(inputElement, tagToInsert) {
 function findAllTagPositions(text) {
     const positions = [];
     let startPos = 0;
-    
+
     while (startPos < text.length) {
         // Skip any leading whitespace, commas, or newlines
-        while (startPos < text.length && 
-              (text[startPos] === ' ' || text[startPos] === ',' || text[startPos] === '\n')) {
+        while (startPos < text.length &&
+            (text[startPos] === ' ' || text[startPos] === ',' || text[startPos] === '\n')) {
             startPos++;
         }
-        
+
         if (startPos >= text.length) break;
-        
+
         // Find the end of this tag (next comma or newline)
         let endPosComma = text.indexOf(',', startPos);
         let endPosNewline = text.indexOf('\n', startPos);
-        
+
         if (endPosComma === -1) endPosComma = text.length;
         if (endPosNewline === -1) endPosNewline = text.length;
-        
+
         const endPos = Math.min(endPosComma, endPosNewline);
         const tag = text.substring(startPos, endPos);
-        
+
         if (tag.trim().length > 0) {
             positions.push({
                 start: startPos,
@@ -569,11 +544,11 @@ function findAllTagPositions(text) {
                 tag: tag
             });
         }
-        
+
         // Move to the next tag
         startPos = endPos + 1;
     }
-    
+
     return positions;
 }
 
@@ -672,8 +647,4 @@ export class SimilarTagsEventHandler {
         const textareaElement = event.target;
         showSimilarTagsForCurrentPosition(textareaElement);
     }
-}
-
-export function initializeSimilarTags() {
-
 }

@@ -110,3 +110,21 @@ export function loadCSS(href) {
     document.head.appendChild(link);
     console.debug(`Loaded CSS: ${href}`); // Optional: Log loading
 }
+
+/**
+ * Get the viewport margin based on the positions of the top, bottom, left, and right bars.
+ * @returns {Object} - An object containing the top, bottom, left, and right margins of the viewport.
+ */
+export function getViewportMargin(){
+    const topBarRect = document.querySelector("#comfyui-body-top")?.getBoundingClientRect() || {top: 0, bottom: 0};
+    const bottomBarRect = document.querySelector("#comfyui-body-bottom")?.getBoundingClientRect() || {top: 0, bottom: 0};
+    const leftBarRect = document.querySelector("#comfyui-body-left")?.getBoundingClientRect() || {left: 0, right: 0};
+    const rightBarRect = document.querySelector("#comfyui-body-right")?.getBoundingClientRect() || {left: 0, right: 0};
+
+    return {
+        top: topBarRect.height,
+        bottom: bottomBarRect.height,
+        left: leftBarRect.width,
+        right: rightBarRect.width,
+    };
+}
