@@ -1,6 +1,6 @@
 // filepath: v:\Programs\StabilityMatrix-win-x64\Data\Packages\ComfyUI-New\custom_nodes\ComfyUI-Autocomplete-Plus\web\js\similar-tags.js
 import { settingValues } from './settings.js';
-import { autoCompleteData } from './data.js';
+import { TagCategory, autoCompleteData } from './data.js';
 import {
     normalizeTagToInsert,
     normalizeTagToSearch,
@@ -130,9 +130,12 @@ class SimilarTagsUI {
      * @returns {HTMLTableRowElement} The tag row element
      */
     createTagElement(tagData) {
+        const categoryText = TagCategory[tagData.category] || "unknown";
+
         const tagRow = document.createElement('div');
         tagRow.className = 'similar-tag-item';
         tagRow.dataset.tag = tagData.tag;
+        tagRow.dataset.tagCategory = categoryText;
 
         // Tag name cell
         const tagNameCell = document.createElement('span');
@@ -150,6 +153,11 @@ class SimilarTagsUI {
             aliasCell.title = tagData.alias.join(', '); // Full alias on hover
         }
 
+        // Category cell
+        const categoryCell = document.createElement('span');
+        categoryCell.className = `similar-tag-category`;
+        categoryCell.textContent = `${categoryText.substring(0, 2)}`;
+
         // Similarity cell
         const similarityCell = document.createElement('span');
         similarityCell.className = 'similar-tag-similarity';
@@ -165,6 +173,7 @@ class SimilarTagsUI {
         // Add cells to row
         tagRow.appendChild(tagNameCell);
         tagRow.appendChild(aliasCell);
+        tagRow.appendChild(categoryCell);
         tagRow.appendChild(similarityCell);
 
         return tagRow;
@@ -350,8 +359,9 @@ function findSimilarTags(tag) {
         similarTags.push({
             tag: coTag,
             similarity: similarity,
+            alias: tagData.alias,
+            category: tagData.category,
             count: tagData.count,
-            alias: tagData.alias
         });
     });
 
@@ -398,7 +408,7 @@ function getCurrentTag(inputElement) {
 
     // If no tag found, return null
     if (!tag) return null;
-
+    
     // Process the tag: swap underscores/spaces and unescape parentheses
     return normalizeTagToSearch(tag);
 }
@@ -581,7 +591,7 @@ export class SimilarTagsEventHandler {
     }
 
     handleInput(event) {
-        if (settingValues.enableSimilarTags && settingValues.similarTagsDisplayMode !== 'hover') {
+        if (settingValues.enableSimilarTags) {
             if (similarTagsUI && similarTagsUI.isVisible()) {
                 similarTagsUI.hide();
             }
@@ -593,6 +603,10 @@ export class SimilarTagsEventHandler {
     }
 
     handleBlur(event) {
+        if(!settingValues.hideWhenOutofFocus) {
+            return;
+        }
+
         // Use setTimeout to delay hiding. This allows clicks on the similar tags UI
         // to be processed before the UI is hidden.
         setTimeout(() => {
@@ -629,18 +643,7 @@ export class SimilarTagsEventHandler {
     }
 
     handleMouseMove(event) {
-        if (!settingValues.enabled || !settingValues.enableSimilarTags ||
-            settingValues.similarTagsDisplayMode !== 'hover') return;
-
-        const textareaElement = event.target;
-
-        // Throttle the mousemove event to avoid too many calculations
-        if (!textareaElement.dataset.lastMoveTime ||
-            Date.now() - textareaElement.dataset.lastMoveTime > 200) {
-
-            textareaElement.dataset.lastMoveTime = Date.now();
-            showSimilarTagsForCurrentPosition(textareaElement);
-        }
+        
     }
 
     handleClick(event) {

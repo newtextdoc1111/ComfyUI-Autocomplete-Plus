@@ -1,49 +1,91 @@
-/* Basic styles for autocomplete - will be refined later */
+/* Light Theme */
+ body {
+  --autocomplete-plus-text-color-cat-general: var(--p-blue-800);
+  --autocomplete-plus-text-color-cat-artist: var(--p-red-800);
+  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-800);
+  --autocomplete-plus-text-color-cat-character: var(--p-green-800);
+  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-800);
+  --autocomplete-plus-text-color-cat-unknown: var(--p-grey-800);
+}
+
+/* Dark Theme */
+body.dark-theme {
+  --autocomplete-plus-text-color-cat-general: var(--p-blue-400);
+  --autocomplete-plus-text-color-cat-artist: var(--p-red-400);
+  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-400);
+  --autocomplete-plus-text-color-cat-character: var(--p-green-400);
+  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-400);
+  --autocomplete-plus-text-color-cat-unknown: var(--p-grey-400);
+  --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
+  --autocomplete-plus-text-color-cat-artist-selected: var(--p-red-200);
+  --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
+  --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
+  --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
+  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-grey-200);
+}
 
 #autocomplete-plus-list {
-  position: absolute; /* Ensure position is absolute */
-  z-index: 10000; /* High z-index */
-  min-width: 200px; /* Increased min width */
+  position: absolute;
+  z-index: 999;
+  min-width: 200px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--comfy-input-bg);
   box-shadow: 0 2px 5px rgb(0 0 0 / 20%);
   color: var(--input-text);
-  font-size: 0.9em; /* Slightly smaller font */
+  font-size: 0.9em;
   overflow-y: auto;
 }
 
 .autocomplete-plus-item {
   overflow: hidden;
-  padding: 5px 10px; /* Adjusted padding */
-  border-bottom: 1px solid var(--border-color); /* Separator line */
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
-  text-overflow: ellipsis; /* Show ellipsis if too long */
-  white-space: nowrap; /* Prevent wrapping */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autocomplete-plus-item[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-general);
+}
+
+.autocomplete-plus-item[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-artist);
+}
+
+.autocomplete-plus-item[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-copyright);
+}
+
+.autocomplete-plus-item[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-character);
+}
+
+.autocomplete-plus-item[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-meta);
+}
+
+.autocomplete-plus-item[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-unknown);
 }
 
 .autocomplete-plus-item:last-child {
-  border-bottom: none; /* No border for the last item */
+  border-bottom: none;
 }
 
 /* Alternating row colors */
 .autocomplete-plus-item:nth-child(even) {
-  background-color: var(
-    --comfy-menu-bg
-  ); /* Slightly different background for even rows */
+  background-color: var(--comfy-menu-bg);
 }
 
 .autocomplete-plus-item:nth-child(odd) {
-  background-color: var(--comfy-input-bg);
+  background-color: var(--comfy-menu-secondary-bg);
 }
 
 /* Hover effect */
 .autocomplete-plus-item:hover {
-  background-color: var(
-    --comfy-hover-bg
-  ); /* Use a hover variable if available, or adjust */
-
-  color: var(--descrip-text); /* Adjust text color on hover if needed */
+  background-color: var(--comfy-hover-bg);
 }
 
 /* Selected item style */
@@ -51,20 +93,21 @@
   background-color: var(
     --comfy-menu-bg-selected,
     var(--comfy-button-bg)
-  ); /* Use selection color, fallback to button */
-
-  color: var(
-    --comfy-menu-text-selected,
-    var(--button-text)
-  ); /* Use selected text color, fallback */
-
+  );
   font-weight: bold;
+}
+
+.autocomplete-plus-item .autocomplete-plus-alias {
+  overflow: hidden;
+  color: var(--descrip-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Similar Tags UI Styles */
 #similar-tags-container {
   position: absolute;
-  z-index: 10000;
+  z-index: 999;
   top: 0;
   left: 0;
   display: none;
@@ -92,12 +135,36 @@
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
-  grid-template-columns: max-content 1fr auto;
+  grid-template-columns: max-content 1fr auto auto;
 }
 
 .similar-tag-item {
   display: contents;
   cursor: pointer;
+}
+
+.similar-tag-item[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-general);
+}
+
+.similar-tag-item[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-artist);
+}
+
+.similar-tag-item[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-copyright);
+}
+
+.similar-tag-item[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-character);
+}
+
+.similar-tag-item[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-meta);
+}
+
+.similar-tag-item[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-unknown);
 }
 
 .similar-tag-item span {
@@ -111,7 +178,7 @@
 }
 
 .similar-tag-item:nth-child(odd) span {
-  background-color: var(--comfy-input-bg);
+  background-color: var(--comfy-menu-secondary-bg);
 }
 
 .similar-tag-item:hover span {

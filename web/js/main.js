@@ -6,7 +6,6 @@ import { AutocompleteEventHandler } from "./autocomplete.js";
 import { SimilarTagsEventHandler } from "./similar-tags.js";
 
 function initializeEventHandlers() {
-    // Singletons for event handlers
     const autocompleteEventHandler = new AutocompleteEventHandler();
     const similarTagsEventHandler = new SimilarTagsEventHandler();
 
@@ -17,7 +16,6 @@ function initializeEventHandlers() {
         // Add other selectors if needed
     ];
 
-    // Use MutationObserver to detect dynamically added textareas
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
@@ -158,18 +156,6 @@ app.registerExtension({
             category: [name, "Similar Tags", "Max similar tags"],
             onChange: (newVal, oldVal) => {
                 settingValues.maxSimilarTags = newVal;
-            }
-        },
-        {
-            id: id + ".similar_tags_mode",
-            name: "Similar Tags Display Mode",
-            description: "When to show similar tags",
-            type: "combo",
-            options: ["hover", "click"],
-            defaultValue: "hover",
-            category: [name, "Similar Tags", "Display Mode"],
-            onChange: (newVal, oldVal) => {
-                settingValues.similarTagsDisplayMode = newVal;
             }
         },
         {

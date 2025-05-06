@@ -1,4 +1,7 @@
-import { autoCompleteData } from './data.js';
+import { 
+    TagCategory,
+    autoCompleteData
+} from './data.js';
 import {
     formatCountHumanReadable,
     hiraToKata,
@@ -230,31 +233,30 @@ class AutocompleteUI {
      */
     #createCandidateItem(index, candidate) {
         const MAX_ALIAS_LENGTH = 25; // Maximum length for alias display
+        const categoryText = TagCategory[candidate.category] || "unknown";
         const tbody = this.element.querySelector('tbody');
 
-        const item = document.createElement('tr'); // Create a table row
+        const item = document.createElement('tr');
         item.classList.add('autocomplete-plus-item');
         item.dataset.index = index;
+        item.dataset.tagCategory = categoryText;
         item.style.cursor = 'pointer';
-        item.style.whiteSpace = 'nowrap'; // Prevent wrapping within the row
+        item.style.whiteSpace = 'nowrap';
 
-        // Left cell: Tag
-        const leftTd = document.createElement('td');
-        leftTd.style.padding = '4px 8px';
-        leftTd.style.overflow = 'hidden';
-        leftTd.style.textOverflow = 'ellipsis';
-        leftTd.style.maxWidth = '300px'; // Limit width of the tag/alias cell
-        leftTd.style.textAlign = 'left';
+        // 1st cell: Tag
+        const tagCell = document.createElement('td');
+        tagCell.style.padding = '4px 8px';
+        tagCell.style.overflow = 'hidden';
+        tagCell.style.textOverflow = 'ellipsis';
+        tagCell.style.maxWidth = '300px'; // Limit width of the tag/alias cell
 
-        leftTd.textContent = candidate.tag; // Display the tag
+        tagCell.textContent = candidate.tag; // Display the tag
 
-        // Middle cell: Alias (if any)
-        const middleTd = document.createElement('td');
-        middleTd.style.padding = '4px 8px';
-        middleTd.style.overflow = 'hidden';
-        middleTd.style.textOverflow = 'ellipsis';
-        middleTd.style.maxWidth = '300px'; // Limit width of the tag/alias cell
-        middleTd.style.textAlign = 'left';
+        // 2nd cell: Alias (if any)
+        const aliasCell = document.createElement('td');
+        aliasCell.classList.add('autocomplete-plus-alias');
+        aliasCell.style.padding = '4px 8px';
+        aliasCell.style.maxWidth = '300px'; // Limit width of the tag/alias cell
 
         let displayText = "";
         let displayAliasStr = '';
@@ -266,19 +268,26 @@ class AutocompleteUI {
             }
             displayText += ` [${displayAliasStr}]`;
         }
-        middleTd.textContent = displayText;
-        middleTd.title = `${candidate.tag}${candidate.alias && candidate.alias.length > 0 ? ` [${candidate.alias.join(', ')}]` : ''}`; // Full text on hover
+        aliasCell.textContent = displayText;
+        aliasCell.title = `${candidate.tag}${candidate.alias && candidate.alias.length > 0 ? ` [${candidate.alias.join(', ')}]` : ''}`; // Full text on hover
 
-        // Right cell: Count
-        const rightTd = document.createElement('td');
-        rightTd.textContent = formatCountHumanReadable(candidate.count);
-        rightTd.style.padding = '4px 8px';
-        rightTd.style.textAlign = 'right';
-        rightTd.style.minWidth = '50px'; // Ensure some minimum space for count alignment
+        // 3rd cell: Category
+        const catCell = document.createElement('td');
+        catCell.textContent = TagCategory[candidate.category].substring(0, 2);
+        catCell.style.padding = '4px 8px';
+        catCell.style.minWidth = '50px'; // Ensure some minimum space for count alignment
 
-        item.appendChild(leftTd);
-        item.appendChild(middleTd);
-        item.appendChild(rightTd);
+        // 4th cell: Count
+        const countCell = document.createElement('td');
+        countCell.textContent = formatCountHumanReadable(candidate.count);
+        countCell.style.padding = '4px 8px';
+        countCell.style.textAlign = 'right';
+        countCell.style.minWidth = '50px'; // Ensure some minimum space for count alignment
+
+        item.appendChild(tagCell);
+        item.appendChild(aliasCell);
+        item.appendChild(catCell);
+        item.appendChild(countCell);
         tbody.appendChild(item); // Append row to tbody
     }
 
@@ -575,8 +584,8 @@ function findCompletionCandidates(query) {
                 if (lowerTag.includes(variation)) {
                     matched = true;
                     break;
-                } else if (lowerTag.replace(/[\-_]/g, '').includes(variation)) {
-                    // Try to match with underscores/hyphens removed
+                } else if (lowerTag.replace(/[\-_']/g, '').includes(variation)) {
+                    // Try to match with underscore, dash, or apostrophe removed
                     matched = true;
                     break;
                 }
@@ -617,8 +626,9 @@ function findCompletionCandidates(query) {
         if (matched && !addedTags.has(tagData.tag)) {
             const candidateItem = {
                 tag: tagData.tag,
+                alias: tagData.alias,
+                category: tagData.category,
                 count: tagData.count,
-                alias: tagData.alias
             };
             
             // Add to exact matches or partial matches based on match type
@@ -780,6 +790,8 @@ export class AutocompleteEventHandler {
     }
 
     handleBlur(event) {
+        if(!settingValues.hideWhenOutofFocus) return;
+
         // Need a slight delay because clicking the autocomplete list causes blur
         setTimeout(() => {
             if (autocompleteUI && !autocompleteUI.element.contains(document.activeElement)) {

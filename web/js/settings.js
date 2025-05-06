@@ -6,6 +6,6 @@ export const settingValues = {
     // Similar tags feature settings
     enableSimilarTags: true,
     maxSimilarTags: 20,
-    similarTagsDisplayMode: 'click', // 'hover' or 'click'
     similarTagsDisplayPosition: 'horizontal', // 'horizontal' or 'vertical'
+    hideWhenOutofFocus: true, // Hide similar tags when the input is out of focus
 }

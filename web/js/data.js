@@ -1,3 +1,13 @@
+// Constants
+export const TagCategory = [
+    'general',
+    'artist',
+    'unused',
+    'copyright',
+    'character',
+    'meta',
+]
+
 // Data storage
 
 class AutoCompleteData {
@@ -21,7 +31,7 @@ async function loadTags(rootPath) {
     const startTime = performance.now(); // 処理開始時間を記録
     const url = rootPath + 'data/danbooru_tags.csv';
     try {
-        const response = await fetch(url);
+        const response = await fetch(url); //TODO: ignore browser cache
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -29,7 +39,7 @@ async function loadTags(rootPath) {
         const lines = csvText.split('\n').filter(line => line.trim().length > 0);
 
         // Skip header row if present (tag,alias,count)
-        const startIndex = lines[0].startsWith('tag,alias,count') ? 1 : 0;
+        const startIndex = lines[0].startsWith('tag,alias,category,count') ? 1 : 0;
 
         const parsedData = [];
 
@@ -42,7 +52,8 @@ async function loadTags(rootPath) {
             if (columns.length >= 3) {
                 const tag = columns[0].trim();
                 const aliasStr = columns[1].trim();
-                const count = parseInt(columns[2].trim(), 10);
+                const category = columns[2].trim();
+                const count = parseInt(columns[3].trim(), 10);
 
                 // Skip invalid entries
                 if (!tag || isNaN(count)) continue;
@@ -53,6 +64,7 @@ async function loadTags(rootPath) {
                 parsedData.push({
                     tag,
                     alias: aliases,
+                    category,
                     count
                 });
             }
@@ -172,7 +184,7 @@ function processInChunks(lines, startIndex, bidirectionalMap) {
             if (i < lines.length) {
                 // Report progress
                 const progress = Math.round((i / lines.length) * 100);
-                if (progress % 5 === 0) {
+                if (progress % 10 === 0) {
                     console.log(`[Autocomplete-Plus] Processing: ${progress}% complete (${pairCount} pairs processed)`);
                 }
 

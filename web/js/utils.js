@@ -79,13 +79,31 @@ export function unescapeParentheses(str) {
 }
 
 /**
+ * Removes prompt weights from a tag (e.g., "tag:1.2" becomes "tag").
+ * @param {string} str The input tag string.
+ * @returns {string} The tag without weight and without surrounding non-escaped brackets.
+ */
+export function removePromptWeight(str) {
+    if (!str) return str;
+    
+    // First remove weight notation (e.g., ":1.2")
+    let result = str.replace(/(.+?):\d+(\.\d+)?/, '$1');
+    
+    // Then remove non-escaped brackets at the beginning and/or end
+    // Use negative lookbehind (?<!\\) to avoid matching escaped brackets
+    result = result.replace(/^(?<!\\)\((.+)$/, '$1');
+    result = result.replace(/^(.+)(?<!\\)\)$/, '$1');
+    return result;
+}
+
+/**
  * Normalizes a tag string for input.
  * @param {string} str 
  * @returns 
  */
 export function normalizeTagToSearch(str) {
     if(!str) return str;
-    return unescapeParentheses(str.replace(/ /g, "_"));
+    return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
 }
 
 /**
