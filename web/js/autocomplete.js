@@ -645,10 +645,10 @@ function findCompletionCandidates(query) {
                 // Return the combined results, prioritizing exact matches
                 const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
 
-                if (settingValues.logprocessingTime) {
+                if (settingValues._logprocessingTime) {
                     const endTime = performance.now();
                     const duration = endTime - startTime;
-                    console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
+                    // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
                 }
 
                 return result; // Early exit
@@ -659,10 +659,10 @@ function findCompletionCandidates(query) {
     // Combine results, with exact matches first
     const candidates = [...exactMatches, ...partialMatches];
 
-    if (settingValues.logprocessingTime) {
+    if (settingValues._logprocessingTime) {
         const endTime = performance.now();
         const duration = endTime - startTime;
-        console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
+        // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
     }
 
     return candidates;
@@ -776,12 +776,16 @@ export class AutocompleteEventHandler {
     handleInput(event) {
         if (!settingValues.enabled || !autocompleteUI) return;
 
+        if(!event.isTrusted) return; // ignore synthetic events
+
         const ESCAPE_SEQUENCE = ["#", "/"]; // prevent autocomplete for these sequences
         const textareaElement = event.target;
         const partialTag = getCurrentPartialTag(textareaElement);
         if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
             const candidates = findCompletionCandidates(partialTag);
             autocompleteUI.show(textareaElement, candidates);
+
+            // console.debug(`[Autocomplete-Plus] InputEvent: ${candidates.length} candidates for "${partialTag}"`);
         } else {
             autocompleteUI.hide();
         }
@@ -790,11 +794,11 @@ export class AutocompleteEventHandler {
     handleFocus(event) {
         if (!settingValues.enabled) return;
 
-        // Add code if needed for focus events
+        // Add code to focus events if needed
     }
 
     handleBlur(event) {
-        if (!settingValues.hideWhenOutofFocus) return;
+        if (!settingValues._hideWhenOutofFocus) return;
 
         // Need a slight delay because clicking the autocomplete list causes blur
         setTimeout(() => {
@@ -836,6 +840,10 @@ export class AutocompleteEventHandler {
                     break;
             }
         }
+
+        // Debug print
+        const partialTag = getCurrentPartialTag(textareaElement);
+        console.debug(`[Autocomplete-Plus] KeyDownEvent: ${event.key}, PartialTag: "${partialTag}"`);
     }
 
     // New event handler for mousemove to show similar tags on hover

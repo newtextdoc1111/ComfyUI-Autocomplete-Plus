@@ -1,4 +1,7 @@
 // --- Constants ---
+
+import { settingValues } from "./settings.js";
+
 // Tag categories for display
 export const TagCategory = [
     'general',
@@ -19,6 +22,7 @@ class AutoCompleteData {
 
     cooccurrenceLoaded = false;
     cooccurrenceMap = new Map();
+    cooccurrenceInitProgress = 0;
 }
 
 export const autoCompleteData = new AutoCompleteData();
@@ -29,7 +33,7 @@ export const autoCompleteData = new AutoCompleteData();
  * Loads and processes tag data from the CSV file.
  */
 async function loadTags(rootPath) {
-    const startTime = performance.now(); // 処理開始時間を記録
+    const startTime = performance.now();
     const url = rootPath + 'data/danbooru_tags.csv';
     try {
         const response = await fetch(url); //TODO: ignore browser cache
@@ -88,10 +92,11 @@ async function loadTags(rootPath) {
         });
 
         autoCompleteData.tagsLoaded = true;
-        // 処理終了時間を記録し、パフォーマンスログを出力
-        const endTime = performance.now();
-        const duration = endTime - startTime;
-        console.log(`[Autocomplete-Plus] Processed ${autoCompleteData.sortedTags.length} tags from CSV in ${duration.toFixed(2)}ms.`);
+        if(settingValues._logprocessingTime) {
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            console.debug(`[Autocomplete-Plus] Processed ${autoCompleteData.sortedTags.length} tags from CSV in ${duration.toFixed(2)}ms.`);
+        }
 
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${url}:`, error);
@@ -134,8 +139,10 @@ async function loadCooccurrence(rootPath) {
         }
 
         autoCompleteData.cooccurrenceLoaded = true;
-        console.log(`[Autocomplete-Plus] Processed bidirectional relationships for ${primaryTagCount} tags from CSV.`);
-
+        if(settingValues._logprocessingTime) {
+            console.log(`[Autocomplete-Plus] Processed bidirectional relationships for ${primaryTagCount} tags from CSV.`);
+        }
+        
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process cooccurrence data from ${url}:`, error);
         autoCompleteData.cooccurrenceLoaded = false;
@@ -183,11 +190,8 @@ function processInChunks(lines, startIndex, bidirectionalMap) {
             }
 
             if (i < lines.length) {
-                // Report progress
-                const progress = Math.round((i / lines.length) * 100);
-                if (progress % 10 === 0) {
-                    console.log(`[Autocomplete-Plus] Processing: ${progress}% complete (${pairCount} pairs processed)`);
-                }
+                // Update progress in the data object
+                autoCompleteData.cooccurrenceInitProgress = Math.round((i / lines.length) * 100);
 
                 // Schedule next chunk with setTimeout to allow UI updates
                 setTimeout(processChunk, 0);

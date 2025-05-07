@@ -47,6 +47,9 @@ class SimilarTagsUI {
                 e.stopPropagation();
             }
         });
+
+        // Timer ID for auto-refresh
+        this.autoRefreshTimerId = null;
     }
 
     /**
@@ -72,12 +75,24 @@ class SimilarTagsUI {
 
         // Make visible
         this.root.style.display = 'block';
+
+        if(!autoCompleteData.cooccurrenceLoaded) {
+            if(this.autoRefreshTimerId){
+                clearTimeout(this.autoRefreshTimerId);
+            }
+            this.autoRefreshTimerId = setTimeout(() => {
+                similarTagsUI.show(inputElement, tag, similarTags);
+            }, 500);
+        }
     }
 
     /**
      * Hides the similar tags UI.
      */
     hide() {
+        if(this.autoRefreshTimerId){
+            clearTimeout(this.autoRefreshTimerId);
+        }
         this.root.style.display = 'none';
         this.activeInput = null;
         this.currentTag = null;
@@ -106,7 +121,7 @@ class SimilarTagsUI {
         if (!autoCompleteData.cooccurrenceLoaded) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'similar-tags-loading-message';
-            messageDiv.textContent = 'Initializing cooccurrence data...';
+            messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData.cooccurrenceInitProgress}%]`;
             this.tagsContainer.appendChild(messageDiv);
             return;
         }
@@ -618,7 +633,7 @@ export class SimilarTagsEventHandler {
     }
 
     handleBlur(event) {
-        if (!settingValues.hideWhenOutofFocus) {
+        if (!settingValues._hideWhenOutofFocus) {
             return;
         }
 
