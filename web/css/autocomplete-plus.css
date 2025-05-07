@@ -1,11 +1,19 @@
 /* Light Theme */
  body {
-  --autocomplete-plus-text-color-cat-general: var(--p-blue-800);
-  --autocomplete-plus-text-color-cat-artist: var(--p-red-800);
-  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-800);
-  --autocomplete-plus-text-color-cat-character: var(--p-green-800);
-  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-800);
-  --autocomplete-plus-text-color-cat-unknown: var(--p-grey-800);
+  --autocomplete-plus-text-color-cat-general: var(--p-blue-600);
+  --autocomplete-plus-text-color-cat-artist: var(--p-red-600);
+  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-600);
+  --autocomplete-plus-text-color-cat-character: var(--p-green-600);
+  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-600);
+  --autocomplete-plus-text-color-cat-unknown: var(--p-grey-600);
+
+  /* Selected color */
+  --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
+  --autocomplete-plus-text-color-cat-artist-selected: var(--p-red-200);
+  --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
+  --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
+  --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
+  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-grey-200);
 }
 
 /* Dark Theme */
@@ -16,6 +24,8 @@ body.dark-theme {
   --autocomplete-plus-text-color-cat-character: var(--p-green-400);
   --autocomplete-plus-text-color-cat-meta: var(--p-yellow-400);
   --autocomplete-plus-text-color-cat-unknown: var(--p-grey-400);
+
+  /* Selected color */
   --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
   --autocomplete-plus-text-color-cat-artist-selected: var(--p-red-200);
   --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
