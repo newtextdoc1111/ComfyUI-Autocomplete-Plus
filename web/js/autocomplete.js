@@ -571,7 +571,7 @@ function findCompletionCandidates(query) {
 
         // Check primary tag against all variations for exact match first
         for (const variation of queryVariations) {
-            if (lowerTag === variation || lowerTag === variation.replace(/[\-_\s]/g, '')) {
+            if (lowerTag === variation) {
                 isExactMatch = true;
                 matched = true;
                 break;
