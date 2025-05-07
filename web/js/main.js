@@ -1,4 +1,5 @@
 import { app } from "/scripts/app.js";
+import { ComfyWidgets } from "/scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
 import { loadAllData } from "./data.js";
@@ -8,9 +9,46 @@ import { SimilarTagsEventHandler } from "./similar-tags.js";
 function initializeEventHandlers() {
     const autocompleteEventHandler = new AutocompleteEventHandler();
     const similarTagsEventHandler = new SimilarTagsEventHandler();
+    const attachedElements = new WeakSet(); // Keep track of elements that have listeners attached
 
-    // Find relevant textareas (e.g., prompt inputs)
-    // This selector might need adjustment based on ComfyUI's structure
+    // Function to attach listeners
+    function attachListeners(element) {
+        if (attachedElements.has(element)) return; // Prevent double attachment
+
+        element.addEventListener('input', handleInput);
+        element.addEventListener('focus', handleFocus);
+        element.addEventListener('blur', handleBlur);
+        element.addEventListener('keydown', handleKeyDown);
+
+        // Add new event listeners for similar tags feature
+        element.addEventListener('mousemove', handleMouseMove);
+        element.addEventListener('click', handleClick);
+
+        attachedElements.add(element); // Mark as attached
+    }
+
+    // Attempt Widget Override as the primary method
+    // The original ComfyWidgets.STRING arguments are (node, inputName, inputData, app)
+    // inputData is often an array like [type, config]
+    if (ComfyWidgets && ComfyWidgets.STRING) {
+        const originalStringWidget = ComfyWidgets.STRING;
+        ComfyWidgets.STRING = function (node, inputName, inputData, appInstance) { // Use appInstance to avoid conflict with global app
+            const result = originalStringWidget.apply(this, arguments);
+
+            // Check if the widget has an inputEl and if it's a TEXTAREA
+            // This is to ensure we are targeting multiline text inputs, similar to '.comfy-multiline-input'
+            if (result && result.widget && result.widget.inputEl && result.widget.inputEl.tagName === 'TEXTAREA') {
+                const widgetConfig = inputData && inputData[1] ? inputData[1] : {};
+                // Future: Add checks for Autocomplete Plus specific configurations if needed
+                // e.g., if (widgetConfig["AutocompletePlus.enabled"] === false) return result;
+
+                attachListeners(result.widget.inputEl);
+            }
+            return result;
+        };
+    }
+
+    // Fallback and for dynamically added elements not caught by widget override: MutationObserver
     const targetSelectors = [
         '.comfy-multiline-input',
         // Add other selectors if needed
@@ -33,29 +71,15 @@ function initializeEventHandlers() {
         });
     });
 
-    // Function to attach listeners
-    function attachListeners(element) {
-        if (element.dataset.autocompleteAttached) return; // Prevent double attachment
+    if (settingValues._useFallbackAttachmentForEventListener) {
+        // Initial scan for existing elements
+        targetSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(attachListeners);
+        });
 
-        element.addEventListener('input', handleInput);
-        element.addEventListener('focus', handleFocus);
-        element.addEventListener('blur', handleBlur);
-        element.addEventListener('keydown', handleKeyDown);
-
-        // Add new event listeners for similar tags feature
-        element.addEventListener('mousemove', handleMouseMove);
-        element.addEventListener('click', handleClick);
-
-        element.dataset.autocompleteAttached = 'true';
+        // Start observing the document body for changes
+        observer.observe(document.body, { childList: true, subtree: true });
     }
-
-    // Initial scan for existing elements
-    targetSelectors.forEach(selector => {
-        document.querySelectorAll(selector).forEach(attachListeners);
-    });
-
-    // Start observing the document body for changes
-    observer.observe(document.body, { childList: true, subtree: true });
 
     function handleInput(event) {
         autocompleteEventHandler.handleInput(event);
@@ -149,7 +173,7 @@ app.registerExtension({
             type: "slider",
             attrs: {
                 min: 5,
-                max: 50,
+                max: 100,
                 step: 5,
             },
             defaultValue: 20,
