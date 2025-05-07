@@ -85,10 +85,10 @@ export function unescapeParentheses(str) {
  */
 export function removePromptWeight(str) {
     if (!str) return str;
-    
+
     // First remove weight notation (e.g., ":1.2")
     let result = str.replace(/(.+?):\d+(\.\d+)?/, '$1');
-    
+
     // Then remove non-escaped brackets at the beginning and/or end
     // Use negative lookbehind (?<!\\) to avoid matching escaped brackets
     result = result.replace(/^(?<!\\)\((.+)$/, '$1');
@@ -102,7 +102,7 @@ export function removePromptWeight(str) {
  * @returns 
  */
 export function normalizeTagToSearch(str) {
-    if(!str) return str;
+    if (!str) return str;
     return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
 }
 
@@ -113,6 +113,29 @@ export function normalizeTagToSearch(str) {
  */
 export function normalizeTagToInsert(str) {
     return escapeParentheses(str.replace(/_/g, " "));
+}
+
+/**
+ * Checks if a tag is valid.
+ * @param {string} tag 
+ * @returns 
+ */
+export function isValidTag(tag) {
+    if (!tag || tag.length < 2) {
+        return false;
+    }
+
+    // Skip wildcard notation (e.g., "__character__")
+    if (tag.startsWith('__') && tag.endsWith('__')) {
+        return false;
+    }
+
+    // Skip Lora notation (e.g., "<lora:lorapath/loraname:0.8>")
+    if (/<lora:.+>/i.test(tag)) {
+        return false;
+    }
+
+    return true;
 }
 
 // --- End String Helper Functions ---
@@ -133,11 +156,11 @@ export function loadCSS(href) {
  * Get the viewport margin based on the positions of the top, bottom, left, and right bars.
  * @returns {Object} - An object containing the top, bottom, left, and right margins of the viewport.
  */
-export function getViewportMargin(){
-    const topBarRect = document.querySelector("#comfyui-body-top")?.getBoundingClientRect() || {top: 0, bottom: 0};
-    const bottomBarRect = document.querySelector("#comfyui-body-bottom")?.getBoundingClientRect() || {top: 0, bottom: 0};
-    const leftBarRect = document.querySelector("#comfyui-body-left")?.getBoundingClientRect() || {left: 0, right: 0};
-    const rightBarRect = document.querySelector("#comfyui-body-right")?.getBoundingClientRect() || {left: 0, right: 0};
+export function getViewportMargin() {
+    const topBarRect = document.querySelector("#comfyui-body-top")?.getBoundingClientRect() || { top: 0, bottom: 0 };
+    const bottomBarRect = document.querySelector("#comfyui-body-bottom")?.getBoundingClientRect() || { top: 0, bottom: 0 };
+    const leftBarRect = document.querySelector("#comfyui-body-left")?.getBoundingClientRect() || { left: 0, right: 0 };
+    const rightBarRect = document.querySelector("#comfyui-body-right")?.getBoundingClientRect() || { left: 0, right: 0 };
 
     return {
         top: topBarRect.height,

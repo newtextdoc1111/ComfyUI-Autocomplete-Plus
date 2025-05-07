@@ -7,5 +7,9 @@ export const settingValues = {
     enableSimilarTags: true,
     maxSimilarTags: 20,
     similarTagsDisplayPosition: 'horizontal', // 'horizontal' or 'vertical'
-    hideWhenOutofFocus: true, // Hide similar tags when the input is out of focus
+
+    // Debugging settings (use internally)
+    hideWhenOutofFocus: true, // Hide UI when the input is out of focus
+    logprocessingTime: true, // Log processing time for debugging
+
 }

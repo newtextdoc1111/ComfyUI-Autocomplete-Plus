@@ -4,6 +4,7 @@ import { TagCategory, autoCompleteData } from './data.js';
 import {
     normalizeTagToInsert,
     normalizeTagToSearch,
+    isValidTag,
     getViewportMargin
 } from './utils.js';
 
@@ -96,7 +97,7 @@ class SimilarTagsUI {
 
         // Update header with current tag
         this.header.innerHTML = ''; // Clear previous content
-        this.header.textContent = 'Similar Tags: ';
+        this.header.textContent = 'Tags related to: ';
         const tagNameSpan = document.createElement('span');
         tagNameSpan.className = 'similar-tags-header-tag-name';
         tagNameSpan.textContent = this.currentTag;
@@ -266,15 +267,15 @@ class SimilarTagsUI {
             height: Math.min(elemHeight, viewportHeight - margin.top - margin.bottom)
         };
 
-        if(settingValues.similarTagsDisplayPosition === 'vertical') {
+        if (settingValues.similarTagsDisplayPosition === 'vertical') {
             // Vertical placement
             const topSpace = inputRect.top - margin.top;
             const bottomSpace = viewportHeight - inputRect.bottom - margin.bottom;
-            if(topSpace > bottomSpace) {
+            if (topSpace > bottomSpace) {
                 // Place above
                 area.height = Math.min(area.height, topSpace);
                 area.y = Math.max(inputRect.y - area.height, margin.top);
-            }else{
+            } else {
                 // Place below
                 area.height = Math.min(area.height, bottomSpace);
                 area.y = inputRect.bottom;
@@ -282,15 +283,15 @@ class SimilarTagsUI {
 
             // Adjust x position to avoid overflow
             area.x = Math.min(area.x, viewportWidth - area.width - margin.right);
-        }else{
+        } else {
             // Horizontal placement
             const leftSpace = inputRect.x - margin.left;
             const rightSpace = viewportWidth - inputRect.right - margin.right;
-            if(leftSpace > rightSpace) {
+            if (leftSpace > rightSpace) {
                 // Place left
                 area.width = Math.min(area.width, leftSpace);
                 area.x = Math.max(inputRect.x - area.width, margin.left);
-            }else{
+            } else {
                 // Place right
                 area.width = Math.min(area.width, rightSpace);
                 area.x = inputRect.right;
@@ -337,6 +338,8 @@ function calculateJaccardSimilarity(tagA, tagB) {
  * @returns {Array<{tag: string, similarity: number, count: number, alias?: string[]}>}
  */
 function findSimilarTags(tag) {
+    const startTime = performance.now(); // Record start time for performance measurement
+
     if (!tag || !autoCompleteData.cooccurrenceMap.has(tag)) {
         return [];
     }
@@ -369,7 +372,13 @@ function findSimilarTags(tag) {
     similarTags.sort((a, b) => b.similarity - a.similarity);
 
     // Limit to max number of suggestions
-    return similarTags.slice(0, settingValues.maxSimilarTags);
+    const result = similarTags.slice(0, settingValues.maxSimilarTags);
+
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    console.debug(`[Related-Tags] Find tags to related "${tag}" took ${duration.toFixed(2)}ms.`);
+
+    return result;
 }
 
 /**
@@ -408,7 +417,7 @@ function getCurrentTag(inputElement) {
 
     // If no tag found, return null
     if (!tag) return null;
-    
+
     // Process the tag: swap underscores/spaces and unescape parentheses
     return normalizeTagToSearch(tag);
 }
@@ -573,7 +582,7 @@ function showSimilarTagsForCurrentPosition(textareaElement) {
     const currentTag = getCurrentTag(textareaElement);
 
     // If no valid tag or tag is too short, hide the panel
-    if (!currentTag || currentTag.length < 2) {
+    if (!isValidTag(currentTag)) {
         similarTagsUI.hide();
         return;
     }
@@ -603,7 +612,7 @@ export class SimilarTagsEventHandler {
     }
 
     handleBlur(event) {
-        if(!settingValues.hideWhenOutofFocus) {
+        if (!settingValues.hideWhenOutofFocus) {
             return;
         }
 
@@ -643,7 +652,7 @@ export class SimilarTagsEventHandler {
     }
 
     handleMouseMove(event) {
-        
+
     }
 
     handleClick(event) {

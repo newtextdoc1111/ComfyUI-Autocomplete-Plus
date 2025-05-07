@@ -1,4 +1,4 @@
-import { 
+import {
     TagCategory,
     autoCompleteData
 } from './data.js';
@@ -538,7 +538,7 @@ const autocompleteUI = new AutocompleteUI();
  * @returns {Array<{tag: string, count: number, alias?: string}>}
  */
 function findCompletionCandidates(query) {
-    const startTime = performance.now(); // 検索開始時間を記録
+    const startTime = performance.now(); // Record start time for performance measurement
 
     if (!query) {
         return [];
@@ -568,7 +568,7 @@ function findCompletionCandidates(query) {
 
         // Ensure tagData.tag is treated as lowercase for comparison
         const lowerTag = tagData.tag.toLowerCase();
-        
+
         // Check primary tag against all variations for exact match first
         for (const variation of queryVariations) {
             if (lowerTag === variation || lowerTag === variation.replace(/[\-_\s]/g, '')) {
@@ -577,7 +577,7 @@ function findCompletionCandidates(query) {
                 break;
             }
         }
-        
+
         // If not an exact match, check for partial matches in the tag
         if (!isExactMatch) {
             for (const variation of queryVariations) {
@@ -596,7 +596,7 @@ function findCompletionCandidates(query) {
         if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
             for (const alias of tagData.alias) {
                 const lowerAlias = alias.toLowerCase();
-                
+
                 // Check for exact matches in aliases first
                 for (const variation of queryVariations) {
                     if (lowerAlias === variation) {
@@ -606,7 +606,7 @@ function findCompletionCandidates(query) {
                         break;
                     }
                 }
-                
+
                 // If not an exact match in alias, check for partial matches
                 if (!isExactMatch) {
                     for (const variation of queryVariations) {
@@ -617,7 +617,7 @@ function findCompletionCandidates(query) {
                         }
                     }
                 }
-                
+
                 if (matched) break; // Stop checking aliases for this tag if one matched
             }
         }
@@ -630,25 +630,27 @@ function findCompletionCandidates(query) {
                 category: tagData.category,
                 count: tagData.count,
             };
-            
+
             // Add to exact matches or partial matches based on match type
             if (isExactMatch) {
                 exactMatches.push(candidateItem);
             } else {
                 partialMatches.push(candidateItem);
             }
-            
+
             addedTags.add(tagData.tag);
-            
+
             // Check if we've reached the maximum suggestions limit combining both arrays
             if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
                 // Return the combined results, prioritizing exact matches
                 const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
 
-                // const endTime = performance.now();
-                // const duration = endTime - startTime;
-                // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
-                
+                if (settingValues.logprocessingTime) {
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+                    console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
+                }
+
                 return result; // Early exit
             }
         }
@@ -656,10 +658,12 @@ function findCompletionCandidates(query) {
 
     // Combine results, with exact matches first
     const candidates = [...exactMatches, ...partialMatches];
-    
-    // const endTime = performance.now();
-    // const duration = endTime - startTime;
-    // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
+
+    if (settingValues.logprocessingTime) {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
+    }
 
     return candidates;
 }
@@ -790,7 +794,7 @@ export class AutocompleteEventHandler {
     }
 
     handleBlur(event) {
-        if(!settingValues.hideWhenOutofFocus) return;
+        if (!settingValues.hideWhenOutofFocus) return;
 
         // Need a slight delay because clicking the autocomplete list causes blur
         setTimeout(() => {

@@ -1,4 +1,5 @@
-// Constants
+// --- Constants ---
+// Tag categories for display
 export const TagCategory = [
     'general',
     'artist',
