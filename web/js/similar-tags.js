@@ -260,10 +260,16 @@ class SimilarTagsUI {
         const viewportHeight = window.innerHeight;
         let margin = getViewportMargin();
 
-        let area = {
+        // Find optimal max width baesd on viewport and input element
+        const maxWidth = Math.max(
+            Math.min(inputRect.right, viewportWidth - margin.right) - inputRect.left,
+            (viewportWidth - margin.left - margin.right) / 2
+        );
+
+        const area = {
             x: Math.max(inputRect.x, margin.left),
             y: Math.max(inputRect.y, margin.top),
-            width: Math.min(elemWidth, (viewportWidth - margin.left - margin.right) / 2),
+            width: Math.min(elemWidth, maxWidth),
             height: Math.min(elemHeight, viewportHeight - margin.top - margin.bottom)
         };
 
