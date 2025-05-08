@@ -5,6 +5,7 @@ import {
     normalizeTagToInsert,
     normalizeTagToSearch,
     isValidTag,
+    getCurrentTag,
     getViewportMargin
 } from './utils.js';
 
@@ -403,47 +404,6 @@ function findSimilarTags(tag) {
 }
 
 /**
- * Extracts the tag at the current cursor position.
- * Handles tags separated by commas or newlines.
- * @param {HTMLTextAreaElement} inputElement The textarea element
- * @returns {string|null} The tag at cursor or null
- */
-function getCurrentTag(inputElement) {
-    const text = inputElement.value;
-    const cursorPos = inputElement.selectionStart;
-
-    // Find the start position of the current tag
-    // Look for the last comma or newline before the cursor
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
-    const lastNewline = text.lastIndexOf('\n', cursorPos - 1);
-    let startPos = Math.max(lastComma, lastNewline);
-    startPos = startPos === -1 ? 0 : startPos + 1; // If no separator found, start from the beginning
-
-    // Find the end position of the current tag
-    // Look for the next comma or newline after the start position (or cursor position if more appropriate)
-    // We search from startPos to correctly handle cases where the cursor is at the beginning of a tag
-    let searchEndFrom = Math.max(cursorPos, startPos);
-    let endPosComma = text.indexOf(',', searchEndFrom);
-    let endPosNewline = text.indexOf('\n', searchEndFrom);
-
-    // If a separator is not found, treat it as the end of the text
-    if (endPosComma === -1) endPosComma = text.length;
-    if (endPosNewline === -1) endPosNewline = text.length;
-
-    // Choose the closer separator as the end position
-    let endPos = Math.min(endPosComma, endPosNewline);
-
-    // Extract and trim the tag
-    const tag = text.substring(startPos, endPos).trim();
-
-    // If no tag found, return null
-    if (!tag) return null;
-
-    // Process the tag: swap underscores/spaces and unescape parentheses
-    return normalizeTagToSearch(tag);
-}
-
-/**
  * Function to insert a tag into the textarea.
  * Appends the selected tag after the current tag.
  * Supports undo by using document.execCommand.
@@ -600,7 +560,7 @@ const similarTagsUI = new SimilarTagsUI();
 // Helper function to show similar tags based on cursor position
 function showSimilarTagsForCurrentPosition(textareaElement) {
     // Get the tag at current cursor position
-    const currentTag = getCurrentTag(textareaElement);
+    const currentTag = normalizeTagToSearch(getCurrentTag(textareaElement));
 
     // If no valid tag or tag is too short, hide the panel
     if (!isValidTag(currentTag)) {
