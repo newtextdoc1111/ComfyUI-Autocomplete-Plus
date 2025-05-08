@@ -733,7 +733,6 @@ function insertTag(inputElement, tagToInsert) {
     const needsSuffixAfter = text[replaceEnd] !== ','
     const suffix = needsSuffixAfter ? ', ' : '';
 
-    // Text to insert (including prefix and suffix)
     const textToInsertWithAffixes = prefix + normalizedTag + suffix;
 
     // --- Use execCommand for Undo support ---
@@ -757,28 +756,22 @@ function insertTag(inputElement, tagToInsert) {
         // Trigger input event manually as a fallback
         inputElement.dispatchEvent(new Event('input', { bubbles: true }));
     }
-
-    // Note: execCommand usually triggers the necessary events,
-    // so explicitly dispatching 'input' might be redundant or cause issues.
-    // Test carefully. If ComfyUI doesn't update, uncomment the dispatchEvent line in the fallback.
-    // inputElement.dispatchEvent(new Event('input', { bubbles: true })); // Keep commented unless needed
 }
 
 export class AutocompleteEventHandler {
+
+    /**
+     * 
+     * @param {InputEvent} event 
+     * @returns 
+     */
     handleInput(event) {
         if (!settingValues.enabled || !autocompleteUI) return;
-
         if(!event.isTrusted) return; // ignore synthetic events
 
-        const ESCAPE_SEQUENCE = ["#", "/"]; // prevent autocomplete for these sequences
         const textareaElement = event.target;
         const partialTag = getCurrentPartialTag(textareaElement);
-        if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
-            const candidates = findCompletionCandidates(partialTag);
-            autocompleteUI.show(textareaElement, candidates);
-
-            // console.debug(`[Autocomplete-Plus] InputEvent: ${candidates.length} candidates for "${partialTag}"`);
-        } else {
+        if (partialTag.length <= 0){
             autocompleteUI.hide();
         }
     }
@@ -800,6 +793,11 @@ export class AutocompleteEventHandler {
         }, 150);
     }
 
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     * @returns 
+     */
     handleKeyDown(event) {
         if (!settingValues.enabled) return;
 
@@ -821,10 +819,8 @@ export class AutocompleteEventHandler {
                     if (autocompleteUI.getSelectedTag() !== null) {
                         event.preventDefault();
                         insertTag(textareaElement, autocompleteUI.getSelectedTag());
-                    } else {
-                        // Allow default Tab/Enter if no item is selected
-                        autocompleteUI.hide();
                     }
+                    autocompleteUI.hide();
                     break;
                 case 'Escape':
                     event.preventDefault();
@@ -832,17 +828,55 @@ export class AutocompleteEventHandler {
                     break;
             }
         }
-
+        
         // Debug print
-        const partialTag = getCurrentPartialTag(textareaElement);
-        console.debug(`[Autocomplete-Plus] KeyDownEvent: ${event.key}, PartialTag: "${partialTag}"`);
+        // const partialTag = getCurrentPartialTag(textareaElement);
+        // console.debug(`[Autocomplete-Plus] KeyDownEvent: ${event.key}, PartialTag: "${partialTag}"`);
     }
 
-    // New event handler for mousemove to show similar tags on hover
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     * @returns 
+     */
+    handleKeyUp(event){
+
+    }
+
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     * @returns 
+     */
+    handleKeyPress(event){
+        if (!settingValues.enabled || !autocompleteUI) return;
+        if (event.defaultPrevented) return; // Ignore if default action is prevented
+        
+        const textareaElement = event.target;
+        
+        const ESCAPE_SEQUENCE = ["#", "/"]; // If the first string is that character, autocomplete will not be displayed.
+        const partialTag = getCurrentPartialTag(textareaElement);
+        if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
+            const candidates = findCompletionCandidates(partialTag);
+            autocompleteUI.show(textareaElement, candidates);
+
+            // console.debug(`[Autocomplete-Plus] KeyPressEvent: ${candidates.length} candidates for "${partialTag}"`);
+        }
+    }
+
+    /**
+     * 
+     * @param {MouseEvent} event 
+     * @returns 
+     */
     handleMouseMove(event) {
     }
 
-    // New event handler for click to show similar tags
+    /**
+     * 
+     * @param {MouseEvent} event 
+     * @returns 
+     */
     handleClick(event) {
         if (!settingValues.enabled || !settingValues.enableSimilarTags ||
             settingValues.similarTagsDisplayMode !== 'click') return;

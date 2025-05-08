@@ -19,6 +19,8 @@ function initializeEventHandlers() {
         element.addEventListener('focus', handleFocus);
         element.addEventListener('blur', handleBlur);
         element.addEventListener('keydown', handleKeyDown);
+        element.addEventListener('keyup', handleKeyUp);
+        element.addEventListener('keypress', handleKeyPress);
 
         // Add new event listeners for similar tags feature
         element.addEventListener('mousemove', handleMouseMove);
@@ -99,6 +101,16 @@ function initializeEventHandlers() {
     function handleKeyDown(event) {
         autocompleteEventHandler.handleKeyDown(event);
         similarTagsEventHandler.handleKeyDown(event);
+    }
+    
+    function handleKeyUp(event) {
+        autocompleteEventHandler.handleKeyUp(event);
+        similarTagsEventHandler.handleKeyUp(event);
+    }
+
+    function handleKeyPress(event) {
+        autocompleteEventHandler.handleKeyPress(event);
+        similarTagsEventHandler.handleKeyPress(event);
     }
 
     // New event handler for mousemove to show similar tags on hover

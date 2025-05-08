@@ -580,6 +580,10 @@ export class SimilarTagsEventHandler {
 
     }
 
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
     handleInput(event) {
         if (settingValues.enableSimilarTags) {
             if (similarTagsUI && similarTagsUI.isVisible()) {
@@ -588,10 +592,18 @@ export class SimilarTagsEventHandler {
         }
     }
 
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
     handleFocus(event) {
         // Handle focus event
     }
 
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
     handleBlur(event) {
         if (!settingValues._hideWhenOutofFocus) {
             return;
@@ -612,6 +624,10 @@ export class SimilarTagsEventHandler {
         }, 150); // Delay in milliseconds (adjust if necessary)
     }
 
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
     handleKeyDown(event) {
         const textareaElement = event.target;
 
@@ -625,17 +641,43 @@ export class SimilarTagsEventHandler {
 
         // Show similar tags on Ctrl+Space
         if (settingValues.enableSimilarTags) {
-            if (event.key === ' ' && event.ctrlKey) {
+            if (event.key === ' ' && event.ctrlKey && event.shiftKey ) {
                 event.preventDefault();
                 showSimilarTagsForCurrentPosition(textareaElement);
             }
         }
     }
 
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
+    handleKeyUp(event){
+
+    }
+    
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
+    handleKeyPress(event){
+        
+    }
+
+    /**
+     * 
+     * @param {MouseEvent} event 
+     * @returns 
+     */
     handleMouseMove(event) {
 
     }
 
+    /**
+     * 
+     * @param {MouseEvent} event 
+     * @returns 
+     */
     handleClick(event) {
         const textareaElement = event.target;
         showSimilarTagsForCurrentPosition(textareaElement);
