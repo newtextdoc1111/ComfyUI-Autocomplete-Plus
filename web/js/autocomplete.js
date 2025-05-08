@@ -584,7 +584,7 @@ function findCompletionCandidates(query) {
                 if (lowerTag.includes(variation)) {
                     matched = true;
                     break;
-                } else if (lowerTag.replace(/[\-_']/g, '').includes(variation)) {
+                } else if (lowerTag.replace(/[\-_\s']/g, '').includes(variation.replace(/[\-_\s']/g, ''))) {
                     // Try to match with underscore, dash, or apostrophe removed
                     matched = true;
                     break;
@@ -701,30 +701,22 @@ function insertTag(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    // Find the last newline or comma before the cursor
     const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
 
-    // Get the position of the last separator (newline or comma) before cursor
     const lastSeparator = Math.max(lastNewLine, lastComma);
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
-    // Process the tag: swap underscores/spaces and escape parentheses
     const normalizedTag = normalizeTagToInsert(tagToInsert);
 
-    // Find the start of the word/tag being typed (skip leading whitespace after separator)
     const currentWordStart = text.substring(start, cursorPos).search(/\S|$/) + start;
-
-    // Find the end of the word/tag at the cursor position, stopping at comma, newline, or end of string.
-    // Match non-whitespace, non-comma, non-newline characters.
-    const currentWordEndMatch = text.substring(cursorPos).match(/^([^\s]*[,\n]{1})/);
-    // currentWordEnd is the position *after* the matched word part.
-    // const currentWordEnd = currentWordEndMatch ? cursorPos + currentWordEndMatch[1].length : cursorPos;
+    const currentWordEndMatch = text.substring(cursorPos).match(/^[^,\n]+/);
+    
     let currentWordEnd = cursorPos;
 
-    // If the match was found and the cursor is within the matched word, extend currentWordEnd to include it.
-    if (currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[1]) !== -1) {
-        currentWordEnd = cursorPos + currentWordEndMatch[1].length;
+    // If the end match is found, set currentWordEnd to the end of the match
+    if (currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[0]) !== -1) {
+        currentWordEnd = cursorPos + currentWordEndMatch[0].length;
     }
 
     // The range to replace is from the start of the current partial tag
