@@ -73,7 +73,7 @@ class AutocompleteUI {
         } else if (this.selectedIndex >= this.candidates.length) {
             this.selectedIndex = 0; // Wrap around to top
         }
-        this.#highlightItem(this.selectedIndex);
+        this.#highlightItem();
     }
 
     /** Selects the currently highlighted item */
@@ -101,7 +101,7 @@ class AutocompleteUI {
         this.element.style.display = 'block'; // Make it visible
 
         // Highlight the first item
-        this.#highlightItem(this.selectedIndex);
+        this.#highlightItem();
     }
 
     /**
@@ -295,6 +295,7 @@ class AutocompleteUI {
     #highlightItem() {
         const tbody = this.element.querySelector('tbody');
         if (!tbody) return;
+
         const items = tbody.children; // Get rows (tr) from tbody
         for (let i = 0; i < items.length; i++) {
             if (i === this.selectedIndex) {
