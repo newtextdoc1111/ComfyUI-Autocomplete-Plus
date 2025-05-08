@@ -532,19 +532,33 @@ class AutocompleteUI {
 const autocompleteUI = new AutocompleteUI();
 
 /**
- * Finds tag completion candidates based on the input query.
- * Handles Hiragana/Katakana conversion for matching.
- * @param {string} query The partial tag input.
+ * 
+ * @param {HTMLTextAreaElement} textareaElement 
+ */
+function updateAutocompleteDisplay(textareaElement) {
+    const candidates = searchCompletionCandidates(textareaElement);
+    if (candidates.length > 0) {
+        autocompleteUI.show(textareaElement, candidates);
+    }else{
+        autocompleteUI.hide();
+    }
+}
+
+/**
+ * Search tag completion candidates based on the current input and cursor position in the textarea.
+ * @param {HTMLTextAreaElement} textareaElement The partial tag input.
  * @returns {Array<{tag: string, count: number, alias?: string}>}
  */
-function findCompletionCandidates(query) {
+function searchCompletionCandidates(textareaElement) {
     const startTime = performance.now(); // Record start time for performance measurement
-
-    if (!query) {
-        return [];
+    
+    const ESCAPE_SEQUENCE = ["#", "/"]; // If the first string is that character, autocomplete will not be displayed.
+    const partialTag = getCurrentPartialTag(textareaElement);
+    if (!partialTag || partialTag.length <= 0 || ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
+        return []; // No valid input for autocomplete    
     }
-
-    const lowerQuery = query.toLowerCase();
+    
+    const lowerQuery = partialTag.toLowerCase();
     const exactMatches = []; // Array for exact matches (will be displayed first)
     const partialMatches = []; // Array for partial matches (will be displayed after exact matches)
     const addedTags = new Set(); // Keep track of added tags to avoid duplicates
@@ -758,6 +772,7 @@ function insertTag(inputElement, tagToInsert) {
     }
 }
 
+// --- Autocomplete Event Handling Logic ---
 export class AutocompleteEventHandler {
 
     /**
@@ -827,11 +842,7 @@ export class AutocompleteEventHandler {
                     autocompleteUI.hide();
                     break;
             }
-        }
-        
-        // Debug print
-        // const partialTag = getCurrentPartialTag(textareaElement);
-        // console.debug(`[Autocomplete-Plus] KeyDownEvent: ${event.key}, PartialTag: "${partialTag}"`);
+        }        
     }
 
     /**
@@ -840,7 +851,9 @@ export class AutocompleteEventHandler {
      * @returns 
      */
     handleKeyUp(event){
+        if (!settingValues.enabled || !autocompleteUI) return;
 
+        updateAutocompleteDisplay(event.target);
     }
 
     /**
@@ -852,16 +865,7 @@ export class AutocompleteEventHandler {
         if (!settingValues.enabled || !autocompleteUI) return;
         if (event.defaultPrevented) return; // Ignore if default action is prevented
         
-        const textareaElement = event.target;
-        
-        const ESCAPE_SEQUENCE = ["#", "/"]; // If the first string is that character, autocomplete will not be displayed.
-        const partialTag = getCurrentPartialTag(textareaElement);
-        if (partialTag.length > 0 && !ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
-            const candidates = findCompletionCandidates(partialTag);
-            autocompleteUI.show(textareaElement, candidates);
-
-            // console.debug(`[Autocomplete-Plus] KeyPressEvent: ${candidates.length} candidates for "${partialTag}"`);
-        }
+        updateAutocompleteDisplay(event.target);
     }
 
     /**
@@ -878,7 +882,7 @@ export class AutocompleteEventHandler {
      * @returns 
      */
     handleClick(event) {
-        if (!settingValues.enabled || !settingValues.enableSimilarTags ||
-            settingValues.similarTagsDisplayMode !== 'click') return;
+        if (!settingValues.enabled || !settingValues.enableRelatedTags ||
+            settingValues.relatedTagsDisplayMode !== 'click') return;
     }
 }
