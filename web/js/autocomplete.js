@@ -273,7 +273,7 @@ class AutocompleteUI {
 
         // 3rd cell: Category
         const catCell = document.createElement('td');
-        catCell.textContent = TagCategory[candidate.category].substring(0, 2);
+        catCell.textContent = categoryText.substring(0, 2);
         catCell.style.padding = '4px 8px';
         catCell.style.minWidth = '50px'; // Ensure some minimum space for count alignment
 

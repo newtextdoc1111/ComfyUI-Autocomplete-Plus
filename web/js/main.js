@@ -2,7 +2,7 @@ import { app } from "/scripts/app.js";
 import { ComfyWidgets } from "/scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
-import { loadAllData } from "./data.js";
+import { initializeData } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 
@@ -132,7 +132,7 @@ app.registerExtension({
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
-        loadAllData(rootPath);
+        initializeData();
     },
     settings: [
         {

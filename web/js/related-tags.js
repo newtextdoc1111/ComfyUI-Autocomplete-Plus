@@ -77,7 +77,7 @@ class RelatedTagsUI {
         // Make visible
         this.root.style.display = 'block';
 
-        if (!autoCompleteData.cooccurrenceLoaded) {
+        if (!autoCompleteData.initialized) {
             if (this.autoRefreshTimerId) {
                 clearTimeout(this.autoRefreshTimerId);
             }
@@ -119,10 +119,10 @@ class RelatedTagsUI {
         tagNameSpan.textContent = this.currentTag;
         this.header.appendChild(tagNameSpan);
 
-        if (!autoCompleteData.cooccurrenceLoaded) {
+        if (!autoCompleteData.initialized) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'related-tags-loading-message';
-            messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData.cooccurrenceInitProgress}%]`;
+            messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData.baseLoadingProgress.cooccurrence}%]`;
             this.tagsContainer.appendChild(messageDiv);
             return;
         }

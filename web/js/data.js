@@ -14,70 +14,73 @@ export const TagCategory = [
 
 // Data storage
 
-class AutoCompleteData {
-    tagsLoaded = false;
-    tagMap = new Map();
-    aliasMap = new Map();
-    sortedTags = [];
+export const autoCompleteData = {
+    /** @type {Map<string, TagData>} */
+    tagMap: new Map(), // Stores tag data, mapping tag names to TagData objects
 
-    cooccurrenceLoaded = false;
-    cooccurrenceMap = new Map();
-    cooccurrenceInitProgress = 0;
-}
+    sortedTags: [],
+    
+    /** @type {Map<string, Map<string, number>>} */
+    cooccurrenceMap: new Map(), // Stores co-occurrence data for related tags
+    
+    isInitializing: false,
+    initialized: false,
 
-export const autoCompleteData = new AutoCompleteData();
+     // Progress of "base" csv loading
+    baseLoadingProgress: {
+        // tags: 0, // Commented out because tags csv aren't loaded in chunks
+        cooccurrence: 0
+    }
+};
 
 // --- Data Loading Functions ---
 
 /**
- * Loads and processes tag data from the CSV file.
+ * Loads tag data from a single CSV file.
+ * @param {string} csvUrl - The URL of the CSV file to load.
+ * @returns {Promise<void>}
  */
-async function loadTags(rootPath) {
-    const startTime = performance.now();
-    const url = rootPath + 'data/danbooru_tags.csv';
+async function loadTags(csvUrl) {
     try {
-        const response = await fetch(url); //TODO: ignore browser cache
+        const response = await fetch(csvUrl, { cache: "no-store" });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const csvText = await response.text(); // Get raw CSV text
+        const csvText = await response.text();
         const lines = csvText.split('\n').filter(line => line.trim().length > 0);
+        const totalLines = lines.length;
 
-        // Skip header row if present (tag,alias,count)
         const startIndex = lines[0].startsWith('tag,alias,category,count') ? 1 : 0;
-
-        const parsedData = [];
 
         for (let i = startIndex; i < lines.length; i++) {
             const line = lines[i];
-
-            // Handle CSV parsing properly (consider quotes and commas in values)
             const columns = parseCSVLine(line);
 
-            if (columns.length >= 3) {
+            if (columns.length == 4) {
                 const tag = columns[0].trim();
                 const aliasStr = columns[1].trim();
                 const category = columns[2].trim();
                 const count = parseInt(columns[3].trim(), 10);
 
-                // Skip invalid entries
                 if (!tag || isNaN(count)) continue;
 
                 // Parse aliases - might be comma-separated list inside quotes
                 const aliases = aliasStr ? aliasStr.split(',').map(a => a.trim()).filter(a => a.length > 0) : [];
 
-                parsedData.push({
+                autoCompleteData.sortedTags.push({
                     tag,
                     alias: aliases,
                     category,
                     count
                 });
+            }else{
+                console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}`);
+                continue;
             }
         }
-
+        
         // Sort by count in descending order
-        parsedData.sort((a, b) => b.count - a.count);
-        autoCompleteData.sortedTags = parsedData;
+        autoCompleteData.sortedTags.sort((a, b) => b.count - a.count);
 
         // Build maps as before
         autoCompleteData.sortedTags.forEach(tagData => {
@@ -91,26 +94,19 @@ async function loadTags(rootPath) {
             }
         });
 
-        autoCompleteData.tagsLoaded = true;
-        if(settingValues._logprocessingTime) {
-            const endTime = performance.now();
-            const duration = endTime - startTime;
-            console.debug(`[Autocomplete-Plus] Processed ${autoCompleteData.sortedTags.length} tags from CSV in ${duration.toFixed(2)}ms.`);
-        }
-
     } catch (error) {
-        console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${url}:`, error);
-        autoCompleteData.tagsLoaded = false;
+        console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${csvUrl}:`, error);
     }
 }
 
 /**
- * Loads and processes cooccurrence data from the CSV file using chunked processing.
+ * Loads co-occurrence data from a single CSV file.
+ * @param {string} csvUrl - The URL of the CSV file to load.
+ * @returns {Promise<void>}
  */
-async function loadCooccurrence(rootPath) {
-    const url = rootPath + 'data/danbooru_tags_cooccurrence.csv';
+async function loadCooccurrence(csvUrl) {
     try {
-        const response = await fetch(url);
+        const response = await fetch(csvUrl, { cache: "no-store" });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -118,43 +114,21 @@ async function loadCooccurrence(rootPath) {
         const csvText = await response.text();
         const lines = csvText.split('\n').filter(line => line.trim().length > 0);
 
-        // Skip header row if present (tag_a,tag_b,count)
         const startIndex = lines[0].startsWith('tag_a,tag_b,count') ? 1 : 0;
 
-        // Create a new Map to store the bidirectional relationships
-        const bidirectionalMap = new Map();
-
-        // Process CSV data in chunks
-        await processInChunks(lines, startIndex, bidirectionalMap);
-
-        // Assign the bidirectional map to the cooccurrenceMap
-        let actualPairCount = 0;
-        let primaryTagCount = 0;
-        autoCompleteData.cooccurrenceMap.clear();
-
-        for (const [tag, relatedTags] of bidirectionalMap) {
-            autoCompleteData.cooccurrenceMap.set(tag, relatedTags);
-            actualPairCount += relatedTags.size;
-            primaryTagCount++;
-        }
-
-        autoCompleteData.cooccurrenceLoaded = true;
-        if(settingValues._logprocessingTime) {
-            console.log(`[Autocomplete-Plus] Processed bidirectional relationships for ${primaryTagCount} tags from CSV.`);
-        }
-        
+        await processInChunks(lines, startIndex, autoCompleteData.cooccurrenceMap, csvUrl);
     } catch (error) {
-        console.error(`[Autocomplete-Plus] Failed to fetch or process cooccurrence data from ${url}:`, error);
-        autoCompleteData.cooccurrenceLoaded = false;
+        console.error(`[Autocomplete-Plus] Failed to fetch or process cooccurrence data from ${csvUrl}:`, error);
     }
 }
 
 /**
- * Process CSV data in chunks to avoid blocking the UI
+ * Process CSV data in chunks to avoid blocking the UI.
+ * Modifies the targetMap directly.
  */
-function processInChunks(lines, startIndex, bidirectionalMap) {
+function processInChunks(lines, startIndex, targetMap, sourceFileName = "CSV") {
     return new Promise((resolve) => {
-        const CHUNK_SIZE = 10000; // Process 10,000 lines at a time
+        const CHUNK_SIZE = 10000;
         let i = startIndex;
         let pairCount = 0;
 
@@ -170,38 +144,33 @@ function processInChunks(lines, startIndex, bidirectionalMap) {
                     const tagB = columns[1].trim();
                     const count = parseInt(columns[2].trim(), 10);
 
-                    // Skip invalid entries
                     if (!tagA || !tagB || isNaN(count)) continue;
 
                     // Add tagA -> tagB relationship
-                    if (!bidirectionalMap.has(tagA)) {
-                        bidirectionalMap.set(tagA, new Map());
+                    if (!targetMap.has(tagA)) {
+                        targetMap.set(tagA, new Map());
                     }
-                    bidirectionalMap.get(tagA).set(tagB, count);
+                    targetMap.get(tagA).set(tagB, count);
 
+                    
                     // Add tagB -> tagA relationship (bidirectional)
-                    if (!bidirectionalMap.has(tagB)) {
-                        bidirectionalMap.set(tagB, new Map());
+                    if (!targetMap.has(tagB)) {
+                        targetMap.set(tagB, new Map());
                     }
-                    bidirectionalMap.get(tagB).set(tagA, count);
+                    targetMap.get(tagB).set(tagA, count);
 
                     pairCount++;
                 }
             }
 
             if (i < lines.length) {
-                // Update progress in the data object
-                autoCompleteData.cooccurrenceInitProgress = Math.round((i / lines.length) * 100);
-
-                // Schedule next chunk with setTimeout to allow UI updates
+                autoCompleteData.baseLoadingProgress.cooccurrence = Math.round((i / lines.length) * 100);
                 setTimeout(processChunk, 0);
             } else {
-                console.log(`[Autocomplete-Plus] Finished processing ${pairCount} one-way cooccurrence pairs`);
                 resolve();
             }
         }
 
-        // Start processing the first chunk
         processChunk();
     });
 }
@@ -221,15 +190,12 @@ function parseCSVLine(line) {
 
         if (char === '"') {
             if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-                // Escaped quote (double quote inside quotes)
                 current += '"';
-                i++; // Skip the next quote
+                i++;
             } else {
-                // Toggle quote mode
                 inQuotes = !inQuotes;
             }
         } else if (char === ',' && !inQuotes) {
-            // End of column
             result.push(current);
             current = '';
         } else {
@@ -237,17 +203,72 @@ function parseCSVLine(line) {
         }
     }
 
-    // Don't forget to add the last column
     result.push(current);
 
     return result;
 }
 
-export function loadAllData(rootPath) {
-    return Promise.all([
-        loadTags(rootPath),
-        loadCooccurrence(rootPath)
-    ]).catch(error => {
-        console.error("[Autocomplete-Plus] Error loading data:", error);
-    });
+/**
+ * Initializes the autocomplete data by fetching the list of CSV files and loading them.
+ * This function is called when the extension is initialized.
+ */
+export async function initializeData() {
+    if (autoCompleteData.isInitializing || autoCompleteData.initialized) {
+        return;
+    }
+    
+    const startTime = performance.now();
+    autoCompleteData.isInitializing = true;
+    console.log("[Autocomplete-Plus] Initializing autocomplete data...");
+
+    try {
+        const response = await fetch('/autocomplete-plus/csv');
+        if (!response.ok) {
+            throw new Error(`[Autocomplete-Plus] Failed to fetch CSV list: ${response.status} ${response.statusText}`);
+        }
+        const csvListData = await response.json();
+
+        const extraTagsCount = csvListData.tags || 0;
+        const extraCooccurrenceCount = csvListData.cooccurrence || 0;
+
+        const tagsUrl = '/autocomplete-plus/csv/tags';
+        const tagsLoadPromises = [
+            loadTags(`${tagsUrl}/base`)
+        ];
+
+        let currentTagPromise = tagsLoadPromises[0];
+        for (let i = 0; i < extraTagsCount; i++) {
+            currentTagPromise = currentTagPromise.then(loadTags(`${tagsUrl}/extra/${i}`));
+            tagsLoadPromises.push(currentTagPromise);
+        }
+
+        const cooccurrenceUrl = '/autocomplete-plus/csv/cooccurrence';
+        const cooccurrenceLoadPromises = [
+            loadCooccurrence(`${cooccurrenceUrl}/base`)
+        ];
+       
+        let cooccurrencePromiseChain = cooccurrenceLoadPromises[0];
+        for (let i = 0; i < extraCooccurrenceCount; i++) {
+            cooccurrencePromiseChain = cooccurrencePromiseChain.then(loadCooccurrence(`${cooccurrenceUrl}/extra/${i}`));
+            cooccurrenceLoadPromises.push(cooccurrencePromiseChain);
+        }
+
+        await Promise.all([
+            Promise.all(tagsLoadPromises).then(() => {
+                const endTime = performance.now();
+                console.log(`[Autocomplete-Plus] Tags loading complete in ${(endTime - startTime).toFixed(2)}ms. Extra file count: ${extraTagsCount}`);
+
+            }),
+            Promise.all(cooccurrenceLoadPromises).then(() => {
+                const endTime = performance.now();
+                console.log(`[Autocomplete-Plus] Co-occurrence loading complete in ${(endTime - startTime).toFixed(2)}ms. Extra file count: ${extraCooccurrenceCount}`);
+            })
+        ]);
+
+        autoCompleteData.initialized = true;
+    } catch (error) {
+        console.error("[Autocomplete-Plus] Error initializing autocomplete data:", error);
+    } finally {
+        autoCompleteData.isInitializing = false;
+    }
 }
