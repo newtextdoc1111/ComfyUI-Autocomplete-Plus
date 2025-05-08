@@ -77,8 +77,8 @@ class RelatedTagsUI {
         // Make visible
         this.root.style.display = 'block';
 
-        if(!autoCompleteData.cooccurrenceLoaded) {
-            if(this.autoRefreshTimerId){
+        if (!autoCompleteData.cooccurrenceLoaded) {
+            if (this.autoRefreshTimerId) {
                 clearTimeout(this.autoRefreshTimerId);
             }
             this.autoRefreshTimerId = setTimeout(() => {
@@ -91,7 +91,7 @@ class RelatedTagsUI {
      * Hides the related tags UI.
      */
     hide() {
-        if(this.autoRefreshTimerId){
+        if (this.autoRefreshTimerId) {
             clearTimeout(this.autoRefreshTimerId);
         }
         this.root.style.display = 'none';
@@ -552,11 +552,6 @@ function findAllTagPositions(text) {
     return positions;
 }
 
-// --- Main Exports ---
-
-// Create a singleton instance
-const relatedTagsUI = new RelatedTagsUI();
-
 // Helper function to show related tags based on cursor position
 function showRelatedTagsForCurrentPosition(textareaElement) {
     // Get the tag at current cursor position
@@ -574,6 +569,12 @@ function showRelatedTagsForCurrentPosition(textareaElement) {
     // Always show the panel with current tag, even if there are no related tags
     relatedTagsUI.show(textareaElement, currentTag, relatedTagsResults);
 }
+
+
+// --- Main Exports ---
+
+// Create a singleton instance
+const relatedTagsUI = new RelatedTagsUI();
 
 export class RelatedTagsEventHandler {
     constructor() {
@@ -641,7 +642,7 @@ export class RelatedTagsEventHandler {
 
         // Show related tags on Ctrl+Space
         if (settingValues.enableRelatedTags) {
-            if (event.key === ' ' && event.ctrlKey && event.shiftKey ) {
+            if (event.key === ' ' && event.ctrlKey && event.shiftKey) {
                 event.preventDefault();
                 showRelatedTagsForCurrentPosition(textareaElement);
             }
@@ -652,10 +653,10 @@ export class RelatedTagsEventHandler {
      * 
      * @param {KeyboardEvent} event 
      */
-    handleKeyUp(event){
+    handleKeyUp(event) {
 
     }
-    
+
     /**
      * 
      * @param {MouseEvent} event 
