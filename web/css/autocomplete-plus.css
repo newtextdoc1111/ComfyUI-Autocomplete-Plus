@@ -207,7 +207,7 @@ body.dark-theme {
   white-space: nowrap;
 }
 
-.related-tag-relatedity {
+.related-tag-similarity {
   color: var(--descrip-text);
   text-align: right;
   white-space: nowrap;
