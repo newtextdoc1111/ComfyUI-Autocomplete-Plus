@@ -414,10 +414,6 @@ class RelatedTagsUI {
      * Updates the content of the related tags panel with the provided tags.
      */
     #updateContent() {
-        this.root.style.left = 0;
-        this.root.style.top = 0;
-        this.root.style.maxWidth = `${window.innerWidth / 2}px`;
-        this.root.style.maxHeight = `${window.innerHeight / 2}px`;
         this.tagsContainer.innerHTML = '';
 
         // Update header with current tag
@@ -512,41 +508,33 @@ class RelatedTagsUI {
      * @param {HTMLElement} inputElement The input element to position
      */
     #updatePosition() {
-
         // Measure the element size without causing reflow
         this.root.style.visibility = 'hidden';
         this.root.style.position = 'absolute'; // Ensure position is absolute for measurement
         this.root.style.display = 'block';
         this.root.style.left = '-9999px';
         this.root.style.top = '-9999px';
-        this.root.style.maxWidth = ''; // Reset max dimensions before measuring
-        this.root.style.maxHeight = '';
+        this.root.style.maxWidth = '';
+        this.tagsContainer.style.maxHeight = '';
         const elemRect = this.root.getBoundingClientRect();
+        const headerRect = this.header.getBoundingClientRect();
         // Hide it again after measurement
         this.root.style.display = 'none';
         this.root.style.visibility = 'visible';
-        this.root.style.position = ''; // Reset position style
+        this.root.style.position = '';
         this.root.style.left = '';
         this.root.style.top = '';
+
 
         // Get the optimal placement area
         const placementArea = this.#getOptimalPlacementArea(this.target.getBoundingClientRect(), elemRect.width, elemRect.height);
 
-        // Calculate final styles, fitting the element within the placement area
-        const finalMaxWidth = Math.min(elemRect.width, placementArea.width);
-        const finalMaxHeight = Math.min(elemRect.height, placementArea.height);
-
-        // Adjust position if the element is smaller than the area (e.g., center or align based on mode)
-        // For simplicity, we'll just use the calculated top-left corner of the area for now.
-        // More sophisticated alignment could be added here if needed.
-        let finalLeft = placementArea.x;
-        let finalTop = placementArea.y;
-
         // Apply Styles
-        this.root.style.left = `${finalLeft}px`;
-        this.root.style.top = `${finalTop}px`;
-        this.root.style.maxWidth = `${finalMaxWidth}px`;
-        this.root.style.maxHeight = `${finalMaxHeight}px`;
+        this.root.style.left = `${placementArea.x}px`;
+        this.root.style.top = `${placementArea.y}px`;
+        this.root.style.maxWidth = `${placementArea.width}px`;
+
+        this.tagsContainer.style.maxHeight = `${placementArea.height - headerRect.height}px`;
     }
 
     /** Highlights the item (row) at the given index */

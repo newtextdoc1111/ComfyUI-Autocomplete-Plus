@@ -124,7 +124,6 @@ body.dark-theme {
   width: fit-content;
   background-color: var(--comfy-input-bg);
   color: var(--input-text);
-  overflow-y: auto;
 }
 
 #related-tags-header {
@@ -146,11 +145,14 @@ body.dark-theme {
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
   grid-template-columns: max-content 1fr auto auto;
+  overflow-y: auto;
 }
 
 .related-tag-item {
-  display: contents;
+  display: grid;
   cursor: pointer;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
 }
 
 .related-tag-item[data-tag-category="general"] {
