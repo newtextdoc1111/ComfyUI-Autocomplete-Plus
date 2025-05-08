@@ -1,4 +1,4 @@
-// filepath: v:\Programs\StabilityMatrix-win-x64\Data\Packages\ComfyUI-New\custom_nodes\ComfyUI-Autocomplete-Plus\web\js\similar-tags.js
+// filepath: v:\Programs\StabilityMatrix-win-x64\Data\Packages\ComfyUI-New\custom_nodes\ComfyUI-Autocomplete-Plus\web\js\related-tags.js
 import { settingValues } from './settings.js';
 import { TagCategory, autoCompleteData } from './data.js';
 import {
@@ -9,27 +9,27 @@ import {
     getViewportMargin
 } from './utils.js';
 
-// --- SimilarTags UI Class ---
+// --- RelatedTags UI Class ---
 
 /**
- * Class that manages the UI for displaying similar tags.
- * Shows a panel with tags similar to the current tag under cursor.
+ * Class that manages the UI for displaying related tags.
+ * Shows a panel with tags related to the current tag under cursor.
  */
-class SimilarTagsUI {
+class RelatedTagsUI {
     constructor() {
         // Create the main container
         this.root = document.createElement('div');
-        this.root.id = 'similar-tags-container';
+        this.root.id = 'related-tags-container';
 
         // Create header row
         this.header = document.createElement('div');
-        this.header.id = 'similar-tags-header';
-        this.header.textContent = 'Similar Tags';
+        this.header.id = 'related-tags-header';
+        this.header.textContent = 'Related Tags';
         this.root.appendChild(this.header);
 
         // Create a tbody for the tags
         this.tagsContainer = document.createElement('div');
-        this.tagsContainer.id = 'similar-tags-list';
+        this.tagsContainer.id = 'related-tags-list';
         this.root.appendChild(this.tagsContainer);
 
         // Add to DOM
@@ -41,7 +41,7 @@ class SimilarTagsUI {
 
         // Add click handler for tag selection
         this.tagsContainer.addEventListener('mousedown', (e) => {
-            const row = e.target.closest('.similar-tag-item');
+            const row = e.target.closest('.related-tag-item');
             if (row && row.dataset.tag) {
                 this.selectTag(row.dataset.tag);
                 e.preventDefault();
@@ -54,13 +54,13 @@ class SimilarTagsUI {
     }
 
     /**
-     * Shows the similar tags UI for a specific tag and text input element.
+     * Shows the related tags UI for a specific tag and text input element.
      * @param {HTMLTextAreaElement} inputElement The textarea being used
-     * @param {string} tag The tag to find similarities for
-     * @param {Array<{tag: string, similarity: number, count: number, alias?: string[]}>} similarTags List of similar tags
+     * @param {string} tag The tag to find relatedities for
+     * @param {Array<{tag: string, similarity: number, count: number, alias?: string[]}>} relatedTags List of related tags
      */
-    show(inputElement, tag, similarTags) {
-        if (!settingValues.enableSimilarTags) {
+    show(inputElement, tag, relatedTags) {
+        if (!settingValues.enableRelatedTags) {
             this.hide();
             return;
         }
@@ -68,8 +68,8 @@ class SimilarTagsUI {
         this.activeInput = inputElement;
         this.currentTag = tag;
 
-        // Update content (even if there are no similar tags, we'll show a message)
-        this.updateContent(similarTags);
+        // Update content (even if there are no related tags, we'll show a message)
+        this.updateContent(relatedTags);
 
         // Calculate and update position
         this.updatePosition(inputElement);
@@ -82,13 +82,13 @@ class SimilarTagsUI {
                 clearTimeout(this.autoRefreshTimerId);
             }
             this.autoRefreshTimerId = setTimeout(() => {
-                similarTagsUI.show(inputElement, tag, similarTags);
+                relatedTagsUI.show(inputElement, tag, relatedTags);
             }, 500);
         }
     }
 
     /**
-     * Hides the similar tags UI.
+     * Hides the related tags UI.
      */
     hide() {
         if(this.autoRefreshTimerId){
@@ -101,10 +101,10 @@ class SimilarTagsUI {
     }
 
     /**
-     * Updates the content of the similar tags panel with the provided tags.
-     * @param {Array<{tag: string, similarity: number, count: number, alias?: string[]}>} similarTags
+     * Updates the content of the related tags panel with the provided tags.
+     * @param {Array<{tag: string, similarity: number, count: number, alias?: string[]}>} relatedTags
      */
-    updateContent(similarTags) {
+    updateContent(relatedTags) {
         this.root.style.left = 0;
         this.root.style.top = 0;
         this.root.style.maxWidth = `${window.innerWidth / 2}px`;
@@ -115,34 +115,34 @@ class SimilarTagsUI {
         this.header.innerHTML = ''; // Clear previous content
         this.header.textContent = 'Tags related to: ';
         const tagNameSpan = document.createElement('span');
-        tagNameSpan.className = 'similar-tags-header-tag-name';
+        tagNameSpan.className = 'related-tags-header-tag-name';
         tagNameSpan.textContent = this.currentTag;
         this.header.appendChild(tagNameSpan);
 
         if (!autoCompleteData.cooccurrenceLoaded) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'similar-tags-loading-message';
+            messageDiv.className = 'related-tags-loading-message';
             messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData.cooccurrenceInitProgress}%]`;
             this.tagsContainer.appendChild(messageDiv);
             return;
         }
 
-        if (!similarTags || similarTags.length === 0) {
+        if (!relatedTags || relatedTags.length === 0) {
             const messageCell = document.createElement('div');
-            messageCell.textContent = 'No similar tags found';
+            messageCell.textContent = 'No related tags found';
             this.tagsContainer.appendChild(messageCell);
             return;
         }
 
         // Create tag rows
-        similarTags.forEach(tagData => {
+        relatedTags.forEach(tagData => {
             const tagRow = this.createTagElement(tagData);
             this.tagsContainer.appendChild(tagRow);
         });
     }
 
     /**
-     * Creates an HTML table row for a similar tag.
+     * Creates an HTML table row for a related tag.
      * @param {{tag: string, similarity: number, count: number, alias?: string[]}} tagData
      * @returns {HTMLTableRowElement} The tag row element
      */
@@ -150,18 +150,18 @@ class SimilarTagsUI {
         const categoryText = TagCategory[tagData.category] || "unknown";
 
         const tagRow = document.createElement('div');
-        tagRow.className = 'similar-tag-item';
+        tagRow.className = 'related-tag-item';
         tagRow.dataset.tag = tagData.tag;
         tagRow.dataset.tagCategory = categoryText;
 
         // Tag name cell
         const tagNameCell = document.createElement('span');
-        tagNameCell.className = 'similar-tag-name';
+        tagNameCell.className = 'related-tag-name';
         tagNameCell.textContent = tagData.tag;
 
         // Alias cell (middle column)
         const aliasCell = document.createElement('span');
-        aliasCell.className = 'similar-tag-alias';
+        aliasCell.className = 'related-tag-alias';
 
         // Display alias if available
         if (tagData.alias && tagData.alias.length > 0) {
@@ -172,12 +172,12 @@ class SimilarTagsUI {
 
         // Category cell
         const categoryCell = document.createElement('span');
-        categoryCell.className = `similar-tag-category`;
+        categoryCell.className = `related-tag-category`;
         categoryCell.textContent = `${categoryText.substring(0, 2)}`;
 
         // Similarity cell
         const similarityCell = document.createElement('span');
-        similarityCell.className = 'similar-tag-similarity';
+        similarityCell.className = 'related-tag-similarity';
         similarityCell.textContent = `${(tagData.similarity * 100).toFixed(2)}%`;
 
         // Create tooltip with more info
@@ -197,9 +197,9 @@ class SimilarTagsUI {
     }
 
     /**
-     * Updates the position of the similar tags panel.
+     * Updates the position of the related tags panel.
      * Position is calculated based on the input element, available space,
-     * and the setting `similarTagsDisplayPosition`.
+     * and the setting `relatedTagsDisplayPosition`.
      * @param {HTMLElement} inputElement The input element to position
      */
     updatePosition(inputElement) {
@@ -241,7 +241,7 @@ class SimilarTagsUI {
     }
 
     /**
-     * Handles the selection of a similar tag.
+     * Handles the selection of a related tag.
      * Inserts the tag into the active input.
      * @param {string} tag
      */
@@ -256,7 +256,7 @@ class SimilarTagsUI {
     }
 
     /**
-     * Checks if the similar tags UI is currently visible.
+     * Checks if the related tags UI is currently visible.
      * @returns {boolean}
      */
     isVisible() {
@@ -289,7 +289,7 @@ class SimilarTagsUI {
             height: Math.min(elemHeight, viewportHeight - margin.top - margin.bottom)
         };
 
-        if (settingValues.similarTagsDisplayPosition === 'vertical') {
+        if (settingValues.relatedTagsDisplayPosition === 'vertical') {
             // Vertical placement
             const topSpace = inputRect.top - margin.top;
             const bottomSpace = viewportHeight - inputRect.bottom - margin.bottom;
@@ -355,11 +355,11 @@ function calculateJaccardSimilarity(tagA, tagB) {
 }
 
 /**
- * Finds similar tags for a given tag.
- * @param {string} tag The tag to find similar tags for
+ * Finds related tags for a given tag.
+ * @param {string} tag The tag to find related tags for
  * @returns {Array<{tag: string, similarity: number, count: number, alias?: string[]}>}
  */
-function findSimilarTags(tag) {
+function findRelatedTags(tag) {
     const startTime = performance.now(); // Record start time for performance measurement
 
     if (!tag || !autoCompleteData.cooccurrenceMap.has(tag)) {
@@ -367,7 +367,7 @@ function findSimilarTags(tag) {
     }
 
     const cooccurrences = autoCompleteData.cooccurrenceMap.get(tag);
-    const similarTags = [];
+    const relatedTags = [];
 
     // Convert to array for sorting
     cooccurrences.forEach((count, coTag) => {
@@ -381,7 +381,7 @@ function findSimilarTags(tag) {
         // Calculate similarity
         const similarity = calculateJaccardSimilarity(tag, coTag);
 
-        similarTags.push({
+        relatedTags.push({
             tag: coTag,
             similarity: similarity,
             alias: tagData.alias,
@@ -391,10 +391,10 @@ function findSimilarTags(tag) {
     });
 
     // Sort by similarity (highest first)
-    similarTags.sort((a, b) => b.similarity - a.similarity);
+    relatedTags.sort((a, b) => b.similarity - a.similarity);
 
     // Limit to max number of suggestions
-    const result = similarTags.slice(0, settingValues.maxSimilarTags);
+    const result = relatedTags.slice(0, settingValues.maxRelatedTags);
 
     const endTime = performance.now();
     const duration = endTime - startTime;
@@ -555,27 +555,27 @@ function findAllTagPositions(text) {
 // --- Main Exports ---
 
 // Create a singleton instance
-const similarTagsUI = new SimilarTagsUI();
+const relatedTagsUI = new RelatedTagsUI();
 
-// Helper function to show similar tags based on cursor position
-function showSimilarTagsForCurrentPosition(textareaElement) {
+// Helper function to show related tags based on cursor position
+function showRelatedTagsForCurrentPosition(textareaElement) {
     // Get the tag at current cursor position
     const currentTag = normalizeTagToSearch(getCurrentTag(textareaElement));
 
     // If no valid tag or tag is too short, hide the panel
     if (!isValidTag(currentTag)) {
-        similarTagsUI.hide();
+        relatedTagsUI.hide();
         return;
     }
 
-    // Find similar tags
-    const similarTagsResults = findSimilarTags(currentTag);
+    // Find related tags
+    const relatedTagsResults = findRelatedTags(currentTag);
 
-    // Always show the panel with current tag, even if there are no similar tags
-    similarTagsUI.show(textareaElement, currentTag, similarTagsResults);
+    // Always show the panel with current tag, even if there are no related tags
+    relatedTagsUI.show(textareaElement, currentTag, relatedTagsResults);
 }
 
-export class SimilarTagsEventHandler {
+export class RelatedTagsEventHandler {
     constructor() {
 
     }
@@ -585,9 +585,9 @@ export class SimilarTagsEventHandler {
      * @param {KeyboardEvent} event 
      */
     handleInput(event) {
-        if (settingValues.enableSimilarTags) {
-            if (similarTagsUI && similarTagsUI.isVisible()) {
-                similarTagsUI.hide();
+        if (settingValues.enableRelatedTags) {
+            if (relatedTagsUI && relatedTagsUI.isVisible()) {
+                relatedTagsUI.hide();
             }
         }
     }
@@ -609,17 +609,17 @@ export class SimilarTagsEventHandler {
             return;
         }
 
-        // Use setTimeout to delay hiding. This allows clicks on the similar tags UI
+        // Use setTimeout to delay hiding. This allows clicks on the related tags UI
         // to be processed before the UI is hidden.
         setTimeout(() => {
-            // Check if the new focused element is part of the similar tags UI.
+            // Check if the new focused element is part of the related tags UI.
             // document.activeElement refers to the currently focused element.
             const activeElement = document.activeElement;
-            const similarTagsElement = similarTagsUI.root;
+            const relatedTagsElement = relatedTagsUI.root;
 
-            // If the focus is not within the similar tags UI, hide it.
-            if (similarTagsUI && !similarTagsElement.contains(activeElement)) {
-                similarTagsUI.hide();
+            // If the focus is not within the related tags UI, hide it.
+            if (relatedTagsUI && !relatedTagsElement.contains(activeElement)) {
+                relatedTagsUI.hide();
             }
         }, 150); // Delay in milliseconds (adjust if necessary)
     }
@@ -631,19 +631,19 @@ export class SimilarTagsEventHandler {
     handleKeyDown(event) {
         const textareaElement = event.target;
 
-        // For similar tags panel, handle Escape key
-        if (similarTagsUI && similarTagsUI.isVisible()) {
+        // For related tags panel, handle Escape key
+        if (relatedTagsUI && relatedTagsUI.isVisible()) {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                similarTagsUI.hide();
+                relatedTagsUI.hide();
             }
         }
 
-        // Show similar tags on Ctrl+Space
-        if (settingValues.enableSimilarTags) {
+        // Show related tags on Ctrl+Space
+        if (settingValues.enableRelatedTags) {
             if (event.key === ' ' && event.ctrlKey && event.shiftKey ) {
                 event.preventDefault();
-                showSimilarTagsForCurrentPosition(textareaElement);
+                showRelatedTagsForCurrentPosition(textareaElement);
             }
         }
     }
@@ -680,6 +680,6 @@ export class SimilarTagsEventHandler {
      */
     handleClick(event) {
         const textareaElement = event.target;
-        showSimilarTagsForCurrentPosition(textareaElement);
+        showRelatedTagsForCurrentPosition(textareaElement);
     }
 }

@@ -3,10 +3,10 @@ export const settingValues = {
     enabled: true,
     maxSuggestions: 10,
 
-    // Similar tags feature settings
-    enableSimilarTags: true,
-    maxSimilarTags: 20,
-    similarTagsDisplayPosition: 'horizontal', // 'horizontal' or 'vertical'
+    // Related tags feature settings
+    enableRelatedTags: true,
+    maxRelatedTags: 20,
+    relatedTagsDisplayPosition: 'horizontal', // 'horizontal' or 'vertical'
 
     // Internal logic settings
     _useFallbackAttachmentForEventListener: false, // Fallback to attach event listener if not using jQuery

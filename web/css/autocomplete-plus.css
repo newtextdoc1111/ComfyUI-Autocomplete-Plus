@@ -114,8 +114,8 @@ body.dark-theme {
   white-space: nowrap;
 }
 
-/* Similar Tags UI Styles */
-#similar-tags-container {
+/* Related Tags UI Styles */
+#related-tags-container {
   position: absolute;
   z-index: 999;
   top: 0;
@@ -127,7 +127,7 @@ body.dark-theme {
   overflow-y: auto;
 }
 
-#similar-tags-header {
+#related-tags-header {
   position: sticky;
   z-index: 1;
   top: 0;
@@ -137,89 +137,89 @@ body.dark-theme {
   color: var(--descrip-text);
 }
 
-.similar-tags-header-tag-name {
+.related-tags-header-tag-name {
   font-weight: bold;
 }
 
-#similar-tags-list {
+#related-tags-list {
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
   grid-template-columns: max-content 1fr auto auto;
 }
 
-.similar-tag-item {
+.related-tag-item {
   display: contents;
   cursor: pointer;
 }
 
-.similar-tag-item[data-tag-category="general"] {
+.related-tag-item[data-tag-category="general"] {
   color: var(--autocomplete-plus-text-color-cat-general);
 }
 
-.similar-tag-item[data-tag-category="artist"] {
+.related-tag-item[data-tag-category="artist"] {
   color: var(--autocomplete-plus-text-color-cat-artist);
 }
 
-.similar-tag-item[data-tag-category="copyright"] {
+.related-tag-item[data-tag-category="copyright"] {
   color: var(--autocomplete-plus-text-color-cat-copyright);
 }
 
-.similar-tag-item[data-tag-category="character"] {
+.related-tag-item[data-tag-category="character"] {
   color: var(--autocomplete-plus-text-color-cat-character);
 }
 
-.similar-tag-item[data-tag-category="meta"] {
+.related-tag-item[data-tag-category="meta"] {
   color: var(--autocomplete-plus-text-color-cat-meta);
 }
 
-.similar-tag-item[data-tag-category="unknown"] {
+.related-tag-item[data-tag-category="unknown"] {
   color: var(--autocomplete-plus-text-color-cat-unknown);
 }
 
-.similar-tag-item span {
+.related-tag-item span {
   align-content: center;
   padding: 4px 8px;
   border-bottom: 1px solid var(--border-color);
 }
 
-.similar-tag-item:nth-child(even) span {
+.related-tag-item:nth-child(even) span {
   background-color: var(--comfy-menu-bg);
 }
 
-.similar-tag-item:nth-child(odd) span {
+.related-tag-item:nth-child(odd) span {
   background-color: var(--comfy-menu-secondary-bg);
 }
 
-.similar-tag-item:hover span {
+.related-tag-item:hover span {
   background-color: var(--p-form-field-filled-hover-background);
 }
 
-.similar-tag-name {
+.related-tag-name {
   padding: 8px;
   white-space: nowrap;
 }
 
-.similar-tag-alias {
+.related-tag-alias {
   overflow: hidden;
   color: var(--descrip-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.similar-tag-similarity {
+.related-tag-relatedity {
   color: var(--descrip-text);
   text-align: right;
   white-space: nowrap;
 }
 
-.similar-tags-loading-message {
+.related-tags-loading-message {
   padding: 12px;
   font-style: italic;
   text-align: center;
 }
 
-.similar-tags-empty {
+.related-tags-empty {
   padding: 12px;
   color: var(--error-text);
   font-style: italic;

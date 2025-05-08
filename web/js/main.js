@@ -4,11 +4,11 @@ import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
 import { loadAllData } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
-import { SimilarTagsEventHandler } from "./similar-tags.js";
+import { RelatedTagsEventHandler } from "./related-tags.js";
 
 function initializeEventHandlers() {
     const autocompleteEventHandler = new AutocompleteEventHandler();
-    const similarTagsEventHandler = new SimilarTagsEventHandler();
+    const relatedTagsEventHandler = new RelatedTagsEventHandler();
     const attachedElements = new WeakSet(); // Keep track of elements that have listeners attached
 
     // Function to attach listeners
@@ -22,7 +22,7 @@ function initializeEventHandlers() {
         element.addEventListener('keyup', handleKeyUp);
         element.addEventListener('keypress', handleKeyPress);
 
-        // Add new event listeners for similar tags feature
+        // Add new event listeners for related tags feature
         element.addEventListener('mousemove', handleMouseMove);
         element.addEventListener('click', handleClick);
 
@@ -38,7 +38,7 @@ function initializeEventHandlers() {
             const result = originalStringWidget.apply(this, arguments);
 
             // Check if the widget has an inputEl and if it's a TEXTAREA
-            // This is to ensure we are targeting multiline text inputs, similar to '.comfy-multiline-input'
+            // This is to ensure we are targeting multiline text inputs, related to '.comfy-multiline-input'
             if (result && result.widget && result.widget.inputEl && result.widget.inputEl.tagName === 'TEXTAREA') {
                 const widgetConfig = inputData && inputData[1] ? inputData[1] : {};
                 // Future: Add checks for Autocomplete Plus specific configurations if needed
@@ -85,44 +85,44 @@ function initializeEventHandlers() {
 
     function handleInput(event) {
         autocompleteEventHandler.handleInput(event);
-        similarTagsEventHandler.handleInput(event);
+        relatedTagsEventHandler.handleInput(event);
     }
 
     function handleFocus(event) {
         autocompleteEventHandler.handleFocus(event);
-        similarTagsEventHandler.handleFocus(event);
+        relatedTagsEventHandler.handleFocus(event);
     }
 
     function handleBlur(event) {
         autocompleteEventHandler.handleBlur(event);
-        similarTagsEventHandler.handleBlur(event);
+        relatedTagsEventHandler.handleBlur(event);
     }
 
     function handleKeyDown(event) {
         autocompleteEventHandler.handleKeyDown(event);
-        similarTagsEventHandler.handleKeyDown(event);
+        relatedTagsEventHandler.handleKeyDown(event);
     }
     
     function handleKeyUp(event) {
         autocompleteEventHandler.handleKeyUp(event);
-        similarTagsEventHandler.handleKeyUp(event);
+        relatedTagsEventHandler.handleKeyUp(event);
     }
 
     function handleKeyPress(event) {
         autocompleteEventHandler.handleKeyPress(event);
-        similarTagsEventHandler.handleKeyPress(event);
+        relatedTagsEventHandler.handleKeyPress(event);
     }
 
-    // New event handler for mousemove to show similar tags on hover
+    // New event handler for mousemove to show related tags on hover
     function handleMouseMove(event) {
         autocompleteEventHandler.handleMouseMove(event);
-        similarTagsEventHandler.handleMouseMove(event);
+        relatedTagsEventHandler.handleMouseMove(event);
     }
 
-    // New event handler for click to show similar tags
+    // New event handler for click to show related tags
     function handleClick(event) {
         autocompleteEventHandler.handleClick(event);
-        similarTagsEventHandler.handleClick(event);
+        relatedTagsEventHandler.handleClick(event);
     }
 }
 
@@ -166,22 +166,22 @@ app.registerExtension({
                 settingValues.maxSuggestions = newVal;
             }
         },
-        // Similar Tags Settings
+        // Related Tags Settings
         {
-            id: id + ".similar_tags_enable",
-            name: "Enable Similar Tags",
-            description: "Enable or disable the similar tags feature.",
+            id: id + ".related_tags_enable",
+            name: "Enable Related Tags",
+            description: "Enable or disable the related tags feature.",
             type: "boolean",
             defaultValue: true,
-            category: [name, "Similar Tags", "Enable Similar Tags"],
+            category: [name, "Related Tags", "Enable Related Tags"],
             onChange: (newVal, oldVal) => {
-                settingValues.enableSimilarTags = newVal;
+                settingValues.enableRelatedTags = newVal;
             }
         },
         {
-            id: id + ".max_similar_tags",
-            name: "Max similar tags",
-            description: "Maximum number of similar tags to display",
+            id: id + ".max_related_tags",
+            name: "Max related tags",
+            description: "Maximum number of related tags to display",
             type: "slider",
             attrs: {
                 min: 5,
@@ -189,21 +189,21 @@ app.registerExtension({
                 step: 5,
             },
             defaultValue: 20,
-            category: [name, "Similar Tags", "Max similar tags"],
+            category: [name, "Related Tags", "Max related tags"],
             onChange: (newVal, oldVal) => {
-                settingValues.maxSimilarTags = newVal;
+                settingValues.maxRelatedTags = newVal;
             }
         },
         {
-            id: id + ".similar_tags_position",
-            name: "Similar Tags Display Position",
-            description: "Position of similar tags display",
+            id: id + ".related_tags_position",
+            name: "Related Tags Display Position",
+            description: "Position of related tags display",
             type: "combo",
             options: ["horizontal", "vertical"],
             defaultValue: "horizontal",
-            category: [name, "Similar Tags", "Display Position"],
+            category: [name, "Related Tags", "Display Position"],
             onChange: (newVal, oldVal) => {
-                settingValues.similarTagsDisplayPosition = newVal;
+                settingValues.relatedTagsDisplayPosition = newVal;
             }
         }
     ]
