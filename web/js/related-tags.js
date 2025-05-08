@@ -347,7 +347,9 @@ class RelatedTagsUI {
         this.target = textareaElement;
 
         this.relatedTags = searchRelatedTags(this.currentTag);
-        this.selectedIndex = 0;
+        if(this.selectedIndex == -1) {
+            this.selectedIndex = 0; // Reset selection to the first item
+        }
 
         // Update content (even if there are no related tags, we'll show a message)
         this.#updateContent();

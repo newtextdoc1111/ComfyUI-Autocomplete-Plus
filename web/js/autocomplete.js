@@ -297,7 +297,10 @@ class AutocompleteUI {
         this.target = textareaElement;
 
         this.candidates = candidates;
-        this.selectedIndex = 0;
+
+        if(this.selectedIndex == -1) {
+            this.selectedIndex = 0; // Reset selection to the first item
+        }
 
         this.#updateContent();
 
