@@ -852,20 +852,21 @@ export class AutocompleteEventHandler {
      */
     handleKeyUp(event){
         if (!settingValues.enabled || !autocompleteUI) return;
-
-        updateAutocompleteDisplay(event.target);
-    }
-
-    /**
-     * 
-     * @param {KeyboardEvent} event 
-     * @returns 
-     */
-    handleKeyPress(event){
-        if (!settingValues.enabled || !autocompleteUI) return;
-        if (event.defaultPrevented) return; // Ignore if default action is prevented
         
-        updateAutocompleteDisplay(event.target);
+        if (autocompleteUI.isVisible()) {
+			switch (event.key) {
+				case "Escape":
+					event.preventDefault();
+					autocompleteUI.hide();
+					break;
+			}
+		} else if (event.key.length > 1 && event.key != "Delete" && event.key != "Backspace") {
+			return;
+		}
+
+        if (!event.defaultPrevented) {
+            updateAutocompleteDisplay(event.target);
+        }
     }
 
     /**

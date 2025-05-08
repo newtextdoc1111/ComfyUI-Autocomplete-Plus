@@ -658,14 +658,6 @@ export class RelatedTagsEventHandler {
     
     /**
      * 
-     * @param {KeyboardEvent} event 
-     */
-    handleKeyPress(event){
-        
-    }
-
-    /**
-     * 
      * @param {MouseEvent} event 
      * @returns 
      */

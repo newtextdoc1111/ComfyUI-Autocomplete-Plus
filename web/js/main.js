@@ -20,7 +20,7 @@ function initializeEventHandlers() {
         element.addEventListener('blur', handleBlur);
         element.addEventListener('keydown', handleKeyDown);
         element.addEventListener('keyup', handleKeyUp);
-        element.addEventListener('keypress', handleKeyPress);
+        // element.addEventListener('keypress', handleKeyPress); // keypress is deprecated
 
         // Add new event listeners for related tags feature
         element.addEventListener('mousemove', handleMouseMove);
@@ -106,11 +106,6 @@ function initializeEventHandlers() {
     function handleKeyUp(event) {
         autocompleteEventHandler.handleKeyUp(event);
         relatedTagsEventHandler.handleKeyUp(event);
-    }
-
-    function handleKeyPress(event) {
-        autocompleteEventHandler.handleKeyPress(event);
-        relatedTagsEventHandler.handleKeyPress(event);
     }
 
     // New event handler for mousemove to show related tags on hover
