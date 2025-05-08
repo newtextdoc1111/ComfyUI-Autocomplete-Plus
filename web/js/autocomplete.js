@@ -1,5 +1,6 @@
 import {
     TagCategory,
+    TagData,
     autoCompleteData
 } from './data.js';
 import {
@@ -10,6 +11,235 @@ import {
     normalizeTagToSearch,
 } from './utils.js';
 import { settingValues } from './settings.js';
+
+// --- Autocomplete Logic ---
+
+/**
+ * Search tag completion candidates based on the current input and cursor position in the textarea.
+ * @param {HTMLTextAreaElement} textareaElement The partial tag input.
+ * @returns {Array<{tag: string, count: number, alias?: string[], category: string}>} The list of matching candidates.
+ */
+function searchCompletionCandidates(textareaElement) {
+    const startTime = performance.now(); // Record start time for performance measurement
+    
+    const ESCAPE_SEQUENCE = ["#", "/"]; // If the first string is that character, autocomplete will not be displayed.
+    const partialTag = getCurrentPartialTag(textareaElement);
+    if (!partialTag || partialTag.length <= 0 || ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
+        return []; // No valid input for autocomplete    
+    }
+    
+    const lowerQuery = partialTag.toLowerCase();
+    const exactMatches = []; // Array for exact matches (will be displayed first)
+    const partialMatches = []; // Array for partial matches (will be displayed after exact matches)
+    const addedTags = new Set(); // Keep track of added tags to avoid duplicates
+
+    // Generate Hiragana/Katakana variations if applicable
+    const queryVariations = new Set([lowerQuery, normalizeTagToSearch(lowerQuery)]);
+    const kataQuery = hiraToKata(lowerQuery);
+    if (kataQuery !== lowerQuery) {
+        queryVariations.add(kataQuery);
+    }
+    const hiraQuery = kataToHira(lowerQuery);
+    if (hiraQuery !== lowerQuery) {
+        queryVariations.add(hiraQuery);
+    }
+
+    // Search in sortedTags (already sorted by count)
+    for (const tagData of autoCompleteData.sortedTags) {
+        let matched = false;
+        let isExactMatch = false;
+        let matchedAlias = null;
+
+        // Ensure tagData.tag is treated as lowercase for comparison
+        const lowerTag = tagData.tag.toLowerCase();
+
+        // Check primary tag against all variations for exact match first
+        for (const variation of queryVariations) {
+            if (lowerTag === variation) {
+                isExactMatch = true;
+                matched = true;
+                break;
+            }
+        }
+
+        // If not an exact match, check for partial matches in the tag
+        if (!isExactMatch) {
+            for (const variation of queryVariations) {
+                if (lowerTag.includes(variation)) {
+                    matched = true;
+                    break;
+                } else if (lowerTag.replace(/[\-_\s']/g, '').includes(variation.replace(/[\-_\s']/g, ''))) {
+                    // Try to match with underscore, dash, or apostrophe removed
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        // If primary tag didn't match, check aliases against all variations
+        if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
+            for (const alias of tagData.alias) {
+                const lowerAlias = alias.toLowerCase();
+
+                // Check for exact matches in aliases first
+                for (const variation of queryVariations) {
+                    if (lowerAlias === variation) {
+                        isExactMatch = true;
+                        matched = true;
+                        matchedAlias = alias;
+                        break;
+                    }
+                }
+
+                // If not an exact match in alias, check for partial matches
+                if (!isExactMatch) {
+                    for (const variation of queryVariations) {
+                        if (lowerAlias.includes(variation)) {
+                            matched = true;
+                            matchedAlias = alias;
+                            break;
+                        }
+                    }
+                }
+
+                if (matched) break; // Stop checking aliases for this tag if one matched
+            }
+        }
+
+        // Add candidate if matched and not already added
+        if (matched && !addedTags.has(tagData.tag)) {
+            const candidateItem = {
+                tag: tagData.tag,
+                alias: tagData.alias,
+                category: tagData.category,
+                count: tagData.count,
+            };
+
+            // Add to exact matches or partial matches based on match type
+            if (isExactMatch) {
+                exactMatches.push(candidateItem);
+            } else {
+                partialMatches.push(candidateItem);
+            }
+
+            addedTags.add(tagData.tag);
+
+            // Check if we've reached the maximum suggestions limit combining both arrays
+            if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
+                // Return the combined results, prioritizing exact matches
+                const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
+
+                if (settingValues._logprocessingTime) {
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+                    // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
+                }
+
+                return result; // Early exit
+            }
+        }
+    }
+
+    // Combine results, with exact matches first
+    const candidates = [...exactMatches, ...partialMatches];
+
+    if (settingValues._logprocessingTime) {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
+    }
+
+    return candidates;
+}
+
+/**
+ * Extracts the current tag being typed before the cursor.
+ * Assumes tags are separated by commas.
+ * @param {HTMLTextAreaElement} inputElement
+ */
+function getCurrentPartialTag(inputElement) {
+    const text = inputElement.value;
+    const cursorPos = inputElement.selectionStart;
+
+    // Find the last newline or comma before the cursor
+    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
+    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+
+    // Get the position of the last separator (newline or comma) before cursor
+    const lastSeparator = Math.max(lastNewLine, lastComma);
+    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
+
+    // Extract the text between the last comma (or start) and the cursor
+    const partial = text.substring(start, cursorPos).trimStart();
+    return partial;
+}
+
+/**
+ * Inserts the selected tag into the textarea, replacing the partial tag,
+ * making the change undoable.
+ * @param {HTMLTextAreaElement} inputElement
+ * @param {string} tagToInsert The raw tag string to insert.
+ */
+function insertTagToTextArea(inputElement, tagToInsert) {
+    const text = inputElement.value;
+    const cursorPos = inputElement.selectionStart;
+
+    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
+    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+
+    const lastSeparator = Math.max(lastNewLine, lastComma);
+    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
+
+    const normalizedTag = normalizeTagToInsert(tagToInsert);
+
+    const currentWordStart = text.substring(start, cursorPos).search(/\S|$/) + start;
+    const currentWordEndMatch = text.substring(cursorPos).match(/^[^,\n]+/);
+    
+    let currentWordEnd = cursorPos;
+
+    // If the end match is found, set currentWordEnd to the end of the match
+    if (currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[0]) !== -1) {
+        currentWordEnd = cursorPos + currentWordEndMatch[0].length;
+    }
+
+    // The range to replace is from the start of the current partial tag
+    // up to the end of the word segment at the cursor.
+    const replaceStart = currentWordStart;
+    // replaceEnd should be at least the cursor position, but extend to cover the word segment if cursor is within it.
+    const replaceEnd = Math.max(cursorPos, currentWordEnd);
+
+    // Add space if the previous separator was a comma and we are not at the beginning
+    const needsSpaceBefore = lastSeparator === lastComma && replaceStart > 0 && text[replaceStart - 1] === ',';
+    const prefix = needsSpaceBefore ? ' ' : '';
+
+    // Standard separator (comma + space)
+    const needsSuffixAfter = text[replaceEnd] !== ','
+    const suffix = needsSuffixAfter ? ', ' : '';
+
+    const textToInsertWithAffixes = prefix + normalizedTag + suffix;
+
+    // --- Use execCommand for Undo support ---
+    // 1. Select the text range to be replaced
+    inputElement.focus(); // Ensure the element has focus
+    inputElement.setSelectionRange(replaceStart, replaceEnd);
+
+    // 2. Execute the 'insertText' command
+    // This replaces the selection and should add the change to the undo stack
+    const insertTextSuccess = document.execCommand('insertText', false, textToInsertWithAffixes);
+
+    // Fallback for browsers where execCommand might fail or is not supported
+    if (!insertTextSuccess) {
+        console.warn('[Autocomplete-Plus] execCommand("insertText") failed. Falling back to direct value manipulation (Undo might not work).');
+        const textBefore = text.substring(0, replaceStart);
+        const textAfter = text.substring(replaceEnd);
+        inputElement.value = textBefore + textToInsertWithAffixes + textAfter;
+        // Manually set cursor position after the inserted text
+        const newCursorPos = replaceStart + textToInsertWithAffixes.length;
+        inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
+        // Trigger input event manually as a fallback
+        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
 
 // --- Autocomplete UI Class ---
 
@@ -25,11 +255,12 @@ class AutocompleteUI {
         const tbody = document.createElement('tbody');
         this.element.appendChild(tbody);
 
-        this.activeInput = null;
+        // Add to DOM
+        document.body.appendChild(this.element);
+
+        this.target = null;
         this.selectedIndex = -1;
         this.candidates = [];
-
-        document.body.appendChild(this.element);
 
         // Add event listener for clicks on items (listen on tbody)
         tbody.addEventListener('mousedown', (e) => {
@@ -38,7 +269,7 @@ class AutocompleteUI {
             if (row && row.dataset.index) {
                 const index = parseInt(row.dataset.index, 10);
                 if (!isNaN(index)) {
-                    this.#selectItem(index);
+                    this.#insertTag(index);
                     e.preventDefault(); // Prevent focus loss from input
                     e.stopPropagation();
                 }
@@ -46,21 +277,48 @@ class AutocompleteUI {
         });
     }
 
-    show(textareaElement, candidates) {
-        this.#update(candidates);
-        if (candidates.length > 0) {
-            this.#show(textareaElement);
-        } else {
-            this.#hide();
-        }
-    }
-
-    hide() {
-        this.#hide();
-    }
-
+    /** Checks if the autocomplete list is visible */
     isVisible() {
         return this.element.style.display !== 'none';
+    }
+
+    /**
+     * Displays the autocomplete list under the given textarea element if there are candidates.
+     * @param {HTMLTextAreaElement} textareaElement 
+     * @returns 
+     */
+    updateDisplay(textareaElement) {
+        const candidates = searchCompletionCandidates(textareaElement);
+        if (candidates.length <= 0) {
+            this.hide();
+            return;
+        }
+
+        this.target = textareaElement;
+
+        this.candidates = candidates;
+        this.selectedIndex = 0;
+
+        this.#updateContent();
+
+        // Calculate caret position using the helper function (returns viewport-relative coordinates)
+        this.#updatePosition();
+
+        // Highlight the first item
+        this.#highlightItem();
+
+        this.element.style.overflowY = 'auto';
+        this.element.style.display = 'block'; // Make it visible
+    }
+
+    /**
+     * hides the autocomplete list.
+     */
+    hide() {
+        this.element.style.display = 'none';
+        this.selectedIndex = -1;
+        this.target = null;
+        this.candidates = [];
     }
 
     /** Moves the selection up or down */
@@ -86,22 +344,89 @@ class AutocompleteUI {
     }
 
     /**
-     * Shows the autocomplete list near the target input element.
-     * Adjusts max-height and enables scrolling if the list exceeds viewport bounds.
-     * @param {HTMLTextAreaElement} inputElement The textarea being typed into.
+     * Updates the list from the current candidates.
      */
-    #show(inputElement) {
-        this.activeInput = inputElement;
-        this.selectedIndex = 0;
+    #updateContent() {
+        const tbody = this.element.querySelector('tbody');
+        tbody.innerHTML = ''; // Clear previous items from tbody
+        if (this.candidates.length === 0) {
+            this.hide();
+            return;
+        }
 
-        // Calculate caret position using the helper function (returns viewport-relative coordinates)
-        this.#updateListPosition();
+        this.candidates.forEach((candidate, index) => {
+            this.#createTagElement(index, candidate); // Pass candidate directly
+        });
 
-        this.element.style.overflowY = 'auto';
-        this.element.style.display = 'block'; // Make it visible
+        // If the list is already visible, update its position in case content changed size significantly
+        if (this.isVisible() && this.target) {
+            this.#updatePosition();
+        }
+    }
 
-        // Highlight the first item
-        this.#highlightItem();
+    /**
+     * Creates a table row (tr) for a candidate item.
+     * @param {number} index
+     * @param {TagData} tagData
+     */
+    #createTagElement(index, tagData) {
+        const MAX_ALIAS_LENGTH = 25; // Maximum length for alias display
+        const categoryText = TagCategory[tagData.category] || "unknown";
+        const tbody = this.element.querySelector('tbody');
+
+        const item = document.createElement('tr');
+        item.classList.add('autocomplete-plus-item');
+        item.dataset.index = index;
+        item.dataset.tagCategory = categoryText;
+        item.style.cursor = 'pointer';
+        item.style.whiteSpace = 'nowrap';
+
+        // 1st cell: Tag
+        const tagCell = document.createElement('td');
+        tagCell.style.padding = '4px 8px';
+        tagCell.style.overflow = 'hidden';
+        tagCell.style.textOverflow = 'ellipsis';
+        tagCell.style.maxWidth = '300px'; // Limit width of the tag/alias cell
+
+        tagCell.textContent = tagData.tag; // Display the tag
+
+        // 2nd cell: Alias (if any)
+        const aliasCell = document.createElement('td');
+        aliasCell.classList.add('autocomplete-plus-alias');
+        aliasCell.style.padding = '4px 8px';
+        aliasCell.style.maxWidth = '300px'; // Limit width of the tag/alias cell
+
+        let displayText = "";
+        let displayAliasStr = '';
+        if (tagData.alias && tagData.alias.length > 0) {
+            displayAliasStr = tagData.alias.join(', '); // Join multiple aliases with commas
+            // Truncate long alias
+            if (displayAliasStr.length > MAX_ALIAS_LENGTH) {
+                displayAliasStr = displayAliasStr.substring(0, MAX_ALIAS_LENGTH) + '...';
+            }
+            displayText += ` [${displayAliasStr}]`;
+        }
+        aliasCell.textContent = displayText;
+        aliasCell.title = `${tagData.tag}${tagData.alias && tagData.alias.length > 0 ? ` [${tagData.alias.join(', ')}]` : ''}`; // Full text on hover
+
+        // 3rd cell: Category
+        const catCell = document.createElement('td');
+        catCell.textContent = categoryText.substring(0, 2);
+        catCell.style.padding = '4px 8px';
+        catCell.style.minWidth = '50px'; // Ensure some minimum space for count alignment
+
+        // 4th cell: Count
+        const countCell = document.createElement('td');
+        countCell.textContent = formatCountHumanReadable(tagData.count);
+        countCell.style.padding = '4px 8px';
+        countCell.style.textAlign = 'right';
+        countCell.style.minWidth = '50px'; // Ensure some minimum space for count alignment
+
+        item.appendChild(tagCell);
+        item.appendChild(aliasCell);
+        item.appendChild(catCell);
+        item.appendChild(countCell);
+        tbody.appendChild(item); // Append row to tbody
     }
 
     /**
@@ -111,10 +436,10 @@ class AutocompleteUI {
      * License: MIT License (assumed based on repository root LICENSE file)
      * Considers ComfyUI canvas scale.
      */
-    #updateListPosition() {
-        const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.activeInput);
+    #updatePosition() {
+        const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.target);
 
-        const elOffset = this.#calculateElementOffset(this.activeInput);
+        const elOffset = this.#calculateElementOffset(this.target);
         const elScroll = { top: this.element.scrollTop, left: this.element.scrollLeft };
         this.element.scrollTop = 0;
         this.element.style.maxHeight = ''; // Reset max-height for accurate measurement
@@ -193,106 +518,10 @@ class AutocompleteUI {
         this.element.style.top = `${topPosition}px`;
     }
 
-    /**
-     * Hides the autocomplete list.
-     */
-    #hide() {
-        this.element.style.display = 'none';
-        this.selectedIndex = -1;
-        this.activeInput = null;
-        this.candidates = [];
-    }
-
-    /**
-     * Updates the list with new candidates.
-     * @param {Array<{tag: string, count: number, alias?: string}>} candidates List of candidate tags.
-     */
-    #update(candidates) {
-        this.candidates = candidates;
-        const tbody = this.element.querySelector('tbody');
-        tbody.innerHTML = ''; // Clear previous items from tbody
-        if (candidates.length === 0) {
-            this.#hide();
-            return;
-        }
-
-        candidates.forEach((candidate, index) => {
-            this.#createCandidateItem(index, candidate); // Pass candidate directly
-        });
-
-        // If the list is already visible, update its position in case content changed size significantly
-        if (this.isVisible() && this.activeInput) {
-            this.#updateListPosition();
-        }
-    }
-
-    /**
-     * Creates a table row (tr) for a candidate item.
-     * @param {number} index
-     * @param {{tag: string, count: number, alias?: string[]}} candidate
-     */
-    #createCandidateItem(index, candidate) {
-        const MAX_ALIAS_LENGTH = 25; // Maximum length for alias display
-        const categoryText = TagCategory[candidate.category] || "unknown";
-        const tbody = this.element.querySelector('tbody');
-
-        const item = document.createElement('tr');
-        item.classList.add('autocomplete-plus-item');
-        item.dataset.index = index;
-        item.dataset.tagCategory = categoryText;
-        item.style.cursor = 'pointer';
-        item.style.whiteSpace = 'nowrap';
-
-        // 1st cell: Tag
-        const tagCell = document.createElement('td');
-        tagCell.style.padding = '4px 8px';
-        tagCell.style.overflow = 'hidden';
-        tagCell.style.textOverflow = 'ellipsis';
-        tagCell.style.maxWidth = '300px'; // Limit width of the tag/alias cell
-
-        tagCell.textContent = candidate.tag; // Display the tag
-
-        // 2nd cell: Alias (if any)
-        const aliasCell = document.createElement('td');
-        aliasCell.classList.add('autocomplete-plus-alias');
-        aliasCell.style.padding = '4px 8px';
-        aliasCell.style.maxWidth = '300px'; // Limit width of the tag/alias cell
-
-        let displayText = "";
-        let displayAliasStr = '';
-        if (candidate.alias && candidate.alias.length > 0) {
-            displayAliasStr = candidate.alias.join(', '); // Join multiple aliases with commas
-            // Truncate long alias
-            if (displayAliasStr.length > MAX_ALIAS_LENGTH) {
-                displayAliasStr = displayAliasStr.substring(0, MAX_ALIAS_LENGTH) + '...';
-            }
-            displayText += ` [${displayAliasStr}]`;
-        }
-        aliasCell.textContent = displayText;
-        aliasCell.title = `${candidate.tag}${candidate.alias && candidate.alias.length > 0 ? ` [${candidate.alias.join(', ')}]` : ''}`; // Full text on hover
-
-        // 3rd cell: Category
-        const catCell = document.createElement('td');
-        catCell.textContent = categoryText.substring(0, 2);
-        catCell.style.padding = '4px 8px';
-        catCell.style.minWidth = '50px'; // Ensure some minimum space for count alignment
-
-        // 4th cell: Count
-        const countCell = document.createElement('td');
-        countCell.textContent = formatCountHumanReadable(candidate.count);
-        countCell.style.padding = '4px 8px';
-        countCell.style.textAlign = 'right';
-        countCell.style.minWidth = '50px'; // Ensure some minimum space for count alignment
-
-        item.appendChild(tagCell);
-        item.appendChild(aliasCell);
-        item.appendChild(catCell);
-        item.appendChild(countCell);
-        tbody.appendChild(item); // Append row to tbody
-    }
-
     /** Highlights the item (row) at the given index */
     #highlightItem() {
+        if(!this.getSelectedTag()) return; // No valid selection
+
         const tbody = this.element.querySelector('tbody');
         if (!tbody) return;
 
@@ -311,9 +540,9 @@ class AutocompleteUI {
      * Handles the selection of an item (e.g., inserts into input).
      * @param {number} index The index of the selected candidate.
      */
-    #selectItem(index) {
-        if (!this.activeInput || index < 0 || index >= this.candidates.length) {
-            this.#hide();
+    #insertTag(index) {
+        if (!this.target || index < 0 || index >= this.candidates.length) {
+            this.hide();
             return;
         }
 
@@ -321,9 +550,9 @@ class AutocompleteUI {
         const selectedTag = this.candidates[index].tag;
 
         // Insert the selected tag
-        insertTag(this.activeInput, selectedTag);
+        insertTagToTextArea(this.target, selectedTag);
 
-        this.#hide();
+        this.hide();
     }
 
     /**
@@ -529,252 +758,11 @@ class AutocompleteUI {
     }
 }
 
-// --- Autocomplete Logic ---
-const autocompleteUI = new AutocompleteUI();
-
-/**
- * 
- * @param {HTMLTextAreaElement} textareaElement 
- */
-function updateAutocompleteDisplay(textareaElement) {
-    const candidates = searchCompletionCandidates(textareaElement);
-    if (candidates.length > 0) {
-        autocompleteUI.show(textareaElement, candidates);
-    }else{
-        autocompleteUI.hide();
-    }
-}
-
-/**
- * Search tag completion candidates based on the current input and cursor position in the textarea.
- * @param {HTMLTextAreaElement} textareaElement The partial tag input.
- * @returns {Array<{tag: string, count: number, alias?: string}>}
- */
-function searchCompletionCandidates(textareaElement) {
-    const startTime = performance.now(); // Record start time for performance measurement
-    
-    const ESCAPE_SEQUENCE = ["#", "/"]; // If the first string is that character, autocomplete will not be displayed.
-    const partialTag = getCurrentPartialTag(textareaElement);
-    if (!partialTag || partialTag.length <= 0 || ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
-        return []; // No valid input for autocomplete    
-    }
-    
-    const lowerQuery = partialTag.toLowerCase();
-    const exactMatches = []; // Array for exact matches (will be displayed first)
-    const partialMatches = []; // Array for partial matches (will be displayed after exact matches)
-    const addedTags = new Set(); // Keep track of added tags to avoid duplicates
-
-    // Generate Hiragana/Katakana variations if applicable
-    const queryVariations = new Set([lowerQuery, normalizeTagToSearch(lowerQuery)]);
-    const kataQuery = hiraToKata(lowerQuery);
-    if (kataQuery !== lowerQuery) {
-        queryVariations.add(kataQuery);
-    }
-    const hiraQuery = kataToHira(lowerQuery);
-    if (hiraQuery !== lowerQuery) {
-        queryVariations.add(hiraQuery);
-    }
-
-    // Search in sortedTags (already sorted by count)
-    for (const tagData of autoCompleteData.sortedTags) {
-        let matched = false;
-        let isExactMatch = false;
-        let matchedAlias = null;
-
-        // Ensure tagData.tag is treated as lowercase for comparison
-        const lowerTag = tagData.tag.toLowerCase();
-
-        // Check primary tag against all variations for exact match first
-        for (const variation of queryVariations) {
-            if (lowerTag === variation) {
-                isExactMatch = true;
-                matched = true;
-                break;
-            }
-        }
-
-        // If not an exact match, check for partial matches in the tag
-        if (!isExactMatch) {
-            for (const variation of queryVariations) {
-                if (lowerTag.includes(variation)) {
-                    matched = true;
-                    break;
-                } else if (lowerTag.replace(/[\-_\s']/g, '').includes(variation.replace(/[\-_\s']/g, ''))) {
-                    // Try to match with underscore, dash, or apostrophe removed
-                    matched = true;
-                    break;
-                }
-            }
-        }
-
-        // If primary tag didn't match, check aliases against all variations
-        if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
-            for (const alias of tagData.alias) {
-                const lowerAlias = alias.toLowerCase();
-
-                // Check for exact matches in aliases first
-                for (const variation of queryVariations) {
-                    if (lowerAlias === variation) {
-                        isExactMatch = true;
-                        matched = true;
-                        matchedAlias = alias;
-                        break;
-                    }
-                }
-
-                // If not an exact match in alias, check for partial matches
-                if (!isExactMatch) {
-                    for (const variation of queryVariations) {
-                        if (lowerAlias.includes(variation)) {
-                            matched = true;
-                            matchedAlias = alias;
-                            break;
-                        }
-                    }
-                }
-
-                if (matched) break; // Stop checking aliases for this tag if one matched
-            }
-        }
-
-        // Add candidate if matched and not already added
-        if (matched && !addedTags.has(tagData.tag)) {
-            const candidateItem = {
-                tag: tagData.tag,
-                alias: tagData.alias,
-                category: tagData.category,
-                count: tagData.count,
-            };
-
-            // Add to exact matches or partial matches based on match type
-            if (isExactMatch) {
-                exactMatches.push(candidateItem);
-            } else {
-                partialMatches.push(candidateItem);
-            }
-
-            addedTags.add(tagData.tag);
-
-            // Check if we've reached the maximum suggestions limit combining both arrays
-            if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
-                // Return the combined results, prioritizing exact matches
-                const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
-
-                if (settingValues._logprocessingTime) {
-                    const endTime = performance.now();
-                    const duration = endTime - startTime;
-                    // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
-                }
-
-                return result; // Early exit
-            }
-        }
-    }
-
-    // Combine results, with exact matches first
-    const candidates = [...exactMatches, ...partialMatches];
-
-    if (settingValues._logprocessingTime) {
-        const endTime = performance.now();
-        const duration = endTime - startTime;
-        // console.debug(`[Autocomplete-Plus] Search for "${query}" took ${duration.toFixed(2)}ms. Found ${candidates.length} candidates.`);
-    }
-
-    return candidates;
-}
-
-/**
- * Extracts the current tag being typed before the cursor.
- * Assumes tags are separated by commas.
- * @param {HTMLTextAreaElement} inputElement
- * @returns {string} The partial tag or empty string.
- */
-function getCurrentPartialTag(inputElement) {
-    const text = inputElement.value;
-    const cursorPos = inputElement.selectionStart;
-
-    // Find the last newline or comma before the cursor
-    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
-
-    // Get the position of the last separator (newline or comma) before cursor
-    const lastSeparator = Math.max(lastNewLine, lastComma);
-    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
-
-    // Extract the text between the last comma (or start) and the cursor
-    const partial = text.substring(start, cursorPos).trimStart();
-    return partial;
-}
-
-/**
- * Inserts the selected tag into the textarea, replacing the partial tag,
- * making the change undoable.
- * @param {HTMLTextAreaElement} inputElement
- * @param {string} tagToInsert The raw tag string to insert.
- */
-function insertTag(inputElement, tagToInsert) {
-    const text = inputElement.value;
-    const cursorPos = inputElement.selectionStart;
-
-    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
-
-    const lastSeparator = Math.max(lastNewLine, lastComma);
-    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
-
-    const normalizedTag = normalizeTagToInsert(tagToInsert);
-
-    const currentWordStart = text.substring(start, cursorPos).search(/\S|$/) + start;
-    const currentWordEndMatch = text.substring(cursorPos).match(/^[^,\n]+/);
-    
-    let currentWordEnd = cursorPos;
-
-    // If the end match is found, set currentWordEnd to the end of the match
-    if (currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[0]) !== -1) {
-        currentWordEnd = cursorPos + currentWordEndMatch[0].length;
-    }
-
-    // The range to replace is from the start of the current partial tag
-    // up to the end of the word segment at the cursor.
-    const replaceStart = currentWordStart;
-    // replaceEnd should be at least the cursor position, but extend to cover the word segment if cursor is within it.
-    const replaceEnd = Math.max(cursorPos, currentWordEnd);
-
-    // Add space if the previous separator was a comma and we are not at the beginning
-    const needsSpaceBefore = lastSeparator === lastComma && replaceStart > 0 && text[replaceStart - 1] === ',';
-    const prefix = needsSpaceBefore ? ' ' : '';
-
-    // Standard separator (comma + space)
-    const needsSuffixAfter = text[replaceEnd] !== ','
-    const suffix = needsSuffixAfter ? ', ' : '';
-
-    const textToInsertWithAffixes = prefix + normalizedTag + suffix;
-
-    // --- Use execCommand for Undo support ---
-    // 1. Select the text range to be replaced
-    inputElement.focus(); // Ensure the element has focus
-    inputElement.setSelectionRange(replaceStart, replaceEnd);
-
-    // 2. Execute the 'insertText' command
-    // This replaces the selection and should add the change to the undo stack
-    const insertTextSuccess = document.execCommand('insertText', false, textToInsertWithAffixes);
-
-    // Fallback for browsers where execCommand might fail or is not supported
-    if (!insertTextSuccess) {
-        console.warn('[Autocomplete-Plus] execCommand("insertText") failed. Falling back to direct value manipulation (Undo might not work).');
-        const textBefore = text.substring(0, replaceStart);
-        const textAfter = text.substring(replaceEnd);
-        inputElement.value = textBefore + textToInsertWithAffixes + textAfter;
-        // Manually set cursor position after the inserted text
-        const newCursorPos = replaceStart + textToInsertWithAffixes.length;
-        inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
-        // Trigger input event manually as a fallback
-        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-}
-
-// --- Autocomplete Event Handling Logic ---
+// --- Autocomplete Event Handling Class ---
 export class AutocompleteEventHandler {
+    constructor() {
+        this.autocompleteUI = new AutocompleteUI();
+    }
 
     /**
      * 
@@ -782,20 +770,18 @@ export class AutocompleteEventHandler {
      * @returns 
      */
     handleInput(event) {
-        if (!settingValues.enabled || !autocompleteUI) return;
+        if (!settingValues.enabled) return;
         if(!event.isTrusted) return; // ignore synthetic events
 
         const textareaElement = event.target;
         const partialTag = getCurrentPartialTag(textareaElement);
         if (partialTag.length <= 0){
-            autocompleteUI.hide();
+            this.autocompleteUI.hide();
         }
     }
 
     handleFocus(event) {
-        if (!settingValues.enabled) return;
-
-        // Add code to focus events if needed
+        
     }
 
     handleBlur(event) {
@@ -803,8 +789,8 @@ export class AutocompleteEventHandler {
 
         // Need a slight delay because clicking the autocomplete list causes blur
         setTimeout(() => {
-            if (autocompleteUI && !autocompleteUI.element.contains(document.activeElement)) {
-                autocompleteUI.hide();
+            if (!this.autocompleteUI.element.contains(document.activeElement)) {
+                this.autocompleteUI.hide();
             }
         }, 150);
     }
@@ -820,27 +806,27 @@ export class AutocompleteEventHandler {
         const textareaElement = event.target;
 
         // Handle autocomplete navigation
-        if (autocompleteUI && autocompleteUI.isVisible()) {
+        if (this.autocompleteUI && this.autocompleteUI.isVisible()) {
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
-                    autocompleteUI.navigate(1);
+                    this.autocompleteUI.navigate(1);
                     break;
                 case 'ArrowUp':
                     event.preventDefault();
-                    autocompleteUI.navigate(-1);
+                    this.autocompleteUI.navigate(-1);
                     break;
                 case 'Enter':
                 case 'Tab':
-                    if (autocompleteUI.getSelectedTag() !== null) {
+                    if (this.autocompleteUI.getSelectedTag() !== null) {
                         event.preventDefault();
-                        insertTag(textareaElement, autocompleteUI.getSelectedTag());
+                        insertTagToTextArea(textareaElement, this.autocompleteUI.getSelectedTag());
                     }
-                    autocompleteUI.hide();
+                    this.autocompleteUI.hide();
                     break;
                 case 'Escape':
                     event.preventDefault();
-                    autocompleteUI.hide();
+                    this.autocompleteUI.hide();
                     break;
             }
         }        
@@ -852,13 +838,13 @@ export class AutocompleteEventHandler {
      * @returns 
      */
     handleKeyUp(event){
-        if (!settingValues.enabled || !autocompleteUI) return;
+        if (!settingValues.enabled) return;
         
-        if (autocompleteUI.isVisible()) {
+        if (this.autocompleteUI.isVisible()) {
 			switch (event.key) {
 				case "Escape":
 					event.preventDefault();
-					autocompleteUI.hide();
+					this.autocompleteUI.hide();
 					break;
 			}
 		} else if (event.key.length > 1 && event.key != "Delete" && event.key != "Backspace") {
@@ -866,7 +852,7 @@ export class AutocompleteEventHandler {
 		}
 
         if (!event.defaultPrevented) {
-            updateAutocompleteDisplay(event.target);
+            this.autocompleteUI.updateDisplay(event.target);
         }
     }
 
@@ -884,7 +870,5 @@ export class AutocompleteEventHandler {
      * @returns 
      */
     handleClick(event) {
-        if (!settingValues.enabled || !settingValues.enableRelatedTags ||
-            settingValues.relatedTagsDisplayMode !== 'click') return;
     }
 }

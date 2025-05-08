@@ -192,7 +192,7 @@ app.registerExtension({
         {
             id: id + ".related_tags_position",
             name: "Related Tags Display Position",
-            description: "Position of related tags display",
+            description: "Display position (relative to Text area)",
             type: "combo",
             options: ["horizontal", "vertical"],
             defaultValue: "horizontal",

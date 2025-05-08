@@ -12,13 +12,62 @@ export const TagCategory = [
     'meta',
 ]
 
-// Data storage
+/**
+ * Class representing a tag and its metadata
+ */
+export class TagData {
+    /**
+     * Create a tag data object
+     * @param {string} tag - The tag name
+     * @param {string[]} [alias=[]] - Array of aliases for the tag
+     * @param {string} [category='general'] - Category of the tag
+     * @param {number} [count=0] - Frequency count/popularity of the tag
+     */
+    constructor(tag, alias = [], category = 'general', count = 0) {
+        /** @type {string} */
+        this.tag = tag;
+        
+        /** @type {string[]} */
+        this.alias = alias;
+        
+        /** @type {string} */
+        this.category = category;
+        
+        /** @type {number} */
+        this.count = count;
+    }
 
+    /**
+     * Get display label for the tag
+     * @returns {string} Formatted tag label
+     */
+    getLabel() {
+        return `${this.tag} (${this.count})`;
+    }
+
+    /**
+     * Check if this tag matches a search query
+     * @param {string} query - The search query
+     * @returns {boolean} True if this tag or any of its aliases match the query
+     */
+    matches(query) {
+        if (!query) return false;
+        
+        const lowerQuery = query.toLowerCase();
+        if (this.tag.toLowerCase().includes(lowerQuery)) return true;
+        
+        return this.alias.some(a => a.toLowerCase().includes(lowerQuery));
+    }
+}
+
+// Data storage
 export const autoCompleteData = {
+    sortedTags: [],
+
     /** @type {Map<string, TagData>} */
     tagMap: new Map(), // Stores tag data, mapping tag names to TagData objects
-
-    sortedTags: [],
+    /** @type {Map<string, TagData>} */
+    aliasMap: new Map(), // Maps aliases to their main tag names
     
     /** @type {Map<string, Map<string, number>>} */
     cooccurrenceMap: new Map(), // Stores co-occurrence data for related tags
@@ -67,12 +116,9 @@ async function loadTags(csvUrl) {
                 // Parse aliases - might be comma-separated list inside quotes
                 const aliases = aliasStr ? aliasStr.split(',').map(a => a.trim()).filter(a => a.length > 0) : [];
 
-                autoCompleteData.sortedTags.push({
-                    tag,
-                    alias: aliases,
-                    category,
-                    count
-                });
+                // Create a TagData instance instead of a plain object
+                const tagData = new TagData(tag, aliases, category, count);
+                autoCompleteData.sortedTags.push(tagData);
             }else{
                 console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}`);
                 continue;
@@ -85,10 +131,10 @@ async function loadTags(csvUrl) {
         // Build maps as before
         autoCompleteData.sortedTags.forEach(tagData => {
             autoCompleteData.tagMap.set(tagData.tag, tagData);
-            if (autoCompleteData.alias && Array.isArray(autoCompleteData.alias)) {
-                autoCompleteData.alias.forEach(alias => {
+            if (tagData.alias && Array.isArray(tagData.alias)) {
+                tagData.alias.forEach(alias => {
                     if (!autoCompleteData.aliasMap.has(alias)) {
-                        autoCompleteData.aliasMap.set(alias, autoCompleteData.tag); // Map alias back to the main tag
+                        autoCompleteData.aliasMap.set(alias, tagData.tag); // Map alias back to the main tag
                     }
                 });
             }

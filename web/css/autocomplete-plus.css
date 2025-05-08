@@ -195,6 +195,14 @@ body.dark-theme {
   background-color: var(--p-form-field-filled-hover-background);
 }
 
+.related-tag-item.selected span {
+  background-color: var(
+    --comfy-menu-bg-selected,
+    var(--comfy-button-bg)
+  );
+  font-weight: bold;
+}
+
 .related-tag-name {
   padding: 8px;
   white-space: nowrap;
