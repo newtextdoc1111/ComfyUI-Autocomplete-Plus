@@ -5,7 +5,8 @@
   --autocomplete-plus-text-color-cat-copyright: var(--p-purple-600);
   --autocomplete-plus-text-color-cat-character: var(--p-green-600);
   --autocomplete-plus-text-color-cat-meta: var(--p-yellow-600);
-  --autocomplete-plus-text-color-cat-unknown: var(--p-grey-600);
+  --autocomplete-plus-text-color-cat-unknown: var(--p-gray-600);
+  --autocomplete-plus-text-color-disabled: var(--p-gray-600);
 
   /* Selected color */
   --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
@@ -13,7 +14,7 @@
   --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
   --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
   --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
-  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-grey-200);
+  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-gray-200);
 }
 
 /* Dark Theme */
@@ -23,7 +24,8 @@ body.dark-theme {
   --autocomplete-plus-text-color-cat-copyright: var(--p-purple-400);
   --autocomplete-plus-text-color-cat-character: var(--p-green-400);
   --autocomplete-plus-text-color-cat-meta: var(--p-yellow-400);
-  --autocomplete-plus-text-color-cat-unknown: var(--p-grey-400);
+  --autocomplete-plus-text-color-cat-unknown: var(--p-gray-500);
+  --autocomplete-plus-text-color-disabled: var(--p-gray-500);
 
   /* Selected color */
   --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
@@ -31,7 +33,7 @@ body.dark-theme {
   --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
   --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
   --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
-  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-grey-200);
+  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-gray-200);
 }
 
 #autocomplete-plus-list {
@@ -208,6 +210,10 @@ body.dark-theme {
 .related-tag-name {
   padding: 8px;
   white-space: nowrap;
+}
+
+.related-tag-name.related-tag-already-exists  {
+  color: var(--autocomplete-plus-text-color-disabled);
 }
 
 .related-tag-alias {

@@ -425,6 +425,7 @@ class RelatedTagsUI {
         this.header.appendChild(tagNameSpan);
 
         if (!autoCompleteData.initialized) {
+            // Show loading message
             const messageDiv = document.createElement('div');
             messageDiv.className = 'related-tags-loading-message';
             messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData.baseLoadingProgress.cooccurrence}%]`;
@@ -433,15 +434,19 @@ class RelatedTagsUI {
         }
 
         if (!this.relatedTags || this.relatedTags.length === 0) {
+            // Show no related tags message
             const messageCell = document.createElement('div');
             messageCell.textContent = 'No related tags found';
             this.tagsContainer.appendChild(messageCell);
             return;
         }
 
+        const existingTagsInTextarea = this.#extractTagsFromTextArea();
+
         // Create tag rows
         this.relatedTags.forEach(tagData => {
-            const tagRow = this.#createTagElement(tagData);
+            const isExisting = existingTagsInTextarea.has(normalizeTagToSearch(tagData.tag));
+            const tagRow = this.#createTagElement(tagData, isExisting);
             this.tagsContainer.appendChild(tagRow);
         });
     }
@@ -449,9 +454,10 @@ class RelatedTagsUI {
     /**
      * Creates an HTML table row for a related tag.
      * @param {TagData} tagData The tag data to display
+     * @param {boolean} isExisting Whether the tag already exists in the textarea
      * @returns {HTMLTableRowElement} The tag row element
      */
-    #createTagElement(tagData) {
+    #createTagElement(tagData, isExisting) {
         const categoryText = TagCategory[tagData.category] || "unknown";
 
         const tagRow = document.createElement('div');
@@ -463,6 +469,11 @@ class RelatedTagsUI {
         const tagNameCell = document.createElement('span');
         tagNameCell.className = 'related-tag-name';
         tagNameCell.textContent = tagData.tag;
+
+        // grayout tag name if it already exists
+        if (isExisting) {
+            tagNameCell.classList.add('related-tag-already-exists');
+        }
 
         // Alias cell (middle column)
         const aliasCell = document.createElement('span');
@@ -628,6 +639,22 @@ class RelatedTagsUI {
 
         return area;
     }
+    
+    /**
+     * Extracts existing tags from the textarea.
+     * @returns {Set<string>} Set of existing tags in the textarea
+     */
+    #extractTagsFromTextArea() {
+        const existingTagsInTextarea = new Set();
+        if (this.target && this.target.value) {
+            const tagPositions = findAllTagPositions(this.target.value);
+            tagPositions.forEach(pos => {
+                existingTagsInTextarea.add(normalizeTagToSearch(pos.tag));
+            });
+        }
+        return existingTagsInTextarea;
+    }
+
 }
 
 // --- RelatedTags Event Handling Class ---
