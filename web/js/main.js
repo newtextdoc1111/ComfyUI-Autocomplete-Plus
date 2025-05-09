@@ -50,30 +50,30 @@ function initializeEventHandlers() {
         };
     }
 
-    // Fallback and for dynamically added elements not caught by widget override: MutationObserver
-    const targetSelectors = [
-        '.comfy-multiline-input',
-        // Add other selectors if needed
-    ];
+    if (settingValues._useFallbackAttachmentForEventListener) {
+        // Fallback and for dynamically added elements not caught by widget override: MutationObserver
+        const targetSelectors = [
+            '.comfy-multiline-input',
+            // Add other selectors if needed
+        ];
 
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    targetSelectors.forEach(selector => {
-                        // Check if the added node itself matches or contains matching elements
-                        if (node.matches(selector)) {
-                            attachListeners(node);
-                        } else {
-                            node.querySelectorAll(selector).forEach(attachListeners);
-                        }
-                    });
-                }
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        targetSelectors.forEach(selector => {
+                            // Check if the added node itself matches or contains matching elements
+                            if (node.matches(selector)) {
+                                attachListeners(node);
+                            } else {
+                                node.querySelectorAll(selector).forEach(attachListeners);
+                            }
+                        });
+                    }
+                });
             });
         });
-    });
 
-    if (settingValues._useFallbackAttachmentForEventListener) {
         // Initial scan for existing elements
         targetSelectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(attachListeners);

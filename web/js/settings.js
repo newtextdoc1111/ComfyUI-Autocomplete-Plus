@@ -11,7 +11,7 @@ export const settingValues = {
 
 
     // Internal logic settings
-    _useFallbackAttachmentForEventListener: false, // Fallback to attach event listener if not using jQuery
+    _useFallbackAttachmentForEventListener: false, // Fallback to attach event listener when somthing goes wrong
 
     // Debugging settings (use internally)
     _hideWhenOutofFocus: false, // Hide UI when the input is out of focus
