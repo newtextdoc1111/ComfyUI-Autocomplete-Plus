@@ -1,6 +1,6 @@
-// --- Constants ---
-
 import { settingValues } from "./settings.js";
+
+// --- Constants ---
 
 // Tag categories for display
 export const TagCategory = [
@@ -83,6 +83,14 @@ export const autoCompleteData = {
     }
 };
 
+// CSV Header for tags
+const TAGS_CSV_HEADER = 'tag,category,count,alias';
+const TAGS_CSV_HEADER_COLUMNS = TAGS_CSV_HEADER.split(',');
+const TAG_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('tag');
+const ALIAS_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('alias');
+const CATEGORY_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('category');
+const COUNT_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('count');
+
 // --- Data Loading Functions ---
 
 /**
@@ -100,17 +108,17 @@ async function loadTags(csvUrl) {
         const lines = csvText.split('\n').filter(line => line.trim().length > 0);
         const totalLines = lines.length;
 
-        const startIndex = lines[0].startsWith('tag,alias,category,count') ? 1 : 0;
+        const startIndex = lines[0].toLowerCase().startsWith(TAGS_CSV_HEADER) ? 1 : 0;
 
         for (let i = startIndex; i < lines.length; i++) {
             const line = lines[i];
             const columns = parseCSVLine(line);
 
-            if (columns.length == 4) {
-                const tag = columns[0].trim();
-                const aliasStr = columns[1].trim();
-                const category = columns[2].trim();
-                const count = parseInt(columns[3].trim(), 10);
+            if (columns.length === TAGS_CSV_HEADER_COLUMNS.length) {
+                const tag = columns[TAG_INDEX].trim();
+                const aliasStr = columns[ALIAS_INDEX].trim();
+                const category = columns[CATEGORY_INDEX].trim();
+                const count = parseInt(columns[COUNT_INDEX].trim(), 10);
 
                 if (!tag || isNaN(count)) continue;
 
@@ -121,7 +129,7 @@ async function loadTags(csvUrl) {
                 const tagData = new TagData(tag, aliases, category, count);
                 autoCompleteData.sortedTags.push(tagData);
             }else{
-                console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}`);
+                console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}. Expected ${TAGS_CSV_HEADER_COLUMNS.length} columns, but got ${columns.length}.`);
                 continue;
             }
         }
