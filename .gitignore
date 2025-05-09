@@ -12,3 +12,7 @@ __pycache__/
 
 # npm packages
 node_modules/
+
+# csv files
+data/*.csv
+data/.download
