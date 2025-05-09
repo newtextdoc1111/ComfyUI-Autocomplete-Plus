@@ -288,7 +288,48 @@ class RelatedTagsUI {
         // Create header row
         this.header = document.createElement('div');
         this.header.id = 'related-tags-header';
-        this.header.textContent = 'Related Tags';
+        
+        // Create header text div for the left side
+        this.headerText = document.createElement('div');
+        this.headerText.className = 'related-tags-header-text';
+        this.headerText.textContent = 'Related Tags';
+        this.header.appendChild(this.headerText);
+        
+        // Create header controls for the right side
+        this.headerControls = document.createElement('div');
+        this.headerControls.className = 'related-tags-header-controls';
+        
+        // Create layout toggle button
+        this.toggleLayoutBtn = document.createElement('button');
+        this.toggleLayoutBtn.className = 'related-tags-layout-toggle';
+        this.toggleLayoutBtn.title = 'Toggle between vertical and horizontal layout';
+        this.toggleLayoutBtn.innerHTML = settingValues.relatedTagsDisplayPosition === 'vertical' 
+            ? '↔️' // Click to change display horizontally
+            : '↕️'; // Click to change display vertically
+            
+        // Add click handler for layout toggle
+        this.toggleLayoutBtn.addEventListener('click', (e) => {
+            // Toggle the layout setting
+            settingValues.relatedTagsDisplayPosition = 
+                settingValues.relatedTagsDisplayPosition === 'vertical' ? 'horizontal' : 'vertical';
+            
+            // Update the button icon
+            this.toggleLayoutBtn.innerHTML = settingValues.relatedTagsDisplayPosition === 'vertical' 
+                ? '↔️' // Click to change display horizontally
+                : '↕️'; // Click to change display vertically
+                
+            // Update the panel position
+            this.#updatePosition();
+            this.root.style.display = 'block';
+            
+            // Prevent default behavior
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        
+        this.headerControls.appendChild(this.toggleLayoutBtn);
+        this.header.appendChild(this.headerControls);
+        
         this.root.appendChild(this.header);
 
         // Create a tbody for the tags
@@ -417,12 +458,12 @@ class RelatedTagsUI {
         this.tagsContainer.innerHTML = '';
 
         // Update header with current tag
-        this.header.innerHTML = ''; // Clear previous content
-        this.header.textContent = 'Tags related to: ';
+        this.headerText.innerHTML = ''; // Clear previous content
+        this.headerText.textContent = 'Tags related to: ';
         const tagNameSpan = document.createElement('span');
         tagNameSpan.className = 'related-tags-header-tag-name';
         tagNameSpan.textContent = this.currentTag;
-        this.header.appendChild(tagNameSpan);
+        this.headerText.appendChild(tagNameSpan);
 
         if (!autoCompleteData.initialized) {
             // Show loading message
