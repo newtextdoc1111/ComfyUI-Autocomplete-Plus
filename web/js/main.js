@@ -167,6 +167,18 @@ app.registerExtension({
         
         // --- Related Tags Settings ---
         {
+            id: id + ".related_tags_trigger_mode",
+            name: "Related Tags Trigger Mode",
+            description: "Trigger mode for related tags (click or ctrl+click)",
+            type: "combo",
+            options: ["click", "ctrl+Click"],
+            defaultValue: "click",
+            category: [name, "Related Tags", "Trigger Mode"],
+            onChange: (newVal, oldVal) => {
+                settingValues.relatedTagsTriggerMode = newVal;
+            }
+        },
+        {
             id: id + ".related_tags_position",
             name: "Default Display Position",
             description: "Display position (relative to Textarea)",

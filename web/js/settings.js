@@ -7,6 +7,8 @@ export const settingValues = {
     enableRelatedTags: true,
     maxRelatedTags: 20,
     relatedTagsDisplayPosition: 'horizontal', // 'horizontal' or 'vertical'
+    relatedTagsTriggerMode: 'click', // Options: 'click', 'ctrl+Click'
+
 
     // Internal logic settings
     _useFallbackAttachmentForEventListener: false, // Fallback to attach event listener if not using jQuery
