@@ -38,7 +38,7 @@ body.dark-theme {
 
 #autocomplete-plus-root {
   position: absolute;
-  z-index: 999;
+  z-index: 1000;
   top: 0;
   left: 0;
   display: none;
@@ -132,7 +132,7 @@ body.dark-theme {
 /* Related Tags UI Styles */
 #related-tags-root {
   position: absolute;
-  z-index: 999;
+  z-index: 1000;
   top: 0;
   left: 0;
   display: none;

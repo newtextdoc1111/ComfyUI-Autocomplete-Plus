@@ -74,8 +74,7 @@ export function getTagFromCursorPosition(inputElement) {
     // If no tag found, return null
     if (!tag) return null;
 
-    // Process the tag: swap underscores/spaces and unescape parentheses
-    return tag;
+    return normalizeTagToSearch(tag);
 }
 
 /**
@@ -166,31 +165,15 @@ function insertTagToTextArea(inputElement, tagToInsert) {
 
     const endPos = Math.min(endPosComma, endPosNewline);
 
-    // Find the start of the next tag (if any)
-    let nextTagStartPos = endPos;
-    if (nextTagStartPos < text.length) {
-        // Skip the separator (comma or newline)
-        nextTagStartPos += 1;
-    }
-
-    // Find the end of the next tag (if any)
-    let nextTagEndPosComma = text.indexOf(',', nextTagStartPos);
-    let nextTagEndPosNewline = text.indexOf('\n', nextTagStartPos);
-
-    if (nextTagEndPosComma === -1) nextTagEndPosComma = text.length;
-    if (nextTagEndPosNewline === -1) nextTagEndPosNewline = text.length;
-
-    // Set effective insertion position to the end of current tag
-    let effectiveEndPos = endPos;
-
+    const prefix = startPos != endPos ? ', ' : ' ';
     // Prepare the text to insert
     const normalizedTag = normalizeTagToInsert(tagToInsert);
-    let textToInsert = ", " + normalizedTag;
+    let textToInsert = prefix + normalizedTag;
 
     // --- Use execCommand for Undo support ---
     // 1. Select the range where the tag will be inserted
     inputElement.focus();
-    inputElement.setSelectionRange(effectiveEndPos, effectiveEndPos);
+    inputElement.setSelectionRange(endPos, endPos);
 
     // 2. Execute the insertText command to add the tag
     const insertTextSuccess = document.execCommand('insertText', false, textToInsert);
@@ -199,14 +182,14 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     if (!insertTextSuccess) {
         console.warn('[Autocomplete-Plus] execCommand("insertText") failed. Falling back to direct value manipulation (Undo might not work).');
 
-        const textBefore = text.substring(0, effectiveEndPos);
-        const textAfter = text.substring(effectiveEndPos);
+        const textBefore = text.substring(0, endPos);
+        const textAfter = text.substring(endPos);
 
         // Insert the tag directly into the value
         inputElement.value = textBefore + textToInsert + textAfter;
 
         // Set cursor position after the newly inserted tag
-        const newCursorPos = effectiveEndPos + textToInsert.length;
+        const newCursorPos = endPos + textToInsert.length;
         inputElement.selectionStart = inputElement.selectionEnd = newCursorPos;
 
         // Trigger input event to notify ComfyUI about the change
@@ -244,9 +227,7 @@ class RelatedTagsUI {
         this.toggleLayoutBtn = document.createElement('button');
         this.toggleLayoutBtn.className = 'related-tags-layout-toggle';
         this.toggleLayoutBtn.title = 'Toggle between vertical and horizontal layout';
-        this.toggleLayoutBtn.innerHTML = settingValues.relatedTagsDisplayPosition === 'vertical'
-            ? '↔️' // Click to change display horizontally
-            : '↕️'; // Click to change display vertically
+
 
         // Add click handler for layout toggle
         this.toggleLayoutBtn.addEventListener('click', (e) => {
@@ -254,12 +235,7 @@ class RelatedTagsUI {
             settingValues.relatedTagsDisplayPosition =
                 settingValues.relatedTagsDisplayPosition === 'vertical' ? 'horizontal' : 'vertical';
 
-            // Update the button icon
-            this.toggleLayoutBtn.innerHTML = settingValues.relatedTagsDisplayPosition === 'vertical'
-                ? '↔️' // Click to change display horizontally
-                : '↕️'; // Click to change display vertically
-
-            // Update the panel position
+            this.#updateHeader();
             this.#updatePosition();
             this.root.style.display = 'block';
 
@@ -267,8 +243,22 @@ class RelatedTagsUI {
             e.preventDefault();
             e.stopPropagation();
         });
-
         this.headerControls.appendChild(this.toggleLayoutBtn);
+
+        // Create pin button
+        this.isPinned = false;
+        this.pinBtn = document.createElement('button');
+        this.pinBtn.className = 'related-tags-pin-toggle';
+
+        this.pinBtn.addEventListener('click', (e) => {
+            this.isPinned = !this.isPinned;
+            this.pinBtn.classList.toggle('active', this.isPinned); // For styling
+            this.#updateHeader();
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        this.headerControls.appendChild(this.pinBtn);
+
         this.header.appendChild(this.headerControls);
 
         this.root.appendChild(this.header);
@@ -311,17 +301,18 @@ class RelatedTagsUI {
      * Display
      * @param {HTMLTextAreaElement} textareaElement The textarea being used
      */
-    updateDisplay(textareaElement) {
+    show(textareaElement) {
         if (!settingValues.enableRelatedTags) {
             this.hide();
             return;
         }
 
         // Get the tag at current cursor position
-        this.currentTag = normalizeTagToSearch(getTagFromCursorPosition(textareaElement));
+        const currentTag = getTagFromCursorPosition(textareaElement);
 
-        // If no valid tag or tag is too short, hide the panel
-        if (!isValidTag(this.currentTag)) {
+        if (isValidTag(currentTag)) {
+            this.currentTag = currentTag;
+        } else if (!this.isPinned) {
             this.hide();
             return;
         }
@@ -333,12 +324,9 @@ class RelatedTagsUI {
             this.selectedIndex = 0; // Reset selection to the first item
         }
 
-        // Update content (even if there are no related tags, we'll show a message)
+        this.#updateHeader();
         this.#updateContent();
-
         this.#updatePosition();
-
-        // Highlight the first item if available
         this.#highlightItem();
 
         // Make visible
@@ -350,7 +338,7 @@ class RelatedTagsUI {
                 clearTimeout(this.autoRefreshTimerId);
             }
             this.autoRefreshTimerId = setTimeout(() => {
-                this.updateDisplay(textareaElement);
+                this.#refresh();
             }, 500);
         }
     }
@@ -367,6 +355,11 @@ class RelatedTagsUI {
         this.selectedIndex = -1;
         this.relatedTags = null;
         this.target = null;
+        // Reset pinned state when hiding, unless hide was called by escape key while pinned
+        if (document.activeElement !== this.pinBtn) { // Avoid unpinning if pin button was just clicked to hide
+            this.isPinned = false;
+            this.pinBtn.classList.remove('active');
+        }
     }
 
     /** Moves the selection up or down */
@@ -392,18 +385,40 @@ class RelatedTagsUI {
     }
 
     /**
-     * Updates the content of the related tags panel with the provided tags.
+     * Refresh the displayed content
      */
-    #updateContent() {
-        this.tagsContainer.innerHTML = '';
+    #refresh() {
+        if (this.target) {
+            this.show(this.target);
+        }
+    }
 
-        // Update header with current tag
+    /**
+     * Updates header content
+     */
+    #updateHeader() {
+        // Update header text with current tag
         this.headerText.innerHTML = ''; // Clear previous content
         this.headerText.textContent = 'Tags related to: ';
         const tagNameSpan = document.createElement('span');
         tagNameSpan.className = 'related-tags-header-tag-name';
         tagNameSpan.textContent = this.currentTag;
         this.headerText.appendChild(tagNameSpan);
+
+        // Update pin button
+        this.pinBtn.textContent = this.isPinned ? '🎯' : '📌';
+
+        // Update the button icon
+        this.toggleLayoutBtn.innerHTML = settingValues.relatedTagsDisplayPosition === 'vertical'
+            ? '↔️' // Click to change display horizontally
+            : '↕️'; // Click to change display vertically
+    }
+
+    /**
+     * Updates the content of the related tags panel with the provided tags.
+     */
+    #updateContent() {
+        this.tagsContainer.innerHTML = '';
 
         if (!autoCompleteData.initialized) {
             // Show loading message
@@ -502,7 +517,6 @@ class RelatedTagsUI {
     #updatePosition() {
         // Measure the element size without causing reflow
         this.root.style.visibility = 'hidden';
-        this.root.style.position = 'absolute';
         this.root.style.display = 'block';
         this.root.style.maxWidth = '';
         this.tagsContainer.style.maxHeight = '';
@@ -549,8 +563,19 @@ class RelatedTagsUI {
         // Use the same insertTag function from autocomplete.js
         insertTagToTextArea(this.target, tag);
 
-        // Hide the panel after selection
-        this.hide();
+        // Hide the panel after selection, unless pinned
+        if (!this.isPinned) {
+            this.hide();
+        }else{
+            this.#highlightItem();
+        }
+    }
+
+    insertSelectedTag() {
+        const selectedTag = this.getSelectedTag();
+        if (selectedTag) {
+            this.#insertTag(selectedTag);
+        }
     }
 
     /**
@@ -629,7 +654,7 @@ export class RelatedTagsEventHandler {
      */
     handleInput(event) {
         if (settingValues.enableRelatedTags) {
-            if (this.relatedTagsUI.isVisible()) {
+            if (this.relatedTagsUI.isVisible() && !this.relatedTagsUI.isPinned) {
                 this.relatedTagsUI.hide();
             }
         }
@@ -654,7 +679,7 @@ export class RelatedTagsEventHandler {
 
         // Need a slight delay because clicking the related tags list causes blur
         setTimeout(() => {
-            if (!this.relatedTagsUI.root.contains(document.activeElement)) {
+            if (!this.relatedTagsUI.root.contains(document.activeElement) && !this.relatedTagsUI.isPinned) {
                 this.relatedTagsUI.hide();
             }
         }, 150);
@@ -681,13 +706,17 @@ export class RelatedTagsEventHandler {
                 case 'Enter':
                 case 'Tab':
                     if (this.relatedTagsUI.getSelectedTag() !== null) {
-                        event.preventDefault();
-                        insertTagToTextArea(textareaElement, this.relatedTagsUI.getSelectedTag());
+                        event.preventDefault(); // Prevent Tab from changing focus
+                        this.relatedTagsUI.insertSelectedTag();
+                    } else if (!this.relatedTagsUI.isPinned) { // If nothing selected and not pinned, hide the panel
+                        this.relatedTagsUI.hide();
                     }
-                    this.relatedTagsUI.hide();
                     break;
                 case 'Escape':
                     event.preventDefault();
+                    this.relatedTagsUI.isPinned = false; // Unpin on Escape
+                    this.relatedTagsUI.pinBtn.classList.remove('active');
+                    this.relatedTagsUI.pinBtn.title = 'Pin the panel (prevents closing on tag insertion)';
                     this.relatedTagsUI.hide();
                     break;
             }
@@ -697,7 +726,7 @@ export class RelatedTagsEventHandler {
         if (settingValues.enableRelatedTags) {
             if (event.key === ' ' && event.ctrlKey && event.shiftKey) {
                 event.preventDefault();
-                this.relatedTagsUI.updateDisplay(textareaElement);
+                this.relatedTagsUI.show(textareaElement);
             }
         }
     }
@@ -728,10 +757,10 @@ export class RelatedTagsEventHandler {
         // Check trigger mode from settings
         if (settingValues.relatedTagsTriggerMode === 'ctrl+Click' && !event.ctrlKey) {
             this.relatedTagsUI.hide();
-            return; // Only show if Ctrl is pressed
+            return;
         }
 
         const textareaElement = event.target;
-        this.relatedTagsUI.updateDisplay(textareaElement);
+        this.relatedTagsUI.show(textareaElement);
     }
 }
