@@ -184,18 +184,6 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    // First check if the tag exists anywhere in the textarea and select it if found
-    const tagPositions = findAllTagPositions(text);
-    for (const { start, end, tag } of tagPositions) {
-        const existingTag = tag.trim();
-        if (existingTag === normalizeTagToInsert(tagToInsert)) {
-            // Tag already exists, select it and exit
-            inputElement.focus();
-            inputElement.setSelectionRange(start, end);
-            return;
-        }
-    }
-
     // Find the current tag boundaries
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
     const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
