@@ -228,12 +228,13 @@ class RelatedTagsUI {
         this.toggleLayoutBtn.className = 'related-tags-layout-toggle';
         this.toggleLayoutBtn.title = 'Toggle between vertical and horizontal layout';
 
-
         // Add click handler for layout toggle
         this.toggleLayoutBtn.addEventListener('click', (e) => {
             // Toggle the layout setting
             settingValues.relatedTagsDisplayPosition =
-                settingValues.relatedTagsDisplayPosition === 'vertical' ? 'horizontal' : 'vertical';
+                settingValues.relatedTagsDisplayPosition === 'vertical'
+                    ? 'horizontal'
+                    : 'vertical';
 
             this.#updateHeader();
             this.#updatePosition();
@@ -254,6 +255,8 @@ class RelatedTagsUI {
             this.isPinned = !this.isPinned;
             this.pinBtn.classList.toggle('active', this.isPinned); // For styling
             this.#updateHeader();
+
+            // Prevent default behavior
             e.preventDefault();
             e.stopPropagation();
         });
@@ -310,11 +313,13 @@ class RelatedTagsUI {
         // Get the tag at current cursor position
         const currentTag = getTagFromCursorPosition(textareaElement);
 
-        if (isValidTag(currentTag)) {
-            this.currentTag = currentTag;
-        } else if (!this.isPinned) {
-            this.hide();
-            return;
+        if (!this.isPinned) {
+            if (isValidTag(currentTag)) {
+                this.currentTag = currentTag
+            } else {
+                this.hide();
+                return;
+            }
         }
 
         this.target = textareaElement;
@@ -566,7 +571,7 @@ class RelatedTagsUI {
         // Hide the panel after selection, unless pinned
         if (!this.isPinned) {
             this.hide();
-        }else{
+        } else {
             this.#highlightItem();
         }
     }
@@ -714,9 +719,6 @@ export class RelatedTagsEventHandler {
                     break;
                 case 'Escape':
                     event.preventDefault();
-                    this.relatedTagsUI.isPinned = false; // Unpin on Escape
-                    this.relatedTagsUI.pinBtn.classList.remove('active');
-                    this.relatedTagsUI.pinBtn.title = 'Pin the panel (prevents closing on tag insertion)';
                     this.relatedTagsUI.hide();
                     break;
             }

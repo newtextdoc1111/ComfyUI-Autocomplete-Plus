@@ -184,6 +184,17 @@ body.dark-theme {
   background-color: var(--comfy-button-bg);
 }
 
+.related-tags-pin-toggle {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--input-text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
 #related-tags-list {
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
