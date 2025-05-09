@@ -274,26 +274,22 @@ export async function initializeData() {
         }
         const csvListData = await response.json();
 
-        const extraTagsCount = csvListData.tags || 0;
-        const extraCooccurrenceCount = csvListData.cooccurrence || 0;
+        const extraTagsCount = csvListData.danbooru.extra_tags || 0;
+        const extraCooccurrenceCount = csvListData.danbooru.extra_cooccurrence || 0;
 
         const tagsUrl = '/autocomplete-plus/csv/tags';
-        const tagsLoadPromises = [
-            loadTags(`${tagsUrl}/base`)
-        ];
+        const tagsLoadPromises = csvListData.danbooru.base_tags ? [loadTags(`${tagsUrl}/base`)] : [];
 
-        let currentTagPromise = tagsLoadPromises[0];
+        let currentTagPromise = tagsLoadPromises[0] || Promise.resolve();
         for (let i = 0; i < extraTagsCount; i++) {
             currentTagPromise = currentTagPromise.then(loadTags(`${tagsUrl}/extra/${i}`));
             tagsLoadPromises.push(currentTagPromise);
         }
 
         const cooccurrenceUrl = '/autocomplete-plus/csv/cooccurrence';
-        const cooccurrenceLoadPromises = [
-            loadCooccurrence(`${cooccurrenceUrl}/base`)
-        ];
+        const cooccurrenceLoadPromises = csvListData.danbooru.base_cooccurrence ? [loadCooccurrence(`${cooccurrenceUrl}/base`)] : [];
        
-        let cooccurrencePromiseChain = cooccurrenceLoadPromises[0];
+        let cooccurrencePromiseChain = cooccurrenceLoadPromises[0] || Promise.resolve();
         for (let i = 0; i < extraCooccurrenceCount; i++) {
             cooccurrencePromiseChain = cooccurrencePromiseChain.then(loadCooccurrence(`${cooccurrenceUrl}/extra/${i}`));
             cooccurrenceLoadPromises.push(cooccurrencePromiseChain);
