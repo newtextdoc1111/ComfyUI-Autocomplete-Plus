@@ -102,7 +102,7 @@ function initializeEventHandlers() {
         autocompleteEventHandler.handleKeyDown(event);
         relatedTagsEventHandler.handleKeyDown(event);
     }
-    
+
     function handleKeyUp(event) {
         autocompleteEventHandler.handleKeyUp(event);
         relatedTagsEventHandler.handleKeyUp(event);
@@ -134,18 +134,10 @@ app.registerExtension({
 
         initializeData();
     },
-    settings: [
-        {
-            id: id + ".boolean",
-            name: "Enable Autocomplete",
-            description: "Enable or disable the autocomplete feature.",
-            type: "boolean",
-            defaultValue: true,
-            category: [name, "Autocompletion", "Enable Autocomplete"],
-            onChange: (newVal, oldVal) => {
-                settingValues.enabled = newVal;
-            }
-        },
+    
+    //One the Settings Screen, displays reverse order in same category
+    settings: [ 
+        // --- Autocomplete Settings ---
         {
             id: id + ".max_suggestions",
             name: "Max suggestions",
@@ -161,16 +153,29 @@ app.registerExtension({
                 settingValues.maxSuggestions = newVal;
             }
         },
-        // Related Tags Settings
         {
-            id: id + ".related_tags_enable",
-            name: "Enable Related Tags",
-            description: "Enable or disable the related tags feature.",
+            id: id + ".boolean",
+            name: "Enable Autocomplete",
+            description: "Enable or disable the autocomplete feature.",
             type: "boolean",
             defaultValue: true,
-            category: [name, "Related Tags", "Enable Related Tags"],
+            category: [name, "Autocompletion", "Enable Autocomplete"],
             onChange: (newVal, oldVal) => {
-                settingValues.enableRelatedTags = newVal;
+                settingValues.enabled = newVal;
+            }
+        },
+        
+        // --- Related Tags Settings ---
+        {
+            id: id + ".related_tags_position",
+            name: "Default Display Position",
+            description: "Display position (relative to Textarea)",
+            type: "combo",
+            options: ["horizontal", "vertical"],
+            defaultValue: "horizontal",
+            category: [name, "Related Tags", "Display Position"],
+            onChange: (newVal, oldVal) => {
+                settingValues.relatedTagsDisplayPosition = newVal;
             }
         },
         {
@@ -190,15 +195,14 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".related_tags_position",
-            name: "Related Tags Display Position",
-            description: "Display position (relative to Text area)",
-            type: "combo",
-            options: ["horizontal", "vertical"],
-            defaultValue: "horizontal",
-            category: [name, "Related Tags", "Display Position"],
+            id: id + ".related_tags_enable",
+            name: "Enable Related Tags",
+            description: "Enable or disable the related tags feature.",
+            type: "boolean",
+            defaultValue: true,
+            category: [name, "Related Tags", "Enable Related Tags"],
             onChange: (newVal, oldVal) => {
-                settingValues.relatedTagsDisplayPosition = newVal;
+                settingValues.enableRelatedTags = newVal;
             }
         }
     ]
