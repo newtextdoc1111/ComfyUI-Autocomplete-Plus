@@ -842,18 +842,35 @@ export class AutocompleteEventHandler {
      */
     handleKeyUp(event){
         if (!settingValues.enabled) return;
+
+        // Do not process keyup events if Ctrl, Alt, or Meta keys are pressed.
+        // This prevents autocomplete from appearing for shortcuts like Ctrl+C, Ctrl+Z, etc.
+        // It also handles the release of a modifier key itself if it wasn't part of a character-producing combination.
+        if (event.ctrlKey || event.altKey || event.metaKey) {
+            return;
+        }
         
         if (this.autocompleteUI.isVisible()) {
 			switch (event.key) {
 				case "Escape":
 					event.preventDefault();
 					this.autocompleteUI.hide();
-					break;
+					return; // Return here to prevent updateDisplay after hiding with Escape
+				            // Other keys like Enter, Tab, Arrows are handled in keyDown.
+                            // For other character keys, Backspace, Delete, we fall through to updateDisplay.
 			}
-		} else if (event.key.length > 1 && event.key != "Delete" && event.key != "Backspace") {
-			return;
+		} else {
+            // If UI is not visible, and the key is a non-character key (length > 1)
+            // and not Delete or Backspace, then do nothing.
+            // This prevents UI from appearing on ArrowUp, F1, Shift (alone), etc.
+            if (event.key.length > 1 && event.key !== "Delete" && event.key !== "Backspace") {
+			    return;
+            }
 		}
 
+        // If the event was not handled by the above (e.g. Escape, or ignored special keys)
+        // and default action is not prevented, update the display.
+        // This will typically be for character inputs, Delete, or Backspace.
         if (!event.defaultPrevented) {
             this.autocompleteUI.updateDisplay(event.target);
         }
