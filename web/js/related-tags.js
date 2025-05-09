@@ -5,6 +5,8 @@ import {
     normalizeTagToInsert,
     normalizeTagToSearch,
     isValidTag,
+    findAllTagPositions,
+    extractTagsFromTextArea,
     getViewportMargin
 } from './utils.js';
 
@@ -137,14 +139,11 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    // Normalize the tag to insert for consistent comparison
-    const normalizedTagToInsert = normalizeTagToSearch(tagToInsert);
-
     // First check if the tag exists anywhere in the textarea and select it if found
     const tagPositions = findAllTagPositions(text);
     for (const { start, end, tag } of tagPositions) {
-        const normalizedExistingTag = normalizeTagToSearch(tag.trim());
-        if (normalizedExistingTag === normalizedTagToInsert) {
+        const existingTag = tag.trim();
+        if (existingTag === normalizeTagToInsert(tagToInsert)) {
             // Tag already exists, select it and exit
             inputElement.focus();
             inputElement.setSelectionRange(start, end);
@@ -154,9 +153,9 @@ function insertTagToTextArea(inputElement, tagToInsert) {
 
     // Find the current tag boundaries
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
-    const lastNewline = text.lastIndexOf('\n', cursorPos - 1);
-    let startPos = Math.max(lastComma, lastNewline);
-    startPos = startPos === -1 ? 0 : startPos + 1;
+    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
+    const lastSeparator = Math.max(lastComma, lastNewLine);
+    const startPos = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
     // Find the end of the current tag
     let endPosComma = text.indexOf(',', startPos);
@@ -180,20 +179,6 @@ function insertTagToTextArea(inputElement, tagToInsert) {
 
     if (nextTagEndPosComma === -1) nextTagEndPosComma = text.length;
     if (nextTagEndPosNewline === -1) nextTagEndPosNewline = text.length;
-
-    const nextTagEndPos = Math.min(nextTagEndPosComma, nextTagEndPosNewline);
-
-    // Extract the next tag and check if it matches the tag to insert
-    if (nextTagStartPos < text.length && nextTagStartPos < nextTagEndPos) {
-        const nextTag = text.substring(nextTagStartPos, nextTagEndPos).trim();
-        // Check if the next tag is the same as what we want to insert
-        if (nextTag && normalizeTagToSearch(nextTag) === normalizedTagToInsert) {
-            // The tag already exists as the next tag, so select it and exit
-            inputElement.focus();
-            inputElement.setSelectionRange(nextTagStartPos, nextTagEndPos);
-            return;
-        }
-    }
 
     // Set effective insertion position to the end of current tag
     let effectiveEndPos = endPos;
@@ -229,50 +214,6 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     }
 }
 
-/**
- * Finds all tag positions in the given text.
- * Searches for tags separated by commas or newlines.
- * @param {string} text The text to search in
- * @returns {Array<{start: number, end: number, tag: string}>} Array of tag positions and content
- */
-function findAllTagPositions(text) {
-    const positions = [];
-    let startPos = 0;
-
-    while (startPos < text.length) {
-        // Skip any leading whitespace, commas, or newlines
-        while (startPos < text.length &&
-            (text[startPos] === ' ' || text[startPos] === ',' || text[startPos] === '\n')) {
-            startPos++;
-        }
-
-        if (startPos >= text.length) break;
-
-        // Find the end of this tag (next comma or newline)
-        let endPosComma = text.indexOf(',', startPos);
-        let endPosNewline = text.indexOf('\n', startPos);
-
-        if (endPosComma === -1) endPosComma = text.length;
-        if (endPosNewline === -1) endPosNewline = text.length;
-
-        const endPos = Math.min(endPosComma, endPosNewline);
-        const tag = text.substring(startPos, endPos);
-
-        if (tag.trim().length > 0) {
-            positions.push({
-                start: startPos,
-                end: endPos,
-                tag: tag
-            });
-        }
-
-        // Move to the next tag
-        startPos = endPos + 1;
-    }
-
-    return positions;
-}
-
 // --- RelatedTags UI Class ---
 
 /**
@@ -283,7 +224,7 @@ class RelatedTagsUI {
     constructor() {
         // Create the main container
         this.root = document.createElement('div');
-        this.root.id = 'related-tags-container';
+        this.root.id = 'related-tags-root';
 
         // Create header row
         this.header = document.createElement('div');
@@ -408,9 +349,8 @@ class RelatedTagsUI {
             if (this.autoRefreshTimerId) {
                 clearTimeout(this.autoRefreshTimerId);
             }
-            const self = this;
             this.autoRefreshTimerId = setTimeout(() => {
-                self.updateDisplay(textareaElement);
+                this.updateDisplay(textareaElement);
             }, 500);
         }
     }
@@ -482,11 +422,11 @@ class RelatedTagsUI {
             return;
         }
 
-        const existingTagsInTextarea = this.#extractTagsFromTextArea();
+        const existingTags = extractTagsFromTextArea(this.target);
 
         // Create tag rows
         this.relatedTags.forEach(tagData => {
-            const isExisting = existingTagsInTextarea.has(normalizeTagToSearch(tagData.tag));
+            const isExisting = existingTags.includes(tagData.tag);
             const tagRow = this.#createTagElement(tagData, isExisting);
             this.tagsContainer.appendChild(tagRow);
         });
@@ -506,36 +446,36 @@ class RelatedTagsUI {
         tagRow.dataset.tag = tagData.tag;
         tagRow.dataset.tagCategory = categoryText;
 
-        // Tag name cell
-        const tagNameCell = document.createElement('span');
-        tagNameCell.className = 'related-tag-name';
-        tagNameCell.textContent = tagData.tag;
+        // Tag name
+        const tagName = document.createElement('span');
+        tagName.className = 'related-tag-name';
+        tagName.textContent = tagData.tag;
 
         // grayout tag name if it already exists
         if (isExisting) {
-            tagNameCell.classList.add('related-tag-already-exists');
+            tagName.classList.add('related-tag-already-exists');
         }
 
-        // Alias cell (middle column)
-        const aliasCell = document.createElement('span');
-        aliasCell.className = 'related-tag-alias';
+        // Alias
+        const alias = document.createElement('span');
+        alias.className = 'related-tag-alias';
 
         // Display alias if available
         if (tagData.alias && tagData.alias.length > 0) {
             let aliasText = tagData.alias.join(', ');
-            aliasCell.textContent = `${aliasText}`;
-            aliasCell.title = tagData.alias.join(', '); // Full alias on hover
+            alias.textContent = `${aliasText}`;
+            alias.title = tagData.alias.join(', '); // Full alias on hover
         }
 
-        // Category cell
-        const categoryCell = document.createElement('span');
-        categoryCell.className = `related-tag-category`;
-        categoryCell.textContent = `${categoryText.substring(0, 2)}`;
+        // Category
+        const category = document.createElement('span');
+        category.className = `related-tag-category`;
+        category.textContent = `${categoryText.substring(0, 2)}`;
 
-        // Similarity cell
-        const similarityCell = document.createElement('span');
-        similarityCell.className = 'related-tag-similarity';
-        similarityCell.textContent = `${(tagData.similarity * 100).toFixed(2)}%`;
+        // Similarity
+        const similarity = document.createElement('span');
+        similarity.className = 'related-tag-similarity';
+        similarity.textContent = `${(tagData.similarity * 100).toFixed(2)}%`;
 
         // Create tooltip with more info
         let tooltipText = `Tag: ${tagData.tag}\nSimilarity: ${(tagData.similarity * 100).toFixed(2)}%\nCount: ${tagData.count}`;
@@ -545,10 +485,10 @@ class RelatedTagsUI {
         tagRow.title = tooltipText;
 
         // Add cells to row
-        tagRow.appendChild(tagNameCell);
-        tagRow.appendChild(aliasCell);
-        tagRow.appendChild(categoryCell);
-        tagRow.appendChild(similarityCell);
+        tagRow.appendChild(tagName);
+        tagRow.appendChild(alias);
+        tagRow.appendChild(category);
+        tagRow.appendChild(similarity);
 
         return tagRow;
     }
@@ -562,24 +502,18 @@ class RelatedTagsUI {
     #updatePosition() {
         // Measure the element size without causing reflow
         this.root.style.visibility = 'hidden';
-        this.root.style.position = 'absolute'; // Ensure position is absolute for measurement
+        this.root.style.position = 'absolute';
         this.root.style.display = 'block';
-        this.root.style.left = '-9999px';
-        this.root.style.top = '-9999px';
         this.root.style.maxWidth = '';
         this.tagsContainer.style.maxHeight = '';
-        const elemRect = this.root.getBoundingClientRect();
+        const rootRect = this.root.getBoundingClientRect();
         const headerRect = this.header.getBoundingClientRect();
         // Hide it again after measurement
         this.root.style.display = 'none';
         this.root.style.visibility = 'visible';
-        this.root.style.position = '';
-        this.root.style.left = '';
-        this.root.style.top = '';
-
 
         // Get the optimal placement area
-        const placementArea = this.#getOptimalPlacementArea(this.target.getBoundingClientRect(), elemRect.width, elemRect.height);
+        const placementArea = this.#getOptimalPlacementArea(rootRect.width, rootRect.height);
 
         // Apply Styles
         this.root.style.left = `${placementArea.x}px`;
@@ -621,57 +555,57 @@ class RelatedTagsUI {
 
     /**
      * Calculates the optimal placement area for the panel based on available space.
-     * @param {DOMRect} inputRect - Bounding rectangle of the input element.
      * @param {number} elemWidth - Width of the panel element.
      * @param {number} elemHeight - Height of the panel element.
      * @returns {{ x: number, y: number, width: number, height: number }} The calculated placement area.
      */
-    #getOptimalPlacementArea(inputRect, elemWidth, elemHeight) {
+    #getOptimalPlacementArea(elemWidth, elemHeight) {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        let margin = getViewportMargin();
+        const margin = getViewportMargin();
+        const targetRect = this.target.getBoundingClientRect();
 
-        // Find optimal max width baesd on viewport and input element
+        // Find optimal max width baesd on viewport and textarea element
         const maxWidth = Math.max(
-            Math.min(inputRect.right, viewportWidth - margin.right) - inputRect.left,
+            Math.min(targetRect.right, viewportWidth - margin.right) - targetRect.left,
             (viewportWidth - margin.left - margin.right) / 2
         );
 
         const area = {
-            x: Math.max(inputRect.x, margin.left),
-            y: Math.max(inputRect.y, margin.top),
+            x: Math.max(targetRect.x, margin.left),
+            y: Math.max(targetRect.y, margin.top),
             width: Math.min(elemWidth, maxWidth),
             height: Math.min(elemHeight, viewportHeight - margin.top - margin.bottom)
         };
 
         if (settingValues.relatedTagsDisplayPosition === 'vertical') {
             // Vertical placement
-            const topSpace = inputRect.top - margin.top;
-            const bottomSpace = viewportHeight - inputRect.bottom - margin.bottom;
+            const topSpace = targetRect.top - margin.top;
+            const bottomSpace = viewportHeight - targetRect.bottom - margin.bottom;
             if (topSpace > bottomSpace) {
                 // Place above
                 area.height = Math.min(area.height, topSpace);
-                area.y = Math.max(inputRect.y - area.height, margin.top);
+                area.y = Math.max(targetRect.y - area.height, margin.top);
             } else {
                 // Place below
                 area.height = Math.min(area.height, bottomSpace);
-                area.y = inputRect.bottom;
+                area.y = targetRect.bottom;
             }
 
             // Adjust x position to avoid overflow
             area.x = Math.min(area.x, viewportWidth - area.width - margin.right);
         } else {
             // Horizontal placement
-            const leftSpace = inputRect.x - margin.left;
-            const rightSpace = viewportWidth - inputRect.right - margin.right;
+            const leftSpace = targetRect.x - margin.left;
+            const rightSpace = viewportWidth - targetRect.right - margin.right;
             if (leftSpace > rightSpace) {
                 // Place left
                 area.width = Math.min(area.width, leftSpace);
-                area.x = Math.max(inputRect.x - area.width, margin.left);
+                area.x = Math.max(targetRect.x - area.width, margin.left);
             } else {
                 // Place right
                 area.width = Math.min(area.width, rightSpace);
-                area.x = inputRect.right;
+                area.x = targetRect.right;
             }
 
             // Adjust y position to avoid overflow
@@ -680,22 +614,6 @@ class RelatedTagsUI {
 
         return area;
     }
-
-    /**
-     * Extracts existing tags from the textarea.
-     * @returns {Set<string>} Set of existing tags in the textarea
-     */
-    #extractTagsFromTextArea() {
-        const existingTagsInTextarea = new Set();
-        if (this.target && this.target.value) {
-            const tagPositions = findAllTagPositions(this.target.value);
-            tagPositions.forEach(pos => {
-                existingTagsInTextarea.add(normalizeTagToSearch(pos.tag));
-            });
-        }
-        return existingTagsInTextarea;
-    }
-
 }
 
 // --- RelatedTags Event Handling Class ---
@@ -711,7 +629,7 @@ export class RelatedTagsEventHandler {
      */
     handleInput(event) {
         if (settingValues.enableRelatedTags) {
-            if (this.relatedTagsUI && this.relatedTagsUI.isVisible()) {
+            if (this.relatedTagsUI.isVisible()) {
                 this.relatedTagsUI.hide();
             }
         }
@@ -734,16 +652,9 @@ export class RelatedTagsEventHandler {
             return;
         }
 
-        // Use setTimeout to delay hiding. This allows clicks on the related tags UI
-        // to be processed before the UI is hidden.
+        // Need a slight delay because clicking the related tags list causes blur
         setTimeout(() => {
-            // Check if the new focused element is part of the related tags UI.
-            // document.activeElement refers to the currently focused element.
-            const activeElement = document.activeElement;
-            const relatedTagsElement = this.relatedTagsUI.root;
-
-            // If the focus is not within the related tags UI, hide it.
-            if (this.relatedTagsUI && !relatedTagsElement.contains(activeElement)) {
+            if (!this.relatedTagsUI.root.contains(document.activeElement)) {
                 this.relatedTagsUI.hide();
             }
         }, 150);
@@ -757,7 +668,7 @@ export class RelatedTagsEventHandler {
         const textareaElement = event.target;
 
         // For related tags panel, handle Escape key
-        if (this.relatedTagsUI && this.relatedTagsUI.isVisible()) {
+        if (this.relatedTagsUI.isVisible()) {
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
@@ -816,7 +727,8 @@ export class RelatedTagsEventHandler {
     handleClick(event) {
         // Check trigger mode from settings
         if (settingValues.relatedTagsTriggerMode === 'ctrl+Click' && !event.ctrlKey) {
-            return; // Only respond to Ctrl+Click when in ctrlClick mode
+            this.relatedTagsUI.hide();
+            return; // Only show if Ctrl is pressed
         }
 
         const textareaElement = event.target;

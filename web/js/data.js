@@ -62,6 +62,7 @@ export class TagData {
 
 // Data storage
 export const autoCompleteData = {
+    /** @type {TagData[]} */
     sortedTags: [],
 
     /** @type {Map<string, TagData>} */
@@ -265,7 +266,7 @@ export async function initializeData() {
     
     const startTime = performance.now();
     autoCompleteData.isInitializing = true;
-    console.log("[Autocomplete-Plus] Initializing autocomplete data...");
+    // console.log("[Autocomplete-Plus] Initializing autocomplete data...");
 
     try {
         const response = await fetch('/autocomplete-plus/csv');

@@ -6,7 +6,7 @@
   --autocomplete-plus-text-color-cat-character: var(--p-green-600);
   --autocomplete-plus-text-color-cat-meta: var(--p-yellow-600);
   --autocomplete-plus-text-color-cat-unknown: var(--p-gray-600);
-  --autocomplete-plus-text-color-disabled: var(--p-gray-600);
+  --autocomplete-plus-text-color-disabled: var(--p-gray-400);
 
   /* Selected color */
   --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
@@ -36,26 +36,30 @@ body.dark-theme {
   --autocomplete-plus-text-color-cat-unknown-selected: var(--p-gray-200);
 }
 
-#autocomplete-plus-list {
+#autocomplete-plus-root {
   position: absolute;
   z-index: 999;
-  min-width: 200px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  top: 0;
+  left: 0;
+  display: none;
+  width: fit-content;
   background-color: var(--comfy-input-bg);
-  box-shadow: 0 2px 5px rgb(0 0 0 / 20%);
   color: var(--input-text);
-  font-size: 0.9em;
+}
+
+#autocomplete-plus-list {
+  display: grid;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  grid-auto-rows: auto;
+  grid-template-columns: max-content 1fr auto auto;
   overflow-y: auto;
 }
 
 .autocomplete-plus-item {
-  overflow: hidden;
-  padding: 5px 10px;
-  border-bottom: 1px solid var(--border-color);
+  display: grid;
   cursor: pointer;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
 }
 
 .autocomplete-plus-item[data-tag-category="general"] {
@@ -82,26 +86,22 @@ body.dark-theme {
   color: var(--autocomplete-plus-text-color-cat-unknown);
 }
 
-.autocomplete-plus-item:last-child {
-  border-bottom: none;
+.autocomplete-plus-item span {
+  align-content: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* Alternating row colors */
-.autocomplete-plus-item:nth-child(even) {
+.autocomplete-plus-item:nth-child(even) span {
   background-color: var(--comfy-menu-bg);
 }
 
-.autocomplete-plus-item:nth-child(odd) {
+.autocomplete-plus-item:nth-child(odd) span {
   background-color: var(--comfy-menu-secondary-bg);
 }
 
-/* Hover effect */
-.autocomplete-plus-item:hover {
-  background-color: var(--comfy-hover-bg);
-}
-
-/* Selected item style */
-.autocomplete-plus-item.selected {
+.autocomplete-plus-item.selected span {
   background-color: var(
     --comfy-menu-bg-selected,
     var(--comfy-button-bg)
@@ -109,7 +109,20 @@ body.dark-theme {
   font-weight: bold;
 }
 
-.autocomplete-plus-item .autocomplete-plus-alias {
+.autocomplete-plus-item:hover span {
+  background-color: var(--comfy-hover-bg);
+}
+
+.autocomplete-plus-tag-name {
+  padding: 8px;
+  white-space: nowrap;
+}
+
+.autocomplete-plus-tag-name.autocomplete-plus-already-exists  {
+  color: var(--autocomplete-plus-text-color-disabled);
+}
+
+.autocomplete-plus-alias {
   overflow: hidden;
   color: var(--descrip-text);
   text-overflow: ellipsis;
@@ -117,7 +130,7 @@ body.dark-theme {
 }
 
 /* Related Tags UI Styles */
-#related-tags-container {
+#related-tags-root {
   position: absolute;
   z-index: 999;
   top: 0;
@@ -210,6 +223,7 @@ body.dark-theme {
   color: var(--autocomplete-plus-text-color-cat-unknown);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .related-tag-item span {
   align-content: center;
   padding: 4px 8px;

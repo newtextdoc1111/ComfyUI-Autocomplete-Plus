@@ -116,7 +116,7 @@ export function normalizeTagToInsert(str) {
 }
 
 /**
- * Checks if a tag is valid.
+ * Checks if a tag is valid (not wildcard or Lora notation).
  * @param {string} tag 
  * @returns 
  */
@@ -138,6 +138,64 @@ export function isValidTag(tag) {
     return true;
 }
 
+/**
+ * Finds all tag positions in the given text.
+ * Searches for tags separated by commas or newlines.
+ * @param {string} text The text to search in
+ * @returns {Array<{start: number, end: number, tag: string}>} Array of tag positions and content
+ */
+export function findAllTagPositions(text) {
+    const positions = [];
+    let startPos = 0;
+
+    while (startPos < text.length) {
+        // Skip any leading whitespace, commas, or newlines
+        while (startPos < text.length &&
+            (text[startPos] === ' ' || text[startPos] === ',' || text[startPos] === '\n')) {
+            startPos++;
+        }
+
+        if (startPos >= text.length) break;
+
+        // Find the end of this tag (next comma or newline)
+        let endPosComma = text.indexOf(',', startPos);
+        let endPosNewline = text.indexOf('\n', startPos);
+
+        if (endPosComma === -1) endPosComma = text.length;
+        if (endPosNewline === -1) endPosNewline = text.length;
+
+        const endPos = Math.min(endPosComma, endPosNewline);
+        const tag = text.substring(startPos, endPos);
+
+        if (tag.trim().length > 0) {
+            positions.push({
+                start: startPos,
+                end: endPos,
+                tag: tag
+            });
+        }
+
+        // Move to the next tag
+        startPos = endPos + 1;
+    }
+
+    return positions;
+}
+/**
+ * Extracts existing tags from the textarea with search normalization (possibly duplicated).
+ * @param {HTMLTextAreaElement} textarea The textarea element to extract tags from
+ * @returns {string[]} Array of existing tags
+ */
+export function extractTagsFromTextArea(textarea) {
+    const existingTagsInTextarea = [];
+    if (textarea && textarea.value) {
+        const tagPositions = findAllTagPositions(textarea.value);
+        tagPositions.forEach(pos => {
+            existingTagsInTextarea.push(normalizeTagToSearch(pos.tag));
+        });
+    }
+    return existingTagsInTextarea;
+}
 // --- End String Helper Functions ---
 
 // Function to load a CSS file
