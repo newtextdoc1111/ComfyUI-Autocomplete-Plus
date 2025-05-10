@@ -1,10 +1,12 @@
 # ComfyUI-Autocomplete-Plus
 
-WIP
+## English •  [日本語](docs/README_jp.md)
+
+**⚠ English translation in progress.**
 
 ## Credits
 
 - [ComfyUI-Custom-Node](https://github.com/pythongosssss/ComfyUI-Custom-Scripts)
-  - Referenced for implementing the autocomplete feature.
-- [component/textarea-caret-position](https://github.com/component/textarea-caret-position)
-  - Referenced for getting the caret position in the text area.
+  - Referenced for implementing the autocomplete function.
+- [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete)
+  - Referenced for autocomplete function and CSV specifications.
