@@ -121,14 +121,20 @@ async function loadTags(csvUrl) {
                 const count = parseInt(columns[COUNT_INDEX].trim(), 10);
 
                 if (!tag || isNaN(count)) continue;
+                
+                // Skip if tag already exists (priority to earlier loaded files - extra then base)
+                if (autoCompleteData.tagMap.has(tag)) {
+                    continue;
+                }
 
                 // Parse aliases - might be comma-separated list inside quotes
                 const aliases = aliasStr ? aliasStr.split(',').map(a => a.trim()).filter(a => a.length > 0) : [];
 
                 // Create a TagData instance instead of a plain object
                 const tagData = new TagData(tag, aliases, category, count);
+
                 autoCompleteData.sortedTags.push(tagData);
-            }else{
+            } else {
                 console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}. Expected ${TAGS_CSV_HEADER_COLUMNS.length} columns, but got ${columns.length}.`);
                 continue;
             }
@@ -137,15 +143,17 @@ async function loadTags(csvUrl) {
         // Sort by count in descending order
         autoCompleteData.sortedTags.sort((a, b) => b.count - a.count);
 
-        // Build maps as before
+        // Build maps as before, but ensure not to overwrite if already processed from extra files
         autoCompleteData.sortedTags.forEach(tagData => {
-            autoCompleteData.tagMap.set(tagData.tag, tagData);
-            if (tagData.alias && Array.isArray(tagData.alias)) {
-                tagData.alias.forEach(alias => {
-                    if (!autoCompleteData.aliasMap.has(alias)) {
-                        autoCompleteData.aliasMap.set(alias, tagData.tag); // Map alias back to the main tag
-                    }
-                });
+            if (!autoCompleteData.tagMap.has(tagData.tag)) {
+                autoCompleteData.tagMap.set(tagData.tag, tagData);
+                if (tagData.alias && Array.isArray(tagData.alias)) {
+                    tagData.alias.forEach(alias => {
+                        if (!autoCompleteData.aliasMap.has(alias)) {
+                            autoCompleteData.aliasMap.set(alias, tagData.tag); // Map alias back to the main tag
+                        }
+                    });
+                }
             }
         });
 
@@ -287,20 +295,33 @@ export async function initializeData() {
         const extraCooccurrenceCount = csvListData.danbooru.extra_cooccurrence || 0;
 
         const tagsUrl = '/autocomplete-plus/csv/tags';
-        const tagsLoadPromises = csvListData.danbooru.base_tags ? [loadTags(`${tagsUrl}/base`)] : [];
+        const cooccurrenceUrl = '/autocomplete-plus/csv/cooccurrence';
 
-        let currentTagPromise = tagsLoadPromises[0] || Promise.resolve();
+        // Load extra tags first
+        let tagsLoadPromises = [];
+        let currentTagPromise = Promise.resolve();
         for (let i = 0; i < extraTagsCount; i++) {
-            currentTagPromise = currentTagPromise.then(loadTags(`${tagsUrl}/extra/${i}`));
+            currentTagPromise = currentTagPromise.then(() => loadTags(`${tagsUrl}/extra/${i}`));
             tagsLoadPromises.push(currentTagPromise);
         }
 
-        const cooccurrenceUrl = '/autocomplete-plus/csv/cooccurrence';
-        const cooccurrenceLoadPromises = csvListData.danbooru.base_cooccurrence ? [loadCooccurrence(`${cooccurrenceUrl}/base`)] : [];
-       
-        let cooccurrencePromiseChain = cooccurrenceLoadPromises[0] || Promise.resolve();
+        // Then load base tags if it exists
+        if (csvListData.danbooru.base_tags) {
+            currentTagPromise = currentTagPromise.then(() => loadTags(`${tagsUrl}/base`));
+            tagsLoadPromises.push(currentTagPromise);
+        }
+        
+        // Load extra cooccurrence first
+        let cooccurrenceLoadPromises = [];
+        let cooccurrencePromiseChain = Promise.resolve();
         for (let i = 0; i < extraCooccurrenceCount; i++) {
-            cooccurrencePromiseChain = cooccurrencePromiseChain.then(loadCooccurrence(`${cooccurrenceUrl}/extra/${i}`));
+            cooccurrencePromiseChain = cooccurrencePromiseChain.then(() => loadCooccurrence(`${cooccurrenceUrl}/extra/${i}`));
+            cooccurrenceLoadPromises.push(cooccurrencePromiseChain);
+        }
+        
+        // Then load base cooccurrence if it exists
+        if (csvListData.danbooru.base_cooccurrence) {
+            cooccurrencePromiseChain = cooccurrencePromiseChain.then(() => loadCooccurrence(`${cooccurrenceUrl}/base`));
             cooccurrenceLoadPromises.push(cooccurrencePromiseChain);
         }
 
