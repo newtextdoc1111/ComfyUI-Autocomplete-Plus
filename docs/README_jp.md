@@ -48,6 +48,9 @@
 動作には基本となるCSVデータが2つ必要です。これらは [HuggingFace](https://huggingface.co/datasets/newtextdoc1111/danbooru-tag-csv) で管理されており、 ComfyUI にインストール後の初回起動時に自動でダウンロードされます。  
 基本CSVファイルはHuggingFaceで公開されているDanbooruデータセットを元にしているので、Danbooruサイトの投稿数や関連タグの情報と異なる場合があります。
 
+> [!IMPORTANT]
+> 基本CSVにはSFW, NSFW両方のタグが含まれています。
+
 **danbooru_tags.csv**
 
 カテゴリ、投稿数、エイリアス（日本語、中国語、韓国語を含む）を収録したオートコンプリート用の CSV ファイルです。カラム構成は [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete) で使用されているものと同じです。
@@ -58,7 +61,7 @@
 - カテゴリが `general, character, copyright` のいずれか
 - タグ名に `(cosplay)` が含まれていない
 
-**danbooru_tags_cooccurrence.csv**
+**danbooru_tags_cooccurrence.**
 
 タグペアとその共起回数を記録した、関連タグ計算用のCSVファイルです。
 
@@ -103,13 +106,13 @@ worst_quality,5,9999999,
 
 ### 全般
 
-- csvファイルの容量が大きいため、ブラウザの起動時間が長くなる場合があります
+- CSVファイルの容量が大きいため、ブラウザの起動時間が長くなる場合があります
 - ブラウザ上で高速に動作させるためにメモリを消費します。ComfyUIが動作するスペックのマシンであれば問題にはならないと思います
 
 ### オートコンプリート
 
 ### 関連タグ
-- UIをピン留めしたときのキーボード入力時で、一部のキー以外はテキストエリアに入力されてしまう場合があります
+- UIをピン留めした際のキーボード入力時、一部のキー以外はテキストエリアに入力されてしまう場合があります
 
 
 ## クレジット
