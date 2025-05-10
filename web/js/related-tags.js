@@ -1,4 +1,3 @@
-// filepath: v:\Programs\StabilityMatrix-win-x64\Data\Packages\ComfyUI-New\custom_nodes\ComfyUI-Autocomplete-Plus\web\js\related-tags.js
 import { settingValues } from './settings.js';
 import { TagCategory, TagData, autoCompleteData } from './data.js';
 import {
@@ -118,10 +117,12 @@ function searchRelatedTags(tag) {
     // Limit to max number of suggestions
     const result = relatedTags.slice(0, settingValues.maxRelatedTags);
 
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-    console.debug(`[Related-Tags] Find tags to related "${tag}" took ${duration.toFixed(2)}ms.`);
-
+    if(settingValues._logprocessingTime) {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        console.debug(`[Autocomplete-Plus] Find tags to related "${tag}" took ${duration.toFixed(2)}ms.`);
+    }
+    
     return result;
 }
 
