@@ -1,5 +1,7 @@
 # ComfyUI-Autocomplete-Plus
 
+![ss01](https://github.com/user-attachments/assets/bb139951-ad78-4d87-b290-97aafa1221d7)
+
 > [!WARNING]
 > このカスタムノードは現在ベータ版です。予告なく機能が変更されたり不具合が発生する場合があります。
 
@@ -32,6 +34,8 @@
 - タグのカテゴリ毎に色分けされます。色分けのルールは Danbooru と同じです
 
 ## 関連タグ
+
+![ss02](https://github.com/user-attachments/assets/854571cd-01eb-4e92-a118-2303bec0b175)
 
 テキスト入力エリアの任意のタグを選択すると、関連性の高いタグを表示します。UIは編集中のテキストエリアを基準に位置とサイズが自動で調整されます。
 
