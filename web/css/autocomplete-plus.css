@@ -1,0 +1,297 @@
+/* Light Theme */
+ body {
+  --autocomplete-plus-text-color-cat-general: var(--p-blue-600);
+  --autocomplete-plus-text-color-cat-artist: var(--p-red-600);
+  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-600);
+  --autocomplete-plus-text-color-cat-character: var(--p-green-600);
+  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-600);
+  --autocomplete-plus-text-color-cat-unknown: var(--p-gray-600);
+  --autocomplete-plus-text-color-disabled: var(--p-gray-400);
+
+  /* Selected color */
+  --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
+  --autocomplete-plus-text-color-cat-artist-selected: var(--p-red-200);
+  --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
+  --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
+  --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
+  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-gray-200);
+}
+
+/* Dark Theme */
+body.dark-theme {
+  --autocomplete-plus-text-color-cat-general: var(--p-blue-400);
+  --autocomplete-plus-text-color-cat-artist: var(--p-red-400);
+  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-400);
+  --autocomplete-plus-text-color-cat-character: var(--p-green-400);
+  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-400);
+  --autocomplete-plus-text-color-cat-unknown: var(--p-gray-500);
+  --autocomplete-plus-text-color-disabled: var(--p-gray-500);
+
+  /* Selected color */
+  --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
+  --autocomplete-plus-text-color-cat-artist-selected: var(--p-red-200);
+  --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
+  --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
+  --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
+  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-gray-200);
+}
+
+#autocomplete-plus-root {
+  position: absolute;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  display: none;
+  width: fit-content;
+  background-color: var(--comfy-input-bg);
+  color: var(--input-text);
+}
+
+#autocomplete-plus-list {
+  display: grid;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  grid-auto-rows: auto;
+  grid-template-columns: max-content 1fr auto auto;
+  overflow-y: auto;
+}
+
+.autocomplete-plus-item {
+  display: grid;
+  cursor: pointer;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.autocomplete-plus-item[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-general);
+}
+
+.autocomplete-plus-item[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-artist);
+}
+
+.autocomplete-plus-item[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-copyright);
+}
+
+.autocomplete-plus-item[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-character);
+}
+
+.autocomplete-plus-item[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-meta);
+}
+
+.autocomplete-plus-item[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-unknown);
+}
+
+.autocomplete-plus-item span {
+  align-content: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Alternating row colors */
+.autocomplete-plus-item:nth-child(even) span {
+  background-color: var(--comfy-menu-bg);
+}
+
+.autocomplete-plus-item:nth-child(odd) span {
+  background-color: var(--comfy-menu-secondary-bg);
+}
+
+.autocomplete-plus-item.selected span {
+  background-color: var(
+    --comfy-menu-bg-selected,
+    var(--comfy-button-bg)
+  );
+  font-weight: bold;
+}
+
+.autocomplete-plus-item:hover span {
+  background-color: var(--comfy-hover-bg);
+}
+
+.autocomplete-plus-tag-name {
+  padding: 8px;
+  white-space: nowrap;
+}
+
+.autocomplete-plus-tag-name.autocomplete-plus-already-exists  {
+  color: var(--autocomplete-plus-text-color-disabled);
+}
+
+.autocomplete-plus-alias {
+  overflow: hidden;
+  color: var(--descrip-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Related Tags UI Styles */
+#related-tags-root {
+  position: absolute;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  display: none;
+  width: fit-content;
+  background-color: var(--comfy-input-bg);
+  color: var(--input-text);
+}
+
+#related-tags-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--comfy-menu-bg);
+  color: var(--descrip-text);
+}
+
+.related-tags-header-text {
+  flex-grow: 1;
+
+}
+
+.related-tags-header-tag-name {
+  font-weight: bold;
+}
+
+.related-tags-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.related-tags-layout-toggle {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--input-text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.related-tags-layout-toggle:hover {
+  background-color: var(--comfy-button-bg);
+}
+
+.related-tags-pin-toggle {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--input-text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+#related-tags-list {
+  display: grid;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  grid-auto-rows: auto;
+  grid-template-columns: max-content 1fr auto auto;
+  overflow-y: auto;
+}
+
+.related-tag-item {
+  display: grid;
+  cursor: pointer;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.related-tag-item[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-general);
+}
+
+.related-tag-item[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-artist);
+}
+
+.related-tag-item[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-copyright);
+}
+
+.related-tag-item[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-character);
+}
+
+.related-tag-item[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-meta);
+}
+
+.related-tag-item[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-unknown);
+}
+
+/* stylelint-disable-next-line no-descending-specificity */
+.related-tag-item span {
+  align-content: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.related-tag-item:nth-child(even) span {
+  background-color: var(--comfy-menu-bg);
+}
+
+.related-tag-item:nth-child(odd) span {
+  background-color: var(--comfy-menu-secondary-bg);
+}
+
+.related-tag-item:hover span {
+  background-color: var(--p-form-field-filled-hover-background);
+}
+
+.related-tag-item.selected span {
+  background-color: var(
+    --comfy-menu-bg-selected,
+    var(--comfy-button-bg)
+  );
+  font-weight: bold;
+}
+
+.related-tag-name {
+  padding: 8px;
+  white-space: nowrap;
+}
+
+.related-tag-name.related-tag-already-exists  {
+  color: var(--autocomplete-plus-text-color-disabled);
+}
+
+.related-tag-alias {
+  overflow: hidden;
+  color: var(--descrip-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-tag-similarity {
+  color: var(--descrip-text);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.related-tags-loading-message {
+  padding: 12px;
+  font-style: italic;
+  text-align: center;
+}
+
+.related-tags-empty {
+  padding: 12px;
+  color: var(--error-text);
+  font-style: italic;
+  text-align: center;
+}

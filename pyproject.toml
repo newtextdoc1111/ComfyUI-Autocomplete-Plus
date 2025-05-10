@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-autocomplete-plus"
+description = "Custom node to add autocomplete functionality [ComfyUI-Autocomplete-Plus](https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus)."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["",]
+
+[project.urls]
+Repository = "https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = "newtextdoc1111"
+DisplayName = "ComfyUI-Autocomplete-Plus"
+Icon = ""
