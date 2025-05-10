@@ -14,6 +14,6 @@ export const settingValues = {
     _useFallbackAttachmentForEventListener: false, // Fallback to attach event listener when somthing goes wrong
 
     // Debugging settings (use internally)
-    _hideWhenOutofFocus: false, // Hide UI when the input is out of focus
-    _logprocessingTime: true, // Log processing time for debugging
+    _hideWhenOutofFocus: true, // Hide UI when the input is out of focus
+    _logprocessingTime: false, // Log processing time for debugging
 }
