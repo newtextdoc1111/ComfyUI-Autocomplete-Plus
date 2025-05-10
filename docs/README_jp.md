@@ -22,8 +22,9 @@
 ## インストール
 
 ベータ版では以下の手順でインストールできます。
-1. このリポジトリを ComfyUI の `custom_nodes` フォルダにクローンまたはコピーします
-2. ComfyUI を起動します。初回起動時のみ、必要な CSV データが HuggingFace から自動的にダウンロードされます
+1. このリポジトリを ComfyUI の `custom_nodes` フォルダにクローンまたはコピーします  
+    `git clone https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus.git`
+3. ComfyUI を起動します。初回起動時のみ、必要な CSV データが HuggingFace から自動的にダウンロードされます
 
 ## オートコンプリート
 
