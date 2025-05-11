@@ -57,9 +57,9 @@
 
 **danbooru_tags.csv**
 
-カテゴリ、投稿数、エイリアス（日本語、中国語、韓国語を含む）を収録したオートコンプリート用の CSV ファイルです。カラム構成は [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete) で使用されているものと同じです。
+タグ名、カテゴリ、投稿数、エイリアス（日本語、中国語、韓国語を含む）の情報を持つオートコンプリート用のタグ情報 CSV ファイルです。このカラム構成は [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete) で使用されているものと同じです。
 
-掲載タグは以下の条件でフィルタリングされています。
+タグ情報は以下の条件でフィルタリングされています。
 - 投稿数100件以上
 - 投稿画像のスコアが5以上
 - カテゴリが `general, character, copyright` のいずれか
@@ -69,7 +69,7 @@
 
 タグペアとその共起回数を記録した、関連タグ計算用のCSVファイルです。
 
-タグペアは以下の条件でフィルタリングされています。
+タグペアはタグ情報 CSV から、さらに以下の条件でフィルタリングされています。
 - 共起回数が100件以上
 
 ### ユーザーCSV
