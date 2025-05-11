@@ -52,7 +52,7 @@ When you select any tag in a text input area, highly related tags list are displ
 
 ## CSV Data
 
-Two basic CSV data files are required for operation. These are managed on [HuggingFace](https://huggingface.co/datasets/newtextdoc1111/danbooru-tag-csv) and are automatically downloaded when ComfyUI is first launched after installation, so no setup is required.
+Two basic CSV data files are required for operation. These are managed on [HuggingFace](https://huggingface.co/datasets/newtextdoc1111/danbooru-tag-csv) and are automatically downloaded when ComfyUI is first launched after installation, so no setup is required.  
 Since the basic CSV files are based on the Danbooru dataset publicly available on HuggingFace, the post counts and related tag information may differ from the Danbooru website.
 
 > [!IMPORTANT]
@@ -111,7 +111,7 @@ worst_quality,5,9999999,
 
 ## Known Issues
 
-### General
+### Performance
 
 - Due to the large size of the CSV files, browser startup time may be longer.
 - It consumes memory to operate quickly in the browser. This should not be an issue on machines with specs capable of running ComfyUI.
