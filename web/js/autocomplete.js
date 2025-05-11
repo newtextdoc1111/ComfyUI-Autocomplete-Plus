@@ -259,10 +259,9 @@ class AutocompleteUI {
         this.selectedIndex = -1;
         this.candidates = [];
 
-        // Add event listener for clicks on items (listen on tbody)
+        // Add event listener for clicks on items
         this.tagsList.addEventListener('mousedown', (e) => {
-            // Check if the click target is a TD inside a TR with a data-index
-            const row = e.target.closest('tr');
+            const row = e.target.closest('.autocomplete-plus-item');
             if (row && row.dataset.tag) {
                 this.#insertTag(row.dataset.tag);
                 e.preventDefault(); // Prevent focus loss from input
@@ -358,7 +357,7 @@ class AutocompleteUI {
     }
 
     /**
-     * Creates a table row (tr) for a candidate item.
+     * Creates a tag element for the autocomplete list.
      * @param {TagData} tagData
      * @param {boolean} isExisting
      */
@@ -405,7 +404,7 @@ class AutocompleteUI {
         tagRow.appendChild(alias);
         tagRow.appendChild(category);
         tagRow.appendChild(tagCount);
-        this.tagsList.appendChild(tagRow); // Append row to tbody
+        this.tagsList.appendChild(tagRow);
     }
 
     /**
@@ -500,7 +499,7 @@ class AutocompleteUI {
     #highlightItem() {
         if (!this.getSelectedTag()) return; // No valid selection
 
-        const items = this.tagsList.children; // Get rows (tr) from tbody
+        const items = this.tagsList.children; // Get rows from tbody
         for (let i = 0; i < items.length; i++) {
             if (i === this.selectedIndex) {
                 items[i].classList.add('selected'); // Use CSS class for selection
