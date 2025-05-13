@@ -36,28 +36,6 @@ export class TagData {
         /** @type {number} */
         this.count = count;
     }
-
-    /**
-     * Get display label for the tag
-     * @returns {string} Formatted tag label
-     */
-    getLabel() {
-        return `${this.tag} (${this.count})`;
-    }
-
-    /**
-     * Check if this tag matches a search query
-     * @param {string} query - The search query
-     * @returns {boolean} True if this tag or any of its aliases match the query
-     */
-    matches(query) {
-        if (!query) return false;
-        
-        const lowerQuery = query.toLowerCase();
-        if (this.tag.toLowerCase().includes(lowerQuery)) return true;
-        
-        return this.alias.some(a => a.toLowerCase().includes(lowerQuery));
-    }
 }
 
 // Data storage
@@ -67,6 +45,7 @@ export const autoCompleteData = {
 
     /** @type {Map<string, TagData>} */
     tagMap: new Map(), // Stores tag data, mapping tag names to TagData objects
+    
     /** @type {Map<string, TagData>} */
     aliasMap: new Map(), // Maps aliases to their main tag names
     
