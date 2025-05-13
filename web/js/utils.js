@@ -97,13 +97,16 @@ export function removePromptWeight(str) {
 }
 
 /**
- * Normalizes a tag string for input.
- * @param {string} str 
- * @returns 
+ * Checks if a string contains at least one letter or number.
+ * This includes Latin letters, Japanese characters, Korean characters,
+ * CJK Extension A, Cyrillic letters, and Hebrew letters.
+ * @param {string} str The input string.
+ * @returns {boolean} True if the string contains at least one letter or number, false otherwise.
  */
-export function normalizeTagToSearch(str) {
-    if (!str) return str;
-    return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
+export function isContainsLetterOrNumber(str) {
+    if (!str) return false;
+    // Check if the string contains at least one letter or number (Latin, Japanese, Korean, CJK Extension A, Cyrillic, Hebrew)
+    return /[a-zA-Z0-9\u3040-\u30ff\u3400-\u4DBF\u4e00-\u9faf\uac00-\ud7af\u0400-\u04FF\u0590-\u05FF]/.test(str);
 }
 
 /**
@@ -111,8 +114,31 @@ export function normalizeTagToSearch(str) {
  * @param {string} str 
  * @returns 
  */
+export function normalizeTagToSearch(str) {
+    if (!str) return str;
+    
+    if (isContainsLetterOrNumber(str)) {
+        return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
+    }
+
+    return unescapeParentheses(removePromptWeight(str));
+}
+
+/**
+ * Normalizes a tag string for input.
+ * Converts underscores to spaces only if the tag contains at least one letter or number.
+ * Keeps underscores for tags that are only symbols (e.g. "^_^").
+ * @param {string} str 
+ * @returns {string}
+ */
 export function normalizeTagToInsert(str) {
-    return escapeParentheses(str.replace(/_/g, " "));
+    if (!str) return str;
+
+    if (isContainsLetterOrNumber(str)) {
+        return escapeParentheses(str.replace(/_/g, " "));
+    }
+    // Otherwise, keep as is (for emoji/face tags)
+    return escapeParentheses(str);
 }
 
 /**

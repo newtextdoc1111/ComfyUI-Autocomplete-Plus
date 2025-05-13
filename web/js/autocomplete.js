@@ -7,6 +7,7 @@ import {
     formatCountHumanReadable,
     hiraToKata,
     kataToHira,
+    isContainsLetterOrNumber,
     normalizeTagToInsert,
     normalizeTagToSearch,
     findAllTagPositions,
@@ -16,6 +17,48 @@ import {
 import { settingValues } from './settings.js';
 
 // --- Autocomplete Logic ---
+
+/**
+ * Uses a set of variations to match a target string.
+ * @param {string} target - The target word to match.
+ * @param {Set<string>} queries - Set of query variations.
+ * @returns {{matched: boolean, isExactMatch: boolean}}
+ */
+function matchWord(target, queries) {
+    let matched = false;
+    let isExactMatch = false;
+    for (const variation of queries) {
+        if (target === variation) {
+            isExactMatch = true;
+            matched = true;
+            break;
+        }
+    }
+    if (!isExactMatch) {
+        for (const variation of queries) {
+            if (!isContainsLetterOrNumber(variation)) {
+                // If the query variation contains only symbols,
+                // match if the target also contains only symbols and includes the variation.
+                if (!isContainsLetterOrNumber(target) && target.includes(variation)) {
+                    matched = true;
+                    break;
+                }
+            } else {
+                // If the query variation contains letters or numbers, attempt a partial match.
+                if (target.includes(variation)) {
+                    matched = true;
+                    break;
+                // If direct partial match fails, try matching after removing
+                // common symbols from both target and variation.
+                } else if (target.replace(/[-_\s']/g, '').includes(variation.replace(/[-_\s']/g, ''))) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+    }
+    return { matched, isExactMatch };
+}
 
 /**
  * Search tag completion candidates based on the current input and cursor position in the textarea.
@@ -52,73 +95,32 @@ function searchCompletionCandidates(textareaElement) {
         let isExactMatch = false;
         let matchedAlias = null;
 
-        // Check primary tag against all variations for exact match first
-        for (const variation of queryVariations) {
-            if (tagData.tag === variation) {
-                isExactMatch = true;
-                matched = true;
-                break;
-            }
-        }
-
-        // If not an exact match, check for partial matches in the tag
-        if (!isExactMatch) {
-            for (const variation of queryVariations) {
-                if (tagData.tag.includes(variation)) {
-                    matched = true;
-                    break;
-                } else if (tagData.tag.replace(/[\-_\s']/g, '').includes(variation.replace(/[\-_\s']/g, ''))) {
-                    // Try to match with underscore, dash, or apostrophe removed
-                    matched = true;
-                    break;
-                }
-            }
-        }
+        // Check primary tag against all variations for exact/partial match
+        const tagMatch = matchWord(tagData.tag, queryVariations);
+        matched = tagMatch.matched;
+        isExactMatch = tagMatch.isExactMatch;
 
         // If primary tag didn't match, check aliases against all variations
         if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
             for (const alias of tagData.alias) {
                 const lowerAlias = alias.toLowerCase();
-
-                // Check for exact matches in aliases first
-                for (const variation of queryVariations) {
-                    if (lowerAlias === variation) {
-                        isExactMatch = true;
-                        matched = true;
-                        matchedAlias = alias;
-                        break;
-                    }
+                const aliasMatch = matchWord(lowerAlias, queryVariations);
+                if (aliasMatch.matched) {
+                    matched = true;
+                    isExactMatch = aliasMatch.isExactMatch;
+                    matchedAlias = alias;
+                    break;
                 }
-
-                // If not an exact match in alias, check for partial matches
-                if (!isExactMatch) {
-                    for (const variation of queryVariations) {
-                        if (lowerAlias.includes(variation)) {
-                            matched = true;
-                            matchedAlias = alias;
-                            break;
-                        }
-                    }
-                }
-
-                if (matched) break; // Stop checking aliases for this tag if one matched
             }
         }
 
         // Add candidate if matched and not already added
         if (matched && !addedTags.has(tagData.tag)) {
-            const candidateItem = {
-                tag: tagData.tag,
-                alias: tagData.alias,
-                category: tagData.category,
-                count: tagData.count,
-            };
-
             // Add to exact matches or partial matches based on match type
             if (isExactMatch) {
-                exactMatches.push(candidateItem);
+                exactMatches.push(tagData);
             } else {
-                partialMatches.push(candidateItem);
+                partialMatches.push(tagData);
             }
 
             addedTags.add(tagData.tag);
@@ -194,7 +196,7 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     const currentWordEndMatch = text.substring(cursorPos).match(/^[^,\n]+/);
 
     let currentWordEnd = cursorPos;
-    
+
     const normalizedTag = normalizeTagToInsert(tagToInsert);
 
     // If the end match is found, set currentWordEnd to the end of the match
@@ -431,7 +433,7 @@ class AutocompleteUI {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         const margin = getViewportMargin();
-        
+
         const targetRect = this.target.getBoundingClientRect();
         const targetElmOffset = this.#calculateElementOffset(this.target);
 
@@ -525,7 +527,7 @@ class AutocompleteUI {
 
         this.hide();
     }
-    
+
     /**
      * Gets the pixel coordinates of the caret in the input element.
      * Uses a temporary div to calculate the position accurately.
@@ -723,7 +725,7 @@ class AutocompleteUI {
         if (defaultView == null) {
             throw new Error("Given element does not belong to window");
         }
-        
+
         const offset = {
             top: rect.top + defaultView.pageYOffset,
             left: rect.left + defaultView.pageXOffset,
