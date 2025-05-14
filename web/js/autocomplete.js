@@ -171,7 +171,16 @@ function getCurrentPartialTag(inputElement) {
     const lastSeparator = Math.max(lastNewLine, lastComma);
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
-    // Extract the text between the last comma (or start) and the cursor
+    // Check if the cursor is inside a prompt strength/weight modifier (e.g., :1.2, :.5, :1.)
+    const segmentBeforeCursor = text.substring(start, cursorPos);
+    const lastColon = segmentBeforeCursor.lastIndexOf(':');
+    if (lastColon !== -1) {
+        const partAfterColon = segmentBeforeCursor.substring(lastColon + 1);
+        if (partAfterColon.length > 0 && /^[0-9\.]+$/.test(partAfterColon) && /[0-9]/.test(partAfterColon)) {
+            return "";
+        }
+    }
+    
     const partial = text.substring(start, cursorPos).trimStart();
     return normalizeTagToSearch(partial);
 }
