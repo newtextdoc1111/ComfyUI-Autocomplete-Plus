@@ -311,18 +311,22 @@ export function getCurrentTagRange(text, cursorPos) {
     }
 
     // Rule 3: Exclude prompt strength syntax (e.g., ":1.0") but include colons in names.
-    // (e.g., "standing:1.0" -> "standing", "foo:bar" -> "foo:bar")
+    // (e.g., "standing:1.0" -> "standing", "foo:bar" -> "foo:bar", "year:2000" -> "year:2000")
     // This applies to the tag *after* parentheses are handled.
-    const weightRegex = /(.*?):(\d+(\.\d+)?)$/;
+    const weightRegex = /(.*?):([0-9](\.\d+)?)$/;
     const weightMatch = adjustedTag.match(weightRegex);
 
     if (weightMatch) {
         const tagPart = weightMatch[1];
-        const fullWeightString = adjustedTag.substring(tagPart.length);
-
-        if (tagPart.length > 0 || (tagPart.length === 0 && fullWeightString === adjustedTag)) {
-            adjustedEnd -= fullWeightString.length;
-            adjustedTag = tagPart;
+        const weightValue = weightMatch[2];
+        // Only consider it as a weight if it's a simple number between 0-9 possibly with decimal
+        // Don't treat larger numbers like :1999 or :2000 as weights
+        if (parseFloat(weightValue) <= 9.9) {
+            const fullWeightString = adjustedTag.substring(tagPart.length);
+            if (tagPart.length > 0 || (tagPart.length === 0 && fullWeightString === adjustedTag)) {
+                adjustedEnd -= fullWeightString.length;
+                adjustedTag = tagPart;
+            }
         }
     }
 
