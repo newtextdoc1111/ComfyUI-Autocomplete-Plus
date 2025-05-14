@@ -856,10 +856,3 @@ export class AutocompleteEventHandler {
     handleClick(event) {
     }
 }
-
-// Public test hooks - export non-exported functions for testing only
-export const __test_hooks__ = {
-    getCurrentPartialTag,
-    searchCompletionCandidates,
-    // Add other internal functions you want to test
-};
