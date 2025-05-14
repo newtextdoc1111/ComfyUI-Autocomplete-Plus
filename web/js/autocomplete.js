@@ -10,8 +10,8 @@ import {
     isContainsLetterOrNumber,
     normalizeTagToInsert,
     normalizeTagToSearch,
-    findAllTagPositions,
     extractTagsFromTextArea,
+    getCurrentTagRange,
     getViewportMargin
 } from './utils.js';
 import { settingValues } from './settings.js';
@@ -48,8 +48,8 @@ function matchWord(target, queries) {
                 if (target.includes(variation)) {
                     matched = true;
                     break;
-                // If direct partial match fails, try matching after removing
-                // common symbols from both target and variation.
+                    // If direct partial match fails, try matching after removing
+                    // common symbols from both target and variation.
                 } else if (target.replace(/[-_\s']/g, '').includes(variation.replace(/[-_\s']/g, ''))) {
                     matched = true;
                     break;
@@ -180,7 +180,7 @@ function getCurrentPartialTag(inputElement) {
             return "";
         }
     }
-    
+
     const partial = text.substring(start, cursorPos).trimStart();
     return normalizeTagToSearch(partial);
 }
@@ -195,36 +195,23 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    // Find the current tag boundaries
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
-    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
-    const lastSeparator = Math.max(lastComma, lastNewLine);
-    const startPos = lastSeparator === -1 ? 0 : lastSeparator + 1;
-
-    const currentWordStart = text.substring(startPos, cursorPos).search(/\S|$/) + startPos;
-    const currentWordEndMatch = text.substring(cursorPos).match(/^[^,\n]+/);
-
-    let currentWordEnd = cursorPos;
+    const {start: tagStart, end: tagEnd, tag:currentTag} = getCurrentTagRange(text, cursorPos);
+    const replaceStart = Math.min(cursorPos, tagStart);
+    let replaceEnd = cursorPos;
 
     const normalizedTag = normalizeTagToInsert(tagToInsert);
 
-    // If the end match is found, set currentWordEnd to the end of the match
-    if (currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[0]) !== -1) {
-        currentWordEnd = cursorPos + currentWordEndMatch[0].length;
+    const currentTagAfterCursor = text.substring(cursorPos, tagEnd).trimEnd();
+    if(normalizedTag.lastIndexOf(currentTagAfterCursor) !== -1){
+        replaceEnd  = cursorPos + currentTagAfterCursor.length;
     }
 
-    // The range to replace is from the start of the current partial tag
-    // up to the end of the word segment at the cursor.
-    const replaceStart = currentWordStart;
-    // replaceEnd should be at least the cursor position, but extend to cover the word segment if cursor is within it.
-    const replaceEnd = Math.max(cursorPos, currentWordEnd);
-
     // Add space if the previous separator was a comma and we are not at the beginning
-    const needsSpaceBefore = lastSeparator === lastComma && replaceStart > 0 && text[replaceStart - 1] === ',';
+    const needsSpaceBefore = text[replaceStart - 1] === ',';
     const prefix = needsSpaceBefore ? ' ' : '';
 
     // Standard separator (comma + space)
-    const needsSuffixAfter = text[replaceEnd] !== ','
+    const needsSuffixAfter = !",:".includes(text[replaceEnd]); // TODO: If ":" is part of the emoticon, a suffix is ​​required (e.g. ":o")
     const suffix = needsSuffixAfter ? ', ' : '';
 
     const textToInsertWithAffixes = prefix + normalizedTag + suffix;
