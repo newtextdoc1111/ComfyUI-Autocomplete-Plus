@@ -246,24 +246,27 @@ export function extractTagsFromTextArea(textarea) {
  * @returns {{start: number, end: number, tag: string} | null} An object with start, end, and tag string, or null if no tag is found.
  */
 export function getCurrentTagRange(text, cursorPos) {
-    if (text === null || text === undefined || cursorPos < 0 || cursorPos > text.length) {
+    if (!text || typeof text !== 'string') {
         return null;
     }
+
+    // Clamp cursorPos to valid range
+    const clampedCursorPos = Math.min(Math.max(cursorPos, 0), text.length);
 
     const allTags = findAllTagPositions(text);
     let currentTagPos = null;
 
     for (const pos of allTags) {
         // Find the tag whose range [start, end] (inclusive start, exclusive end for substring)
-        if (cursorPos >= pos.start && cursorPos <= pos.end) {
+        if (clampedCursorPos >= pos.start && clampedCursorPos <= pos.end) {
             currentTagPos = { ...pos }; // Clone the position object
             // If cursor is strictly within [pos.start, pos.end), this is a strong candidate.
-            if (cursorPos < pos.end) {
+            if (clampedCursorPos < pos.end) {
                 break;
             }
-            // If cursorPos === pos.end, continue searching to see if a subsequent tag starts exactly here.
-            // If no subsequent tag starts at cursorPos, this currentTagPos (where cursor is at its end) will be used.
-        } else if (currentTagPos && cursorPos < pos.start) {
+            // If clampedCursorPos === pos.end, continue searching to see if a subsequent tag starts exactly here.
+            // If no subsequent tag starts at clampedCursorPos, this currentTagPos (where cursor is at its end) will be used.
+        } else if (currentTagPos && clampedCursorPos < pos.start) {
             // If we had a candidate where cursorPos === pos.end,
             // but now we've passed cursorPos, that candidate was the correct one.
             break;
