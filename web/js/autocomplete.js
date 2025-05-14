@@ -155,33 +155,24 @@ function searchCompletionCandidates(textareaElement) {
 
 /**
  * Extracts the current tag being typed before the cursor.
- * Assumes tags are separated by commas.
  * @param {HTMLTextAreaElement} inputElement
  * @returns {string} The current partial tag.
  */
 function getCurrentPartialTag(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
-
-    // Find the last newline or comma before the cursor
-    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
-
-    // Get the position of the last separator (newline or comma) before cursor
-    const lastSeparator = Math.max(lastNewLine, lastComma);
-    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
-
-    // Check if the cursor is inside a prompt strength/weight modifier (e.g., :1.2, :.5, :1.)
-    const segmentBeforeCursor = text.substring(start, cursorPos);
-    const lastColon = segmentBeforeCursor.lastIndexOf(':');
-    if (lastColon !== -1) {
-        const partAfterColon = segmentBeforeCursor.substring(lastColon + 1);
-        if (partAfterColon.length > 0 && /^[0-9\.]+$/.test(partAfterColon) && /[0-9]/.test(partAfterColon)) {
-            return "";
-        }
+    
+    // Get the tag range at the cursor position
+    const tagRange = getCurrentTagRange(text, cursorPos);
+    
+    // If no tag is found or the cursor is at the start of the tag
+    if (!tagRange) {
+        return "";
     }
-
-    const partial = text.substring(start, cursorPos).trimStart();
+    
+    // Extract the part of the tag up to the cursor position
+    const partial = text.substring(tagRange.start, cursorPos).trimStart();
+    
     return normalizeTagToSearch(partial);
 }
 
@@ -865,3 +856,10 @@ export class AutocompleteEventHandler {
     handleClick(event) {
     }
 }
+
+// Public test hooks - export non-exported functions for testing only
+export const __test_hooks__ = {
+    getCurrentPartialTag,
+    searchCompletionCandidates,
+    // Add other internal functions you want to test
+};
