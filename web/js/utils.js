@@ -80,16 +80,31 @@ export function unescapeParentheses(str) {
 
 /**
  * Removes prompt weights from a tag (e.g., "tag:1.2" becomes "tag").
+ * Preserves tags with colons like "year:2000" or "foo:bar".
+ * Preserves symbol-only tags like ";)" or "^_^".
  * @param {string} str The input tag string.
  * @returns {string} The tag without weight and without surrounding non-escaped brackets.
  */
 export function removePromptWeight(str) {
     if (!str) return str;
 
-    // First remove weight notation (e.g., ":1.2")
-    let result = str.replace(/(.+?):\d+(\.\d+)?/, '$1');
+    // For symbol-only tags (no letters/numbers), return as-is
+    if (!isContainsLetterOrNumber(str)) {
+        return str;
+    }
 
-    // Then remove non-escaped brackets at the beginning and/or end
+    // Only remove weight notation for patterns that look like actual weights
+    // (e.g., ":1.2" where the number is between 0-9.9)
+    let result = str.replace(/(.+?):([0-9](\.\d+)?)$/, (match, p1, p2) => {
+        // If the number after colon is between 0-9.9, it's likely a weight
+        if (parseFloat(p2) <= 9.9) {
+            return p1;
+        }
+        // Otherwise preserve the entire string (like "year:2000")
+        return match;
+    });
+
+    // Only remove non-escaped brackets if the string contains letters or numbers
     // Use negative lookbehind (?<!\\) to avoid matching escaped brackets
     result = result.replace(/^(?<!\\)\((.+)$/, '$1');
     result = result.replace(/^(.+)(?<!\\)\)$/, '$1');
