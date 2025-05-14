@@ -222,6 +222,117 @@ export function extractTagsFromTextArea(textarea) {
     }
     return existingTagsInTextarea;
 }
+
+/**
+ * Gets the start and end indices of the tag at the current cursor position,
+ * applying specific rules for prompt weights and parentheses.
+ * @param {string} text The entire text content.
+ * @param {number} cursorPos The current cursor position in the text.
+ * @returns {{start: number, end: number, tag: string} | null} An object with start, end, and tag string, or null if no tag is found.
+ */
+export function getCurrentTagRange(text, cursorPos) {
+    if (text === null || text === undefined || cursorPos < 0 || cursorPos > text.length) {
+        return null;
+    }
+
+    const allTags = findAllTagPositions(text);
+    let currentTagPos = null;
+
+    for (const pos of allTags) {
+        // Find the tag whose range [start, end] (inclusive start, exclusive end for substring)
+        if (cursorPos >= pos.start && cursorPos <= pos.end) {
+            currentTagPos = { ...pos }; // Clone the position object
+            // If cursor is strictly within [pos.start, pos.end), this is a strong candidate.
+            if (cursorPos < pos.end) {
+                break;
+            }
+            // If cursorPos === pos.end, continue searching to see if a subsequent tag starts exactly here.
+            // If no subsequent tag starts at cursorPos, this currentTagPos (where cursor is at its end) will be used.
+        } else if (currentTagPos && cursorPos < pos.start) {
+            // If we had a candidate where cursorPos === pos.end,
+            // but now we've passed cursorPos, that candidate was the correct one.
+            break;
+        }
+    }
+
+    if (!currentTagPos) {
+        return null;
+    }
+
+    let { tag, start, end } = currentTagPos;
+
+    // Rule 1: If the tag consists only of symbols, return it as is.
+    // (e.g., ";)", ">:)")
+    if (!isContainsLetterOrNumber(tag)) {
+        if (start < end) { // Ensure it's a valid range
+            return { start, end, tag };
+        }
+        return null;
+    }
+
+    // For tags containing letters/numbers, apply rules for parentheses and weights.
+    let adjustedTag = tag;
+    let adjustedStart = start;
+    let adjustedEnd = end;
+
+    // Rule 2: Exclude non-escaped parentheses surrounding the tag.
+    // (e.g., "(black hair:1.0)" -> "black hair:1.0", "foo \(bar\)" -> "foo \(bar\)")
+    // Apply iteratively for cases like "((tag))" if necessary, though typically one layer.
+
+    let changedInParenStep;
+    do {
+        changedInParenStep = false;
+
+        // Remove leading non-escaped parenthesis
+        const leadParenMatch = adjustedTag.match(/^(?<!\\)\((.*)/s);
+        if (leadParenMatch) {
+            const newTag = leadParenMatch[1];
+            adjustedStart += (adjustedTag.length - newTag.length);
+            adjustedTag = newTag;
+            changedInParenStep = true;
+        }
+
+        // Remove trailing non-escaped parenthesis
+        const trailParenMatch = adjustedTag.match(/(.*)(?<!\\)\)$/s);
+        if (trailParenMatch) {
+            const newTag = trailParenMatch[1];
+            adjustedEnd -= (adjustedTag.length - newTag.length);
+            adjustedTag = newTag;
+            changedInParenStep = true;
+        }
+        // If the tag becomes empty or invalid during parenthesis removal, stop.
+        if (adjustedStart >= adjustedEnd) break;
+
+    } while (changedInParenStep && adjustedTag.length > 0);
+
+
+    if (adjustedStart >= adjustedEnd) {
+        return null; // Tag became empty after parenthesis removal
+    }
+
+    // Rule 3: Exclude prompt strength syntax (e.g., ":1.0") but include colons in names.
+    // (e.g., "standing:1.0" -> "standing", "foo:bar" -> "foo:bar")
+    // This applies to the tag *after* parentheses are handled.
+    const weightRegex = /(.*?):(\d+(\.\d+)?)$/;
+    const weightMatch = adjustedTag.match(weightRegex);
+
+    if (weightMatch) {
+        const tagPart = weightMatch[1];
+        const fullWeightString = adjustedTag.substring(tagPart.length);
+
+        if (tagPart.length > 0 || (tagPart.length === 0 && fullWeightString === adjustedTag)) {
+            adjustedEnd -= fullWeightString.length;
+            adjustedTag = tagPart;
+        }
+    }
+
+    if (adjustedStart >= adjustedEnd || adjustedTag.length === 0) {
+        return null; // Tag became empty after all processing
+    }
+
+    return { start: adjustedStart, end: adjustedEnd, tag: adjustedTag };
+}
+
 // --- End String Helper Functions ---
 
 // Function to load a CSS file
