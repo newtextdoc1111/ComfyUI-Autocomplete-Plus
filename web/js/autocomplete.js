@@ -750,6 +750,7 @@ class AutocompleteUI {
 export class AutocompleteEventHandler {
     constructor() {
         this.autocompleteUI = new AutocompleteUI();
+        this.keyDownWithModifier = new Map(); // Keep track of keydown events with modifiers
     }
 
     /**
@@ -761,8 +762,7 @@ export class AutocompleteEventHandler {
         if (!settingValues.enabled) return;
         if (!event.isTrusted) return; // ignore synthetic events
 
-        const textareaElement = event.target;
-        const partialTag = getCurrentPartialTag(textareaElement);
+        const partialTag = getCurrentPartialTag(event.target);
         if (partialTag.length <= 0) {
             this.autocompleteUI.hide();
         }
@@ -791,7 +791,8 @@ export class AutocompleteEventHandler {
     handleKeyDown(event) {
         if (!settingValues.enabled) return;
 
-        const textareaElement = event.target;
+        // Save modifier key (without shiftKey) state when a key is pressed
+        this.keyDownWithModifier.set(event.key.toLowerCase(), event.ctrlKey || event.altKey || event.metaKey);
 
         // Handle autocomplete navigation
         if (this.autocompleteUI && this.autocompleteUI.isVisible()) {
@@ -806,9 +807,10 @@ export class AutocompleteEventHandler {
                     break;
                 case 'Enter':
                 case 'Tab':
-                    if (this.autocompleteUI.getSelectedTag() !== null) {
+                    const modifierKeyPressed = event.shiftKey || event.ctrlKey || event.altKey || event.metaKey;
+                    if (!modifierKeyPressed && this.autocompleteUI.getSelectedTag() !== null) {
                         event.preventDefault();
-                        insertTagToTextArea(textareaElement, this.autocompleteUI.getSelectedTag());
+                        insertTagToTextArea(event.target, this.autocompleteUI.getSelectedTag());
                     }
                     this.autocompleteUI.hide();
                     break;
@@ -827,6 +829,14 @@ export class AutocompleteEventHandler {
      */
     handleKeyUp(event) {
         if (!settingValues.enabled) return;
+
+        const key = event.key.toLowerCase();
+
+        // Check if the key was pressed with a modifier
+        if (this.keyDownWithModifier.get(key)) {
+            this.keyDownWithModifier.delete(key); // Remove the pressed key from the map
+            return;
+        }
 
         // Do not process keyup events if Ctrl, Alt, or Meta keys are pressed.
         // This prevents autocomplete from appearing for shortcuts like Ctrl+C, Ctrl+Z, etc.
