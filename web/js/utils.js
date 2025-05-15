@@ -1,4 +1,20 @@
 // --- String Helper Functions ---
+
+const MAX_PROMPT_WEIGHT_VALUE = 9.9;
+
+// Regex constants
+const REG_ESCAPE_OPEN_PAREN = /(?<!\\)\(/g;
+const REG_ESCAPE_CLOSE_PAREN = /(?<!\\)\)/g;
+const REG_UNESCAPE_OPEN_PAREN = /\\\(/g;
+const REG_UNESCAPE_CLOSE_PAREN = /\\\)/g;
+
+const REG_CONTAINS_LETTER_NUMBER = /[a-zA-Z0-9\u3040-\u30ff\u3400-\u4DBF\u4e00-\u9faf\uac00-\ud7af\u0400-\u04FF\u0590-\u05FF]/;
+
+const REG_PROMPT_WEIGHT = /(.*?):([0-9](\.\d+)?)$/;
+
+const REG_STRIP_LEADING_PAREN = /^(?<!\\)\((.*)/s;
+const REG_STRIP_TRAILING_PAREN = /(.*)(?<!\\)\)$/s;
+
 const REG_WILDCARD_WEIGHTED_TAG = /(\d+)[_\s]*::(.*?)(?=\||$)/g;
 const REG_WILDCARD_SIMPLE_WORD = /[^{}_|]+/g;
 
@@ -66,7 +82,7 @@ export function formatCountHumanReadable(num) {
 export function escapeParentheses(str) {
     if (!str) return str;
     // Use lookbehind assertions to avoid double escaping
-    return str.replace(/(?<!\\)\(/g, '\\(').replace(/(?<!\\)\)/g, '\\)');
+    return str.replace(REG_ESCAPE_OPEN_PAREN, '\\(').replace(REG_ESCAPE_CLOSE_PAREN, '\\)');
 }
 
 /**
@@ -77,7 +93,7 @@ export function escapeParentheses(str) {
  */
 export function unescapeParentheses(str) {
     if (!str) return str;
-    return str.replace(/\\\(/g, '(').replace(/\\\)/g, ')');
+    return str.replace(REG_UNESCAPE_OPEN_PAREN, '(').replace(REG_UNESCAPE_CLOSE_PAREN, ')');
 }
 
 /**
@@ -99,7 +115,7 @@ export function removePromptWeight(str) {
     // (e.g., ":1.2" where the number is between 0-9.9)
     let result = str.replace(/(.+?):([0-9](\.\d+)?)$/, (match, p1, p2) => {
         // If the number after colon is between 0-9.9, it's likely a weight
-        if (parseFloat(p2) <= 9.9) {
+        if (parseFloat(p2) <= MAX_PROMPT_WEIGHT_VALUE) {
             return p1;
         }
         // Otherwise preserve the entire string (like "year:2000")
@@ -123,7 +139,7 @@ export function removePromptWeight(str) {
 export function isContainsLetterOrNumber(str) {
     if (!str) return false;
     // Check if the string contains at least one letter or number (Latin, Japanese, Korean, CJK Extension A, Cyrillic, Hebrew)
-    return /[a-zA-Z0-9\u3040-\u30ff\u3400-\u4DBF\u4e00-\u9faf\uac00-\ud7af\u0400-\u04FF\u0590-\u05FF]/.test(str);
+    return REG_CONTAINS_LETTER_NUMBER.test(str);
 }
 
 /**
@@ -414,7 +430,7 @@ export function getCurrentTagRange(text, cursorPos) {
         changedInParenStep = false;
 
         // Remove leading non-escaped parenthesis
-        const leadParenMatch = adjustedTag.match(/^(?<!\\)\((.*)/s);
+        const leadParenMatch = adjustedTag.match(REG_STRIP_LEADING_PAREN);
         if (leadParenMatch) {
             const newTag = leadParenMatch[1];
             adjustedStart += (adjustedTag.length - newTag.length);
@@ -423,7 +439,7 @@ export function getCurrentTagRange(text, cursorPos) {
         }
 
         // Remove trailing non-escaped parenthesis
-        const trailParenMatch = adjustedTag.match(/(.*)(?<!\\)\)$/s);
+        const trailParenMatch = adjustedTag.match(REG_STRIP_TRAILING_PAREN);
         if (trailParenMatch) {
             const newTag = trailParenMatch[1];
             adjustedEnd -= (adjustedTag.length - newTag.length);
@@ -443,15 +459,14 @@ export function getCurrentTagRange(text, cursorPos) {
     // Rule 3: Exclude prompt strength syntax (e.g., ":1.0") but include colons in names.
     // (e.g., "standing:1.0" -> "standing", "foo:bar" -> "foo:bar", "year:2000" -> "year:2000")
     // This applies to the tag *after* parentheses are handled.
-    const weightRegex = /(.*?):([0-9](\.\d+)?)$/;
-    const weightMatch = adjustedTag.match(weightRegex);
+    const weightMatch = adjustedTag.match(REG_PROMPT_WEIGHT);
 
     if (weightMatch) {
         const tagPart = weightMatch[1];
         const weightValue = weightMatch[2];
         // Only consider it as a weight if it's a simple number between 0-9 possibly with decimal
         // Don't treat larger numbers like :1999 or :2000 as weights
-        if (parseFloat(weightValue) <= 9.9) {
+        if (parseFloat(weightValue) <= MAX_PROMPT_WEIGHT_VALUE) {
             const fullWeightString = adjustedTag.substring(tagPart.length);
             if (tagPart.length > 0 || (tagPart.length === 0 && fullWeightString === adjustedTag)) {
                 adjustedEnd -= fullWeightString.length;
