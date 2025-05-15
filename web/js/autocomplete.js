@@ -161,18 +161,39 @@ function searchCompletionCandidates(textareaElement) {
 function getCurrentPartialTag(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
-    
+
+    // Find the last newline or comma before the cursor
+    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
+    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+
+    // Get the position of the last separator (newline or comma) before cursor
+    const lastSeparator = Math.max(lastNewLine, lastComma);
+    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
+
+    // Check if the cursor is inside a prompt weight modifier (e.g., :1.2, :.5, :1.)
+    const segmentBeforeCursor = text.substring(start, cursorPos);
+    const lastColon = segmentBeforeCursor.lastIndexOf(':');
+    if (lastColon !== -1) {
+        const partAfterColon = segmentBeforeCursor.substring(lastColon + 1);
+        const weight = parseFloat(partAfterColon);
+
+        // If weight is a valid number and less than 10, return empty string
+        if (weight !== NaN && weight <= 9.9) {
+            return "";
+        }
+    }
+
     // Get the tag range at the cursor position
     const tagRange = getCurrentTagRange(text, cursorPos);
-    
-    // If no tag is found or the cursor is at the start of the tag
-    if (!tagRange) {
+
+    // If no tag is found or the cursor is before the start of the tag, return empty string
+    if (!tagRange || cursorPos <= tagRange.start) {
         return "";
     }
-    
+
     // Extract the part of the tag up to the cursor position
     const partial = text.substring(tagRange.start, cursorPos).trimStart();
-    
+
     return normalizeTagToSearch(partial);
 }
 
@@ -186,15 +207,15 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    const {start: tagStart, end: tagEnd, tag:currentTag} = getCurrentTagRange(text, cursorPos);
+    const { start: tagStart, end: tagEnd, tag: currentTag } = getCurrentTagRange(text, cursorPos);
     const replaceStart = Math.min(cursorPos, tagStart);
     let replaceEnd = cursorPos;
 
     const normalizedTag = normalizeTagToInsert(tagToInsert);
 
     const currentTagAfterCursor = text.substring(cursorPos, tagEnd).trimEnd();
-    if(normalizedTag.lastIndexOf(currentTagAfterCursor) !== -1){
-        replaceEnd  = cursorPos + currentTagAfterCursor.length;
+    if (normalizedTag.lastIndexOf(currentTagAfterCursor) !== -1) {
+        replaceEnd = cursorPos + currentTagAfterCursor.length;
     }
 
     // Add space if the previous separator was a comma and we are not at the beginning
