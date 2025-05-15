@@ -738,8 +738,8 @@ export class RelatedTagsEventHandler {
      * @returns 
      */
     handleClick(event) {
-        // Check trigger mode from settings
-        if (settingValues.relatedTagsTriggerMode === 'ctrl+Click' && !event.ctrlKey) {
+        // Hide related tags UI if not Ctrl+Click and not pinned when trigger mode is 'ctrl+Click'
+        if (settingValues.relatedTagsTriggerMode === 'ctrl+Click' && !event.ctrlKey && !this.relatedTagsUI.isPinned) {
             this.relatedTagsUI.hide();
             return;
         }
