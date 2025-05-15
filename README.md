@@ -37,7 +37,7 @@ When you type in a text input area, tags that partially match the text are displ
 
 - Tag aliases are also included in the search. Japanese hiragana and katakana are searched without distinction.
 - Tags are color-coded by category. The color-coding rules are the same as Danbooru.
-- Existing tags are displayed in gray. If a grayed-out tag is confirmed, the existing tag will be selected instead.
+- Tags that have already been entered are displayed grayed out.
 
 ## Related Tags
 
@@ -48,6 +48,7 @@ When you select any tag in a text input area, highly related tags list are displ
 - The display position is primarily at the bottom of the text area and automatically adjusts vertically based on available space.
   - You can switch between vertical and horizontal display positions using the "↕️|↔️" button in the header.
 - You can toggle the pinned state of the displayed related tags using the "📌|🎯" button in the header. To close the UI when pinned, press the Esc key.
+- Tags that have already been entered are displayed grayed out. If you try to insert a grayed-out tag, the already entered tag will instead be selected.
 - You can display related tags for the cursor position by pressing `Ctrl+Shift+Space`.
 
 ## CSV Data

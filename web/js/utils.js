@@ -80,20 +80,48 @@ export function unescapeParentheses(str) {
 
 /**
  * Removes prompt weights from a tag (e.g., "tag:1.2" becomes "tag").
+ * Preserves tags with colons like "year:2000" or "foo:bar".
+ * Preserves symbol-only tags like ";)" or "^_^".
  * @param {string} str The input tag string.
  * @returns {string} The tag without weight and without surrounding non-escaped brackets.
  */
 export function removePromptWeight(str) {
     if (!str) return str;
 
-    // First remove weight notation (e.g., ":1.2")
-    let result = str.replace(/(.+?):\d+(\.\d+)?/, '$1');
+    // For symbol-only tags (no letters/numbers), return as-is
+    if (!isContainsLetterOrNumber(str)) {
+        return str;
+    }
 
-    // Then remove non-escaped brackets at the beginning and/or end
+    // Only remove weight notation for patterns that look like actual weights
+    // (e.g., ":1.2" where the number is between 0-9.9)
+    let result = str.replace(/(.+?):([0-9](\.\d+)?)$/, (match, p1, p2) => {
+        // If the number after colon is between 0-9.9, it's likely a weight
+        if (parseFloat(p2) <= 9.9) {
+            return p1;
+        }
+        // Otherwise preserve the entire string (like "year:2000")
+        return match;
+    });
+
+    // Only remove non-escaped brackets if the string contains letters or numbers
     // Use negative lookbehind (?<!\\) to avoid matching escaped brackets
     result = result.replace(/^(?<!\\)\((.+)$/, '$1');
     result = result.replace(/^(.+)(?<!\\)\)$/, '$1');
     return result;
+}
+
+/**
+ * Checks if a string contains at least one letter or number.
+ * This includes Latin letters, Japanese characters, Korean characters,
+ * CJK Extension A, Cyrillic letters, and Hebrew letters.
+ * @param {string} str The input string.
+ * @returns {boolean} True if the string contains at least one letter or number, false otherwise.
+ */
+export function isContainsLetterOrNumber(str) {
+    if (!str) return false;
+    // Check if the string contains at least one letter or number (Latin, Japanese, Korean, CJK Extension A, Cyrillic, Hebrew)
+    return /[a-zA-Z0-9\u3040-\u30ff\u3400-\u4DBF\u4e00-\u9faf\uac00-\ud7af\u0400-\u04FF\u0590-\u05FF]/.test(str);
 }
 
 /**
@@ -103,16 +131,29 @@ export function removePromptWeight(str) {
  */
 export function normalizeTagToSearch(str) {
     if (!str) return str;
-    return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
+    
+    if (isContainsLetterOrNumber(str)) {
+        return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
+    }
+
+    return unescapeParentheses(removePromptWeight(str));
 }
 
 /**
  * Normalizes a tag string for input.
+ * Converts underscores to spaces only if the tag contains at least one letter or number.
+ * Keeps underscores for tags that are only symbols (e.g. "^_^").
  * @param {string} str 
- * @returns 
+ * @returns {string}
  */
 export function normalizeTagToInsert(str) {
-    return escapeParentheses(str.replace(/_/g, " "));
+    if (!str) return str;
+
+    if (isContainsLetterOrNumber(str)) {
+        return escapeParentheses(str.replace(/_/g, " "));
+    }
+    // Otherwise, keep as is (for emoji/face tags)
+    return escapeParentheses(str);
 }
 
 /**
@@ -196,6 +237,124 @@ export function extractTagsFromTextArea(textarea) {
     }
     return existingTagsInTextarea;
 }
+
+/**
+ * Gets the start and end indices of the tag at the current cursor position,
+ * applying specific rules for prompt weights and parentheses.
+ * @param {string} text The entire text content.
+ * @param {number} cursorPos The current cursor position in the text.
+ * @returns {{start: number, end: number, tag: string} | null} An object with start, end, and tag string, or null if no tag is found.
+ */
+export function getCurrentTagRange(text, cursorPos) {
+    if (!text || typeof text !== 'string') {
+        return null;
+    }
+
+    // Clamp cursorPos to valid range
+    const clampedCursorPos = Math.min(Math.max(cursorPos, 0), text.length);
+
+    const allTags = findAllTagPositions(text);
+    let currentTagPos = null;
+
+    for (const pos of allTags) {
+        // Find the tag whose range [start, end] (inclusive start, exclusive end for substring)
+        if (clampedCursorPos >= pos.start && clampedCursorPos <= pos.end) {
+            currentTagPos = { ...pos }; // Clone the position object
+            // If cursor is strictly within [pos.start, pos.end), this is a strong candidate.
+            if (clampedCursorPos < pos.end) {
+                break;
+            }
+            // If clampedCursorPos === pos.end, continue searching to see if a subsequent tag starts exactly here.
+            // If no subsequent tag starts at clampedCursorPos, this currentTagPos (where cursor is at its end) will be used.
+        } else if (currentTagPos && clampedCursorPos < pos.start) {
+            // If we had a candidate where cursorPos === pos.end,
+            // but now we've passed cursorPos, that candidate was the correct one.
+            break;
+        }
+    }
+
+    if (!currentTagPos) {
+        return null;
+    }
+
+    let { tag, start, end } = currentTagPos;
+
+    // Rule 1: If the tag consists only of symbols, return it as is.
+    // (e.g., ";)", ">:)")
+    if (!isContainsLetterOrNumber(tag)) {
+        if (start < end) { // Ensure it's a valid range
+            return { start, end, tag };
+        }
+        return null;
+    }
+
+    // For tags containing letters/numbers, apply rules for parentheses and weights.
+    let adjustedTag = tag;
+    let adjustedStart = start;
+    let adjustedEnd = end;
+
+    // Rule 2: Exclude non-escaped parentheses surrounding the tag.
+    // (e.g., "(black hair:1.0)" -> "black hair:1.0", "foo \(bar\)" -> "foo \(bar\)")
+    // Apply iteratively for cases like "((tag))" if necessary, though typically one layer.
+
+    let changedInParenStep;
+    do {
+        changedInParenStep = false;
+
+        // Remove leading non-escaped parenthesis
+        const leadParenMatch = adjustedTag.match(/^(?<!\\)\((.*)/s);
+        if (leadParenMatch) {
+            const newTag = leadParenMatch[1];
+            adjustedStart += (adjustedTag.length - newTag.length);
+            adjustedTag = newTag;
+            changedInParenStep = true;
+        }
+
+        // Remove trailing non-escaped parenthesis
+        const trailParenMatch = adjustedTag.match(/(.*)(?<!\\)\)$/s);
+        if (trailParenMatch) {
+            const newTag = trailParenMatch[1];
+            adjustedEnd -= (adjustedTag.length - newTag.length);
+            adjustedTag = newTag;
+            changedInParenStep = true;
+        }
+        // If the tag becomes empty or invalid during parenthesis removal, stop.
+        if (adjustedStart >= adjustedEnd) break;
+
+    } while (changedInParenStep && adjustedTag.length > 0);
+
+
+    if (adjustedStart >= adjustedEnd) {
+        return null; // Tag became empty after parenthesis removal
+    }
+
+    // Rule 3: Exclude prompt strength syntax (e.g., ":1.0") but include colons in names.
+    // (e.g., "standing:1.0" -> "standing", "foo:bar" -> "foo:bar", "year:2000" -> "year:2000")
+    // This applies to the tag *after* parentheses are handled.
+    const weightRegex = /(.*?):([0-9](\.\d+)?)$/;
+    const weightMatch = adjustedTag.match(weightRegex);
+
+    if (weightMatch) {
+        const tagPart = weightMatch[1];
+        const weightValue = weightMatch[2];
+        // Only consider it as a weight if it's a simple number between 0-9 possibly with decimal
+        // Don't treat larger numbers like :1999 or :2000 as weights
+        if (parseFloat(weightValue) <= 9.9) {
+            const fullWeightString = adjustedTag.substring(tagPart.length);
+            if (tagPart.length > 0 || (tagPart.length === 0 && fullWeightString === adjustedTag)) {
+                adjustedEnd -= fullWeightString.length;
+                adjustedTag = tagPart;
+            }
+        }
+    }
+
+    if (adjustedStart >= adjustedEnd || adjustedTag.length === 0) {
+        return null; // Tag became empty after all processing
+    }
+
+    return { start: adjustedStart, end: adjustedEnd, tag: adjustedTag };
+}
+
 // --- End String Helper Functions ---
 
 // Function to load a CSS file

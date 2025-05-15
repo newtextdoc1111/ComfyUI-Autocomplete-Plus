@@ -7,15 +7,58 @@ import {
     formatCountHumanReadable,
     hiraToKata,
     kataToHira,
+    isContainsLetterOrNumber,
     normalizeTagToInsert,
     normalizeTagToSearch,
-    findAllTagPositions,
     extractTagsFromTextArea,
+    getCurrentTagRange,
     getViewportMargin
 } from './utils.js';
 import { settingValues } from './settings.js';
 
 // --- Autocomplete Logic ---
+
+/**
+ * Uses a set of variations to match a target string.
+ * @param {string} target - The target word to match.
+ * @param {Set<string>} queries - Set of query variations.
+ * @returns {{matched: boolean, isExactMatch: boolean}}
+ */
+function matchWord(target, queries) {
+    let matched = false;
+    let isExactMatch = false;
+    for (const variation of queries) {
+        if (target === variation) {
+            isExactMatch = true;
+            matched = true;
+            break;
+        }
+    }
+    if (!isExactMatch) {
+        for (const variation of queries) {
+            if (!isContainsLetterOrNumber(variation)) {
+                // If the query variation contains only symbols,
+                // match if the target also contains only symbols and includes the variation.
+                if (!isContainsLetterOrNumber(target) && target.includes(variation)) {
+                    matched = true;
+                    break;
+                }
+            } else {
+                // If the query variation contains letters or numbers, attempt a partial match.
+                if (target.includes(variation)) {
+                    matched = true;
+                    break;
+                    // If direct partial match fails, try matching after removing
+                    // common symbols from both target and variation.
+                } else if (target.replace(/[-_\s']/g, '').includes(variation.replace(/[-_\s']/g, ''))) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+    }
+    return { matched, isExactMatch };
+}
 
 /**
  * Search tag completion candidates based on the current input and cursor position in the textarea.
@@ -52,73 +95,32 @@ function searchCompletionCandidates(textareaElement) {
         let isExactMatch = false;
         let matchedAlias = null;
 
-        // Check primary tag against all variations for exact match first
-        for (const variation of queryVariations) {
-            if (tagData.tag === variation) {
-                isExactMatch = true;
-                matched = true;
-                break;
-            }
-        }
-
-        // If not an exact match, check for partial matches in the tag
-        if (!isExactMatch) {
-            for (const variation of queryVariations) {
-                if (tagData.tag.includes(variation)) {
-                    matched = true;
-                    break;
-                } else if (tagData.tag.replace(/[\-_\s']/g, '').includes(variation.replace(/[\-_\s']/g, ''))) {
-                    // Try to match with underscore, dash, or apostrophe removed
-                    matched = true;
-                    break;
-                }
-            }
-        }
+        // Check primary tag against all variations for exact/partial match
+        const tagMatch = matchWord(tagData.tag, queryVariations);
+        matched = tagMatch.matched;
+        isExactMatch = tagMatch.isExactMatch;
 
         // If primary tag didn't match, check aliases against all variations
         if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
             for (const alias of tagData.alias) {
                 const lowerAlias = alias.toLowerCase();
-
-                // Check for exact matches in aliases first
-                for (const variation of queryVariations) {
-                    if (lowerAlias === variation) {
-                        isExactMatch = true;
-                        matched = true;
-                        matchedAlias = alias;
-                        break;
-                    }
+                const aliasMatch = matchWord(lowerAlias, queryVariations);
+                if (aliasMatch.matched) {
+                    matched = true;
+                    isExactMatch = aliasMatch.isExactMatch;
+                    matchedAlias = alias;
+                    break;
                 }
-
-                // If not an exact match in alias, check for partial matches
-                if (!isExactMatch) {
-                    for (const variation of queryVariations) {
-                        if (lowerAlias.includes(variation)) {
-                            matched = true;
-                            matchedAlias = alias;
-                            break;
-                        }
-                    }
-                }
-
-                if (matched) break; // Stop checking aliases for this tag if one matched
             }
         }
 
         // Add candidate if matched and not already added
         if (matched && !addedTags.has(tagData.tag)) {
-            const candidateItem = {
-                tag: tagData.tag,
-                alias: tagData.alias,
-                category: tagData.category,
-                count: tagData.count,
-            };
-
             // Add to exact matches or partial matches based on match type
             if (isExactMatch) {
-                exactMatches.push(candidateItem);
+                exactMatches.push(tagData);
             } else {
-                partialMatches.push(candidateItem);
+                partialMatches.push(tagData);
             }
 
             addedTags.add(tagData.tag);
@@ -153,7 +155,6 @@ function searchCompletionCandidates(textareaElement) {
 
 /**
  * Extracts the current tag being typed before the cursor.
- * Assumes tags are separated by commas.
  * @param {HTMLTextAreaElement} inputElement
  * @returns {string} The current partial tag.
  */
@@ -169,8 +170,30 @@ function getCurrentPartialTag(inputElement) {
     const lastSeparator = Math.max(lastNewLine, lastComma);
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
-    // Extract the text between the last comma (or start) and the cursor
-    const partial = text.substring(start, cursorPos).trimStart();
+    // Check if the cursor is inside a prompt weight modifier (e.g., :1.2, :.5, :1.)
+    const segmentBeforeCursor = text.substring(start, cursorPos);
+    const lastColon = segmentBeforeCursor.lastIndexOf(':');
+    if (lastColon !== -1) {
+        const partAfterColon = segmentBeforeCursor.substring(lastColon + 1);
+        const weight = parseFloat(partAfterColon);
+
+        // If weight is a valid number and less than 10, return empty string
+        if (weight !== NaN && weight <= 9.9) {
+            return "";
+        }
+    }
+
+    // Get the tag range at the cursor position
+    const tagRange = getCurrentTagRange(text, cursorPos);
+
+    // If no tag is found or the cursor is before the start of the tag, return empty string
+    if (!tagRange || cursorPos <= tagRange.start) {
+        return "";
+    }
+
+    // Extract the part of the tag up to the cursor position
+    const partial = text.substring(tagRange.start, cursorPos).trimStart();
+
     return normalizeTagToSearch(partial);
 }
 
@@ -184,36 +207,23 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    // Find the current tag boundaries
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
-    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
-    const lastSeparator = Math.max(lastComma, lastNewLine);
-    const startPos = lastSeparator === -1 ? 0 : lastSeparator + 1;
+    const { start: tagStart, end: tagEnd, tag: currentTag } = getCurrentTagRange(text, cursorPos);
+    const replaceStart = Math.min(cursorPos, tagStart);
+    let replaceEnd = cursorPos;
 
-    const currentWordStart = text.substring(startPos, cursorPos).search(/\S|$/) + startPos;
-    const currentWordEndMatch = text.substring(cursorPos).match(/^[^,\n]+/);
-
-    let currentWordEnd = cursorPos;
-    
     const normalizedTag = normalizeTagToInsert(tagToInsert);
 
-    // If the end match is found, set currentWordEnd to the end of the match
-    if (currentWordEndMatch && normalizedTag.lastIndexOf(currentWordEndMatch[0]) !== -1) {
-        currentWordEnd = cursorPos + currentWordEndMatch[0].length;
+    const currentTagAfterCursor = text.substring(cursorPos, tagEnd).trimEnd();
+    if (normalizedTag.lastIndexOf(currentTagAfterCursor) !== -1) {
+        replaceEnd = cursorPos + currentTagAfterCursor.length;
     }
 
-    // The range to replace is from the start of the current partial tag
-    // up to the end of the word segment at the cursor.
-    const replaceStart = currentWordStart;
-    // replaceEnd should be at least the cursor position, but extend to cover the word segment if cursor is within it.
-    const replaceEnd = Math.max(cursorPos, currentWordEnd);
-
     // Add space if the previous separator was a comma and we are not at the beginning
-    const needsSpaceBefore = lastSeparator === lastComma && replaceStart > 0 && text[replaceStart - 1] === ',';
+    const needsSpaceBefore = text[replaceStart - 1] === ',';
     const prefix = needsSpaceBefore ? ' ' : '';
 
     // Standard separator (comma + space)
-    const needsSuffixAfter = text[replaceEnd] !== ','
+    const needsSuffixAfter = !",:".includes(text[replaceEnd]); // TODO: If ":" is part of the emoticon, a suffix is ​​required (e.g. ":o")
     const suffix = needsSuffixAfter ? ', ' : '';
 
     const textToInsertWithAffixes = prefix + normalizedTag + suffix;
@@ -431,7 +441,7 @@ class AutocompleteUI {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         const margin = getViewportMargin();
-        
+
         const targetRect = this.target.getBoundingClientRect();
         const targetElmOffset = this.#calculateElementOffset(this.target);
 
@@ -525,7 +535,7 @@ class AutocompleteUI {
 
         this.hide();
     }
-    
+
     /**
      * Gets the pixel coordinates of the caret in the input element.
      * Uses a temporary div to calculate the position accurately.
@@ -723,7 +733,7 @@ class AutocompleteUI {
         if (defaultView == null) {
             throw new Error("Given element does not belong to window");
         }
-        
+
         const offset = {
             top: rect.top + defaultView.pageYOffset,
             left: rect.left + defaultView.pageXOffset,
