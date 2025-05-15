@@ -677,9 +677,16 @@ export class RelatedTagsEventHandler {
      * @param {KeyboardEvent} event 
      */
     handleKeyDown(event) {
-        const textareaElement = event.target;
+        // If related tags UI is pinned, don't handle key events except for Escape
+        if (this.relatedTagsUI.isPinned) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.relatedTagsUI.hide();
+            }
+            return;
+        }
 
-        // For related tags panel, handle Escape key
+        // Handle key events for related tags UI
         if (this.relatedTagsUI.isVisible()) {
             switch (event.key) {
                 case 'ArrowDown':
@@ -706,11 +713,11 @@ export class RelatedTagsEventHandler {
             }
         }
 
-        // Show related tags on Ctrl+Space
+        // Show related tags on Ctrl+Shift+Space
         if (settingValues.enableRelatedTags) {
             if (event.key === ' ' && event.ctrlKey && event.shiftKey) {
                 event.preventDefault();
-                this.relatedTagsUI.show(textareaElement);
+                this.relatedTagsUI.show(event.target);
             }
         }
     }
