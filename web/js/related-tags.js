@@ -46,13 +46,13 @@ function calculateJaccardSimilarity(tagA, tagB) {
 export function getTagFromCursorPosition(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
-    
+
     // Use getCurrentTagRange to get the tag at the cursor position
     const tagRange = getCurrentTagRange(text, cursorPos);
-    
+
     // If no tag was found at the cursor position
     if (!tagRange) return null;
-    
+
     // Return the normalized tag for searching
     return normalizeTagToSearch(tagRange.tag);
 }
@@ -98,12 +98,12 @@ function searchRelatedTags(tag) {
     // Limit to max number of suggestions
     const result = relatedTags.slice(0, settingValues.maxRelatedTags);
 
-    if(settingValues._logprocessingTime) {
+    if (settingValues._logprocessingTime) {
         const endTime = performance.now();
         const duration = endTime - startTime;
         console.debug(`[Autocomplete-Plus] Find tags to related "${tag}" took ${duration.toFixed(2)}ms.`);
     }
-    
+
     return result;
 }
 
