@@ -120,8 +120,7 @@ worst_quality,5,9999999,
 ### Autocomplete
 
 ### Related Tags
-- When the UI is pinned, some keys other than specific ones may be entered into the text area during keyboard input.
-
+- Cannot retrieve the correct tag when clicking on a dynamic prompt like `from {above|below|side}`. This is because the exact tag is not determined until the wildcard processor is executed.
 
 ## Credits
 
