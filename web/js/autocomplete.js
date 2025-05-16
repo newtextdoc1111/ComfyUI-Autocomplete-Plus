@@ -19,7 +19,7 @@ import { settingValues } from './settings.js';
 // --- Autocomplete Logic ---
 
 /**
- * Uses a set of variations to match a target string.
+ * Checks if a target string matches any of the query variations based on several rules.
  * @param {string} target - The target word to match.
  * @param {Set<string>} queries - Set of query variations.
  * @returns {{matched: boolean, isExactMatch: boolean}}
@@ -34,11 +34,19 @@ function matchWord(target, queries) {
             break;
         }
     }
+
     if (!isExactMatch) {
         for (const variation of queries) {
-            if (!isContainsLetterOrNumber(variation)) {
+            const hasWildcardPrefix = variation.startsWith('__');
+            if (hasWildcardPrefix) {
+                // If variation has wildcard prefix, only attempt a direct partial match. (e.g. "__wildcard__")
+                if (target.includes(variation)) {
+                    matched = true;
+                    break;
+                }
+            } else if (!isContainsLetterOrNumber(variation)) {
                 // If the query variation contains only symbols,
-                // match if the target also contains only symbols and includes the variation.
+                // match if the target also contains only symbols and includes the variation. (e.g. "^_^", "^^^")
                 if (!isContainsLetterOrNumber(target) && target.includes(variation)) {
                     matched = true;
                     break;
@@ -48,15 +56,17 @@ function matchWord(target, queries) {
                 if (target.includes(variation)) {
                     matched = true;
                     break;
-                    // If direct partial match fails, try matching after removing
-                    // common symbols from both target and variation.
-                } else if (target.replace(/[-_\s']/g, '').includes(variation.replace(/[-_\s']/g, ''))) {
+                }
+                // If direct partial match fails, try matching after removing
+                // common symbols from both target and variation.
+                else if (target.replace(/[-_\s']/g, '').includes(variation.replace(/[-_\s']/g, ''))) {
                     matched = true;
                     break;
                 }
             }
         }
     }
+
     return { matched, isExactMatch };
 }
 
