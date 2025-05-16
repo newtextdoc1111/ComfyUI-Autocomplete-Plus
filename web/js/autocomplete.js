@@ -19,7 +19,7 @@ import { settingValues } from './settings.js';
 // --- Autocomplete Logic ---
 
 /**
- * Uses a set of variations to match a target string.
+ * Checks if a target string matches any of the query variations based on several rules.
  * @param {string} target - The target word to match.
  * @param {Set<string>} queries - Set of query variations.
  * @returns {{matched: boolean, isExactMatch: boolean}}
@@ -34,11 +34,19 @@ function matchWord(target, queries) {
             break;
         }
     }
+
     if (!isExactMatch) {
         for (const variation of queries) {
-            if (!isContainsLetterOrNumber(variation)) {
+            const hasWildcardPrefix = variation.startsWith('__');
+            if (hasWildcardPrefix) {
+                // If variation has wildcard prefix, only attempt a direct partial match. (e.g. "__wildcard__")
+                if (target.includes(variation)) {
+                    matched = true;
+                    break;
+                }
+            } else if (!isContainsLetterOrNumber(variation)) {
                 // If the query variation contains only symbols,
-                // match if the target also contains only symbols and includes the variation.
+                // match if the target also contains only symbols and includes the variation. (e.g. "^_^", "^^^")
                 if (!isContainsLetterOrNumber(target) && target.includes(variation)) {
                     matched = true;
                     break;
@@ -48,15 +56,17 @@ function matchWord(target, queries) {
                 if (target.includes(variation)) {
                     matched = true;
                     break;
-                    // If direct partial match fails, try matching after removing
-                    // common symbols from both target and variation.
-                } else if (target.replace(/[-_\s']/g, '').includes(variation.replace(/[-_\s']/g, ''))) {
+                }
+                // If direct partial match fails, try matching after removing
+                // common symbols from both target and variation.
+                else if (target.replace(/[-_\s']/g, '').includes(variation.replace(/[-_\s']/g, ''))) {
                     matched = true;
                     break;
                 }
             }
         }
     }
+
     return { matched, isExactMatch };
 }
 
@@ -750,6 +760,7 @@ class AutocompleteUI {
 export class AutocompleteEventHandler {
     constructor() {
         this.autocompleteUI = new AutocompleteUI();
+        this.keyDownWithModifier = new Map(); // Keep track of keydown events with modifiers
     }
 
     /**
@@ -761,8 +772,7 @@ export class AutocompleteEventHandler {
         if (!settingValues.enabled) return;
         if (!event.isTrusted) return; // ignore synthetic events
 
-        const textareaElement = event.target;
-        const partialTag = getCurrentPartialTag(textareaElement);
+        const partialTag = getCurrentPartialTag(event.target);
         if (partialTag.length <= 0) {
             this.autocompleteUI.hide();
         }
@@ -791,7 +801,8 @@ export class AutocompleteEventHandler {
     handleKeyDown(event) {
         if (!settingValues.enabled) return;
 
-        const textareaElement = event.target;
+        // Save modifier key (without shiftKey) state when a key is pressed
+        this.keyDownWithModifier.set(event.key.toLowerCase(), event.ctrlKey || event.altKey || event.metaKey);
 
         // Handle autocomplete navigation
         if (this.autocompleteUI && this.autocompleteUI.isVisible()) {
@@ -806,9 +817,10 @@ export class AutocompleteEventHandler {
                     break;
                 case 'Enter':
                 case 'Tab':
-                    if (this.autocompleteUI.getSelectedTag() !== null) {
+                    const modifierKeyPressed = event.shiftKey || event.ctrlKey || event.altKey || event.metaKey;
+                    if (!modifierKeyPressed && this.autocompleteUI.getSelectedTag() !== null) {
                         event.preventDefault();
-                        insertTagToTextArea(textareaElement, this.autocompleteUI.getSelectedTag());
+                        insertTagToTextArea(event.target, this.autocompleteUI.getSelectedTag());
                     }
                     this.autocompleteUI.hide();
                     break;
@@ -827,6 +839,14 @@ export class AutocompleteEventHandler {
      */
     handleKeyUp(event) {
         if (!settingValues.enabled) return;
+
+        const key = event.key.toLowerCase();
+
+        // Check if the key was pressed with a modifier
+        if (this.keyDownWithModifier.get(key)) {
+            this.keyDownWithModifier.delete(key); // Remove the pressed key from the map
+            return;
+        }
 
         // Do not process keyup events if Ctrl, Alt, or Meta keys are pressed.
         // This prevents autocomplete from appearing for shortcuts like Ctrl+C, Ctrl+Z, etc.

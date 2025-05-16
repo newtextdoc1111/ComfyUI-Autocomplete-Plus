@@ -46,13 +46,13 @@ function calculateJaccardSimilarity(tagA, tagB) {
 export function getTagFromCursorPosition(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
-    
+
     // Use getCurrentTagRange to get the tag at the cursor position
     const tagRange = getCurrentTagRange(text, cursorPos);
-    
+
     // If no tag was found at the cursor position
     if (!tagRange) return null;
-    
+
     // Return the normalized tag for searching
     return normalizeTagToSearch(tagRange.tag);
 }
@@ -98,12 +98,12 @@ function searchRelatedTags(tag) {
     // Limit to max number of suggestions
     const result = relatedTags.slice(0, settingValues.maxRelatedTags);
 
-    if(settingValues._logprocessingTime) {
+    if (settingValues._logprocessingTime) {
         const endTime = performance.now();
         const duration = endTime - startTime;
         console.debug(`[Autocomplete-Plus] Find tags to related "${tag}" took ${duration.toFixed(2)}ms.`);
     }
-    
+
     return result;
 }
 
@@ -677,9 +677,16 @@ export class RelatedTagsEventHandler {
      * @param {KeyboardEvent} event 
      */
     handleKeyDown(event) {
-        const textareaElement = event.target;
+        // If related tags UI is pinned, don't handle key events except for Escape
+        if (this.relatedTagsUI.isPinned) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.relatedTagsUI.hide();
+            }
+            return;
+        }
 
-        // For related tags panel, handle Escape key
+        // Handle key events for related tags UI
         if (this.relatedTagsUI.isVisible()) {
             switch (event.key) {
                 case 'ArrowDown':
@@ -706,11 +713,11 @@ export class RelatedTagsEventHandler {
             }
         }
 
-        // Show related tags on Ctrl+Space
+        // Show related tags on Ctrl+Shift+Space
         if (settingValues.enableRelatedTags) {
             if (event.key === ' ' && event.ctrlKey && event.shiftKey) {
                 event.preventDefault();
-                this.relatedTagsUI.show(textareaElement);
+                this.relatedTagsUI.show(event.target);
             }
         }
     }
@@ -738,8 +745,8 @@ export class RelatedTagsEventHandler {
      * @returns 
      */
     handleClick(event) {
-        // Check trigger mode from settings
-        if (settingValues.relatedTagsTriggerMode === 'ctrl+Click' && !event.ctrlKey) {
+        // Hide related tags UI if not Ctrl+Click and not pinned when trigger mode is 'ctrl+Click'
+        if (settingValues.relatedTagsTriggerMode === 'ctrl+Click' && !event.ctrlKey && !this.relatedTagsUI.isPinned) {
             this.relatedTagsUI.hide();
             return;
         }

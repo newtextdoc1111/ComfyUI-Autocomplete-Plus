@@ -1,5 +1,23 @@
 // --- String Helper Functions ---
 
+const MAX_PROMPT_WEIGHT_VALUE = 9.9;
+
+// Regex constants
+const REG_ESCAPE_OPEN_PAREN = /(?<!\\)\(/g;
+const REG_ESCAPE_CLOSE_PAREN = /(?<!\\)\)/g;
+const REG_UNESCAPE_OPEN_PAREN = /\\\(/g;
+const REG_UNESCAPE_CLOSE_PAREN = /\\\)/g;
+
+const REG_CONTAINS_LETTER_NUMBER = /[a-zA-Z0-9\u3040-\u30ff\u3400-\u4DBF\u4e00-\u9faf\uac00-\ud7af\u0400-\u04FF\u0590-\u05FF]/;
+
+const REG_PROMPT_WEIGHT = /(.*?):([0-9](\.\d+)?)$/;
+
+const REG_STRIP_LEADING_PAREN = /^(?<!\\)\((.*)/s;
+const REG_STRIP_TRAILING_PAREN = /(.*)(?<!\\)\)$/s;
+
+const REG_WILDCARD_WEIGHTED_TAG = /(\d+)[_\s]*::(.*?)(?=\||$)/g;
+const REG_WILDCARD_SIMPLE_WORD = /[^{}_|]+/g;
+
 /**
  * Converts Hiragana to Katakana.
  * @param {string} str Input string.
@@ -64,7 +82,7 @@ export function formatCountHumanReadable(num) {
 export function escapeParentheses(str) {
     if (!str) return str;
     // Use lookbehind assertions to avoid double escaping
-    return str.replace(/(?<!\\)\(/g, '\\(').replace(/(?<!\\)\)/g, '\\)');
+    return str.replace(REG_ESCAPE_OPEN_PAREN, '\\(').replace(REG_ESCAPE_CLOSE_PAREN, '\\)');
 }
 
 /**
@@ -75,7 +93,7 @@ export function escapeParentheses(str) {
  */
 export function unescapeParentheses(str) {
     if (!str) return str;
-    return str.replace(/\\\(/g, '(').replace(/\\\)/g, ')');
+    return str.replace(REG_UNESCAPE_OPEN_PAREN, '(').replace(REG_UNESCAPE_CLOSE_PAREN, ')');
 }
 
 /**
@@ -97,7 +115,7 @@ export function removePromptWeight(str) {
     // (e.g., ":1.2" where the number is between 0-9.9)
     let result = str.replace(/(.+?):([0-9](\.\d+)?)$/, (match, p1, p2) => {
         // If the number after colon is between 0-9.9, it's likely a weight
-        if (parseFloat(p2) <= 9.9) {
+        if (parseFloat(p2) <= MAX_PROMPT_WEIGHT_VALUE) {
             return p1;
         }
         // Otherwise preserve the entire string (like "year:2000")
@@ -121,7 +139,7 @@ export function removePromptWeight(str) {
 export function isContainsLetterOrNumber(str) {
     if (!str) return false;
     // Check if the string contains at least one letter or number (Latin, Japanese, Korean, CJK Extension A, Cyrillic, Hebrew)
-    return /[a-zA-Z0-9\u3040-\u30ff\u3400-\u4DBF\u4e00-\u9faf\uac00-\ud7af\u0400-\u04FF\u0590-\u05FF]/.test(str);
+    return REG_CONTAINS_LETTER_NUMBER.test(str);
 }
 
 /**
@@ -131,7 +149,7 @@ export function isContainsLetterOrNumber(str) {
  */
 export function normalizeTagToSearch(str) {
     if (!str) return str;
-    
+
     if (isContainsLetterOrNumber(str)) {
         return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
     }
@@ -141,8 +159,9 @@ export function normalizeTagToSearch(str) {
 
 /**
  * Normalizes a tag string for input.
- * Converts underscores to spaces only if the tag contains at least one letter or number.
- * Keeps underscores for tags that are only symbols (e.g. "^_^").
+ * Converts underscores to spaces only if the tag contains at least one letter or number,
+ * and is not a wildcard call (e.g., "__wildcard__").
+ * Keeps underscores for tags that are only symbols (e.g. "^_^") or wildcard calls.
  * @param {string} str 
  * @returns {string}
  */
@@ -150,9 +169,15 @@ export function normalizeTagToInsert(str) {
     if (!str) return str;
 
     if (isContainsLetterOrNumber(str)) {
-        return escapeParentheses(str.replace(/_/g, " "));
+        const isWildcardCall = str.startsWith('__') && str.endsWith('__') && str.length > 4;
+
+        if (!isWildcardCall) {
+            // If doesn't wildcard call, replace underscores with spaces
+            return escapeParentheses(str.replace(/_/g, " "));
+        }
     }
-    // Otherwise, keep as is (for emoji/face tags)
+
+    // Otherwise, keep it as is (e.g., ""^_^", "__wildcard__")
     return escapeParentheses(str);
 }
 
@@ -180,15 +205,112 @@ export function isValidTag(tag) {
 }
 
 /**
+ * Recursively finds all words in a string, even those inside nested braces.
+ * This helps extract all possible tags from complex nested wildcards.
+ * @param {string} text The text to extract words from
+ * @param {number} baseStart The starting position of the text in the original string
+ * @returns {Array<{start: number, end: number, tag: string}>} Array of parsed tags
+ */
+function extractAllWords(text, baseStart) {
+    const result = [];
+
+    // First, extract weighted tag patterns like "20::from above"
+    let weightMatch = REG_WILDCARD_WEIGHTED_TAG.exec(text);
+    while (weightMatch !== null) {
+        const tagText = weightMatch[2].trim();
+
+        if (tagText) {
+            // Calculate position with original offsets
+            const fullMatchStart = baseStart + weightMatch.index;
+            const tagTextStart = fullMatchStart + weightMatch[0].indexOf(tagText);
+            const tagTextEnd = tagTextStart + tagText.length;
+
+            result.push({
+                start: tagTextStart,
+                end: tagTextEnd,
+                tag: tagText
+            });
+        }
+
+        weightMatch = REG_WILDCARD_WEIGHTED_TAG.exec(text);
+    }
+
+    // If no weighted tags were found, extract simple words
+    if (result.length === 0) {
+        // Regular expression to match words (sequences of non-whitespace characters)
+        // We consider a word to be any continuous sequence of characters that's not a space, pipe, or brace
+        const wordRegex = REG_WILDCARD_SIMPLE_WORD;
+        let match;
+
+        // Find all standalone words in the text
+        while ((match = wordRegex.exec(text)) !== null) {
+            const wordStart = baseStart + match.index;
+            const wordEnd = wordStart + match[0].length;
+
+            // Remove leading and trailing spaces from the matched word
+            const trimmedTag = match[0].trim();
+            const leadingSpaces = match[0].length - match[0].trimStart().length;
+            const adjustedStart = wordStart + leadingSpaces;
+            const adjustedEnd = wordStart + leadingSpaces + trimmedTag.length;
+
+            result.push({
+                start: adjustedStart,
+                end: adjustedEnd,
+                tag: trimmedTag
+            });
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Parses a wildcard selection and returns individual tags.
+ * Supports syntax like {tag1|tag2|tag3} and {weight::tag1|weight::tag2}.
+ * Also handles nested wildcards like {tag1 {tag2|tag3}|tag4}.
+ * @param {string} tag The complete tag text that might contain a wildcard
+ * @param {number} startPos The starting position of the tag in the original text
+ * @param {number} endPos The ending position of the tag in the original text
+ * @returns {Array<{start: number, end: number, tag: string}>} Array of parsed tags or null
+ */
+function parseWildcardSelection(tag, startPos, endPos) {
+    // Trim the tag for matching but keep original position
+    const trimmedTag = tag.trim();
+
+    // Check if this is a wildcard selection
+    if (!trimmedTag.startsWith('{') || !trimmedTag.endsWith('}')) {
+        return null; // Not a wildcard
+    }
+
+    // Calculate position offsets for the trim operation
+    const leadingSpaces = tag.length - tag.trimStart().length;
+    const tagStart = startPos + leadingSpaces;
+
+    // For nested wildcards, we'll extract all words from the content
+    // This treats each word as a separate tag, regardless of nesting
+    // Extract the content between the outermost braces
+    const wildcardContent = trimmedTag.substring(1, trimmedTag.length - 1);
+
+    // Extract all words from the wildcard content, including those in nested structures
+    const allTags = extractAllWords(wildcardContent, tagStart + 1);
+
+    return allTags.length > 0 ? allTags : null;
+}
+
+/**
  * Finds all tag positions in the given text.
  * Searches for tags separated by commas or newlines.
+ * Also handles wildcard selections in the format {tag1|tag2|tag3}.
  * @param {string} text The text to search in
  * @returns {Array<{start: number, end: number, tag: string}>} Array of tag positions and content
  */
 export function findAllTagPositions(text) {
+    if (!text) return [];
+
     const positions = [];
     let startPos = 0;
 
+    // Process text segment by segment (comma or newline separated)
     while (startPos < text.length) {
         // Skip any leading whitespace, commas, or newlines
         while (startPos < text.length &&
@@ -206,14 +328,26 @@ export function findAllTagPositions(text) {
         if (endPosNewline === -1) endPosNewline = text.length;
 
         const endPos = Math.min(endPosComma, endPosNewline);
-        const tag = text.substring(startPos, endPos);
+        const tagText = text.substring(startPos, endPos);
 
-        if (tag.trim().length > 0) {
-            positions.push({
-                start: startPos,
-                end: endPos,
-                tag: tag
-            });
+        if (tagText.trim().length > 0) {
+            const trimmedTag = tagText.trim();
+
+            // Check if this is a wildcard selection
+            if (trimmedTag.startsWith('{') && trimmedTag.endsWith('}')) {
+                // Process wildcard using our existing wildcard parser
+                const wildcardTags = parseWildcardSelection(tagText, startPos, endPos);
+                if (wildcardTags) {
+                    positions.push(...wildcardTags);
+                }
+            } else {
+                // Normal tag, add it directly
+                positions.push({
+                    start: startPos,
+                    end: endPos,
+                    tag: tagText
+                });
+            }
         }
 
         // Move to the next tag
@@ -222,6 +356,7 @@ export function findAllTagPositions(text) {
 
     return positions;
 }
+
 /**
  * Extracts existing tags from the textarea with search normalization (possibly duplicated).
  * @param {HTMLTextAreaElement} textarea The textarea element to extract tags from
@@ -302,7 +437,7 @@ export function getCurrentTagRange(text, cursorPos) {
         changedInParenStep = false;
 
         // Remove leading non-escaped parenthesis
-        const leadParenMatch = adjustedTag.match(/^(?<!\\)\((.*)/s);
+        const leadParenMatch = adjustedTag.match(REG_STRIP_LEADING_PAREN);
         if (leadParenMatch) {
             const newTag = leadParenMatch[1];
             adjustedStart += (adjustedTag.length - newTag.length);
@@ -311,7 +446,7 @@ export function getCurrentTagRange(text, cursorPos) {
         }
 
         // Remove trailing non-escaped parenthesis
-        const trailParenMatch = adjustedTag.match(/(.*)(?<!\\)\)$/s);
+        const trailParenMatch = adjustedTag.match(REG_STRIP_TRAILING_PAREN);
         if (trailParenMatch) {
             const newTag = trailParenMatch[1];
             adjustedEnd -= (adjustedTag.length - newTag.length);
@@ -331,15 +466,14 @@ export function getCurrentTagRange(text, cursorPos) {
     // Rule 3: Exclude prompt strength syntax (e.g., ":1.0") but include colons in names.
     // (e.g., "standing:1.0" -> "standing", "foo:bar" -> "foo:bar", "year:2000" -> "year:2000")
     // This applies to the tag *after* parentheses are handled.
-    const weightRegex = /(.*?):([0-9](\.\d+)?)$/;
-    const weightMatch = adjustedTag.match(weightRegex);
+    const weightMatch = adjustedTag.match(REG_PROMPT_WEIGHT);
 
     if (weightMatch) {
         const tagPart = weightMatch[1];
         const weightValue = weightMatch[2];
         // Only consider it as a weight if it's a simple number between 0-9 possibly with decimal
         // Don't treat larger numbers like :1999 or :2000 as weights
-        if (parseFloat(weightValue) <= 9.9) {
+        if (parseFloat(weightValue) <= MAX_PROMPT_WEIGHT_VALUE) {
             const fullWeightString = adjustedTag.substring(tagPart.length);
             if (tagPart.length > 0 || (tagPart.length === 0 && fullWeightString === adjustedTag)) {
                 adjustedEnd -= fullWeightString.length;
