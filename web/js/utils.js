@@ -159,8 +159,9 @@ export function normalizeTagToSearch(str) {
 
 /**
  * Normalizes a tag string for input.
- * Converts underscores to spaces only if the tag contains at least one letter or number.
- * Keeps underscores for tags that are only symbols (e.g. "^_^").
+ * Converts underscores to spaces only if the tag contains at least one letter or number,
+ * and is not a wildcard call (e.g., "__wildcard__").
+ * Keeps underscores for tags that are only symbols (e.g. "^_^") or wildcard calls.
  * @param {string} str 
  * @returns {string}
  */
@@ -168,9 +169,15 @@ export function normalizeTagToInsert(str) {
     if (!str) return str;
 
     if (isContainsLetterOrNumber(str)) {
-        return escapeParentheses(str.replace(/_/g, " "));
+        const isWildcardCall = str.startsWith('__') && str.endsWith('__') && str.length > 4;
+
+        if (!isWildcardCall) {
+            // If doesn't wildcard call, replace underscores with spaces
+            return escapeParentheses(str.replace(/_/g, " "));
+        }
     }
-    // Otherwise, keep as is (for emoji/face tags)
+
+    // Otherwise, keep it as is (e.g., ""^_^", "__wildcard__")
     return escapeParentheses(str);
 }
 
