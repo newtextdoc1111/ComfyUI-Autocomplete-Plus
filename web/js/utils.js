@@ -149,7 +149,7 @@ export function isContainsLetterOrNumber(str) {
  */
 export function normalizeTagToSearch(str) {
     if (!str) return str;
-    
+
     if (isContainsLetterOrNumber(str)) {
         return unescapeParentheses(removePromptWeight(str).replace(/ /g, "_"));
     }
@@ -213,18 +213,18 @@ export function isValidTag(tag) {
  */
 function extractAllWords(text, baseStart) {
     const result = [];
-    
+
     // First, extract weighted tag patterns like "20::from above"
     let weightMatch = REG_WILDCARD_WEIGHTED_TAG.exec(text);
     while (weightMatch !== null) {
         const tagText = weightMatch[2].trim();
-        
+
         if (tagText) {
             // Calculate position with original offsets
             const fullMatchStart = baseStart + weightMatch.index;
             const tagTextStart = fullMatchStart + weightMatch[0].indexOf(tagText);
             const tagTextEnd = tagTextStart + tagText.length;
-            
+
             result.push({
                 start: tagTextStart,
                 end: tagTextEnd,
@@ -234,25 +234,25 @@ function extractAllWords(text, baseStart) {
 
         weightMatch = REG_WILDCARD_WEIGHTED_TAG.exec(text);
     }
-    
+
     // If no weighted tags were found, extract simple words
     if (result.length === 0) {
         // Regular expression to match words (sequences of non-whitespace characters)
         // We consider a word to be any continuous sequence of characters that's not a space, pipe, or brace
         const wordRegex = REG_WILDCARD_SIMPLE_WORD;
         let match;
-        
+
         // Find all standalone words in the text
         while ((match = wordRegex.exec(text)) !== null) {
             const wordStart = baseStart + match.index;
             const wordEnd = wordStart + match[0].length;
-            
+
             // Remove leading and trailing spaces from the matched word
             const trimmedTag = match[0].trim();
             const leadingSpaces = match[0].length - match[0].trimStart().length;
             const adjustedStart = wordStart + leadingSpaces;
             const adjustedEnd = wordStart + leadingSpaces + trimmedTag.length;
-            
+
             result.push({
                 start: adjustedStart,
                 end: adjustedEnd,
@@ -260,7 +260,7 @@ function extractAllWords(text, baseStart) {
             });
         }
     }
-    
+
     return result;
 }
 
@@ -276,24 +276,24 @@ function extractAllWords(text, baseStart) {
 function parseWildcardSelection(tag, startPos, endPos) {
     // Trim the tag for matching but keep original position
     const trimmedTag = tag.trim();
-    
+
     // Check if this is a wildcard selection
     if (!trimmedTag.startsWith('{') || !trimmedTag.endsWith('}')) {
         return null; // Not a wildcard
     }
-    
+
     // Calculate position offsets for the trim operation
     const leadingSpaces = tag.length - tag.trimStart().length;
     const tagStart = startPos + leadingSpaces;
-    
+
     // For nested wildcards, we'll extract all words from the content
     // This treats each word as a separate tag, regardless of nesting
     // Extract the content between the outermost braces
     const wildcardContent = trimmedTag.substring(1, trimmedTag.length - 1);
-    
+
     // Extract all words from the wildcard content, including those in nested structures
     const allTags = extractAllWords(wildcardContent, tagStart + 1);
-    
+
     return allTags.length > 0 ? allTags : null;
 }
 
@@ -306,10 +306,10 @@ function parseWildcardSelection(tag, startPos, endPos) {
  */
 export function findAllTagPositions(text) {
     if (!text) return [];
-    
+
     const positions = [];
     let startPos = 0;
-    
+
     // Process text segment by segment (comma or newline separated)
     while (startPos < text.length) {
         // Skip any leading whitespace, commas, or newlines
@@ -332,7 +332,7 @@ export function findAllTagPositions(text) {
 
         if (tagText.trim().length > 0) {
             const trimmedTag = tagText.trim();
-            
+
             // Check if this is a wildcard selection
             if (trimmedTag.startsWith('{') && trimmedTag.endsWith('}')) {
                 // Process wildcard using our existing wildcard parser
