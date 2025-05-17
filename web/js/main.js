@@ -139,19 +139,31 @@ app.registerExtension({
         });
     },
 
-    //One the Settings Screen, displays reverse order in same category
+    // One the Settings Screen, displays reverse order in same category
     settings: [
         // --- General Settings ---
         {
             id: id + ".priority_tag_source",
             name: "Priotized Tag Source",
-            tooltip: "If multiple tag source are available, Which tag source's tags should be displayed first.",
+            tooltip: "If all tag source are enabled, which tag source's tags should be displayed first.",
             type: "combo",
             options: Object.values(TagSource),
             defaultValue: TagSource.Danbooru,
             category: [name, "General", "Priority Tag Source"],
             onChange: (newVal, oldVal) => {
                 settingValues.priorityTagSource = newVal;
+            }
+        },
+                {
+            id: id + ".display_tag_source",
+            name: "Display Tag Source",
+            tooltip: "If multiple tag source are avirable, which tag source's tags should be displayed.",
+            type: "combo",
+            options: [...Object.values(TagSource), "all"],
+            defaultValue: "all",
+            category: [name, "General", "Display Tag Source"],
+            onChange: (newVal, oldVal) => {
+                settingValues.displayTagSource = newVal;
             }
         },
         // --- Autocomplete Settings ---
