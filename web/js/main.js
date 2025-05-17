@@ -2,7 +2,7 @@ import { app } from "/scripts/app.js";
 import { ComfyWidgets } from "/scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
-import { initializeData } from "./data.js";
+import { TagSource, fetchCsvList, getTagSourceInPriorityOrder, initializeData } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 
@@ -126,17 +126,34 @@ const name = "Autocomplete Plus";
 app.registerExtension({
     id: id,
     name: name,
-    setup() {
+    async setup() {
         initializeEventHandlers();
 
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
-        initializeData();
+        fetchCsvList().then((csvList) => {
+            getTagSourceInPriorityOrder().forEach((source) => {
+                initializeData(csvList, source);
+            });
+        });
     },
-    
+
     //One the Settings Screen, displays reverse order in same category
-    settings: [ 
+    settings: [
+        // --- General Settings ---
+        {
+            id: id + ".priority_tag_source",
+            name: "Priotized Tag Source",
+            tooltip: "If multiple tag source are available, Which tag source's tags should be displayed first.",
+            type: "combo",
+            options: Object.values(TagSource),
+            defaultValue: TagSource.Danbooru,
+            category: [name, "General", "Priority Tag Source"],
+            onChange: (newVal, oldVal) => {
+                settingValues.priorityTagSource = newVal;
+            }
+        },
         // --- Autocomplete Settings ---
         {
             id: id + ".max_suggestions",
@@ -164,7 +181,7 @@ app.registerExtension({
                 settingValues.enabled = newVal;
             }
         },
-        
+
         // --- Related Tags Settings ---
         {
             id: id + ".related_tags_trigger_mode",

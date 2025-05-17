@@ -1,4 +1,8 @@
 export const settingValues = {
+    // General settings
+    displayTagSource: 'danbooru', // 'danbooru', 'e621', 'all'
+    priorityTagSource: 'danbooru', // 'danbooru', 'e621',
+
     // Autocomplete feature settings
     enabled: true,
     maxSuggestions: 10,
