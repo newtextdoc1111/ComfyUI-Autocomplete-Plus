@@ -1,8 +1,8 @@
 import {
-    DanbooruTagCategory,
+    TagCategory,
     TagData,
     autoCompleteData,
-    getTagSourceInPriorityOrder
+    getEnabledTagSourceInPriorityOrder
 } from './data.js';
 import {
     formatCountHumanReadable,
@@ -13,7 +13,8 @@ import {
     normalizeTagToSearch,
     extractTagsFromTextArea,
     getCurrentTagRange,
-    getViewportMargin
+    getViewportMargin,
+    IconSvgHtmlString
 } from './utils.js';
 import { settingValues } from './settings.js';
 
@@ -100,7 +101,7 @@ function searchCompletionCandidates(textareaElement) {
         queryVariations.add(hiraQuery);
     }
 
-    const sources = getTagSourceInPriorityOrder();
+    const sources = getEnabledTagSourceInPriorityOrder();
     for (const source of sources) {
         // Search in sortedTags (already sorted by count)
         for (const tagData of autoCompleteData[source].sortedTags) {
@@ -274,6 +275,13 @@ class AutocompleteUI {
         this.root = document.createElement('div'); // Use table instead of div
         this.root.id = 'autocomplete-plus-root';
 
+        // Create svg icon element as definition
+        this.iconSvgDef = document.createElement('div');
+        this.iconSvgDef.style.position = 'absolute';
+        this.iconSvgDef.style.display = 'none';
+        this.iconSvgDef.innerHTML = IconSvgHtmlString;
+        this.root.appendChild(this.iconSvgDef);
+
         this.tagsList = document.createElement('div');
         this.tagsList.id = 'autocomplete-plus-list';
         this.root.appendChild(this.tagsList);
@@ -388,17 +396,24 @@ class AutocompleteUI {
      * @param {boolean} isExisting
      */
     #createTagElement(tagData, isExisting) {
-        const categoryText = DanbooruTagCategory[tagData.category] || "unknown";
+        const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
 
         const tagRow = document.createElement('div');
-        tagRow.classList.add('autocomplete-plus-item');
+        tagRow.classList.add('autocomplete-plus-item', tagData.source);
         tagRow.dataset.tag = tagData.tag;
         tagRow.dataset.tagCategory = categoryText;
 
-        // Tag name
+        // Tag icon and name
+        const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
         const tagName = document.createElement('span');
-        tagName.classList.add('autocomplete-plus-tag-name');
-        tagName.textContent = `[${tagData.source[0]}] ${tagData.tag}`;
+        tagName.className = 'autocomplete-plus-tag-name';
+        if (settingValues.tagSourceIconPosition == 'hidden') {
+            tagName.textContent = tagData.tag;
+        } else {
+            tagName.innerHTML = settingValues.tagSourceIconPosition == 'left'
+                ? `${tagSourceIconHtml} ${tagData.tag}`
+                : `${tagData.tag} ${tagSourceIconHtml}`;
+        }
 
         // grayout tag name if it already exists
         if (isExisting) {
@@ -407,7 +422,7 @@ class AutocompleteUI {
 
         // Alias
         const alias = document.createElement('span');
-        alias.classList.add('autocomplete-plus-alias');
+        alias.className = 'autocomplete-plus-alias';
 
         // Display alias if available
         if (tagData.alias && tagData.alias.length > 0) {
@@ -420,10 +435,11 @@ class AutocompleteUI {
         const category = document.createElement('span');
         category.className = `autocomplete-plus-category`;
         category.textContent = `${categoryText.substring(0, 2)}`;
+        category.title = categoryText; // Full category on hover
 
         // Count
         const tagCount = document.createElement('span');
-        category.className = `autocomplete-plus-tag-count`;
+        tagCount.className = `autocomplete-plus-tag-count`;
         tagCount.textContent = formatCountHumanReadable(tagData.count);
 
         tagRow.appendChild(tagName);
@@ -458,7 +474,6 @@ class AutocompleteUI {
         const viewportHeight = window.innerHeight;
         const margin = getViewportMargin();
 
-        const targetRect = this.target.getBoundingClientRect();
         const targetElmOffset = this.#calculateElementOffset(this.target);
 
         const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.target);

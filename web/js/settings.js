@@ -1,7 +1,8 @@
 export const settingValues = {
-    // General settings
-    displayTagSource: 'danbooru', // 'danbooru', 'e621', 'all'
-    priorityTagSource: 'danbooru', // 'danbooru', 'e621',
+    // Tag source settings
+    tagSource: 'all', // 'danbooru', 'e621', 'all'
+    primaryTagSource: 'danbooru', // 'danbooru', 'e621'
+    tagSourceIconPosition: 'left', // 'left', 'right', 'hidden'
 
     // Autocomplete feature settings
     enabled: true,

@@ -2,7 +2,7 @@ import { app } from "/scripts/app.js";
 import { ComfyWidgets } from "/scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
-import { TagSource, fetchCsvList, getTagSourceInPriorityOrder, initializeData } from "./data.js";
+import { TagSource, fetchCsvList, initializeData } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 
@@ -133,7 +133,7 @@ app.registerExtension({
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
         fetchCsvList().then((csvList) => {
-            getTagSourceInPriorityOrder().forEach((source) => {
+            Object.values(TagSource).forEach((source) => {
                 initializeData(csvList, source);
             });
         });
@@ -141,29 +141,40 @@ app.registerExtension({
 
     // One the Settings Screen, displays reverse order in same category
     settings: [
-        // --- General Settings ---
+        // --- Tag source Settings ---
         {
-            id: id + ".priority_tag_source",
-            name: "Priotized Tag Source",
-            tooltip: "If all tag source are enabled, which tag source's tags should be displayed first.",
+            id: id + ".tag_source_icon_position",
+            name: "Tag Source Icon Position",
+            type: "combo",
+            options: ["left", "right", "hidden"],
+            defaultValue: "left",
+            category: [name, "Tag Source", "Tag Source Icon Position"],
+            onChange: (newVal, oldVal) => {
+                settingValues.tagSourceIconPosition = newVal;
+            }
+        },
+        {
+            id: id + ".primary_tag_source",
+            name: "Primary source for 'all' Source",
+            tooltip: "When 'Autocomplete Tag Source' is 'all', this determines which source's tags appear first in suggestions.",
             type: "combo",
             options: Object.values(TagSource),
             defaultValue: TagSource.Danbooru,
-            category: [name, "General", "Priority Tag Source"],
+            category: [name, "Tag Source", "Prioritize Tag Source"],
             onChange: (newVal, oldVal) => {
-                settingValues.priorityTagSource = newVal;
+                settingValues.primaryTagSource = newVal;
             }
         },
-                {
-            id: id + ".display_tag_source",
-            name: "Display Tag Source",
-            tooltip: "If multiple tag source are avirable, which tag source's tags should be displayed.",
+        {
+            id: id + ".tag_source",
+            name: "Autocomplete Tag Source",
+            tooltip: "Select the tag source for autocomplete suggestions. 'all' includes tags from all loaded sources.",
             type: "combo",
             options: [...Object.values(TagSource), "all"],
             defaultValue: "all",
-            category: [name, "General", "Display Tag Source"],
+            category: [name, "Tag Source", "Tag Source"],
             onChange: (newVal, oldVal) => {
-                settingValues.displayTagSource = newVal;
+                settingValues.tagSource = newVal;
             }
         },
         // --- Autocomplete Settings ---

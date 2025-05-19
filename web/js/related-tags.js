@@ -1,4 +1,4 @@
-import { TagSource, DanbooruTagCategory, TagData, autoCompleteData, getTagSourceInPriorityOrder } from './data.js';
+import { TagSource, TagCategory, TagData, autoCompleteData } from './data.js';
 import { settingValues } from './settings.js';
 import {
     extractTagsFromTextArea,
@@ -7,7 +7,7 @@ import {
     isValidTag,
     normalizeTagToInsert,
     normalizeTagToSearch,
-    getCurrentTagRange
+    getCurrentTagRange,
 } from './utils.js';
 
 // --- RelatedTags Logic ---
@@ -91,6 +91,7 @@ function searchRelatedTags(tag) {
             similarity: similarity,
             alias: tagData.alias,
             category: tagData.category,
+            source: tagData.source,
             count: tagData.count,
         });
     });
@@ -387,13 +388,29 @@ class RelatedTagsUI {
      * Updates header content
      */
     #updateHeader() {
+        // Find the tag data for the current tag
+        const tagData = Object.values(TagSource)
+            .map((source) => {
+                if (source in autoCompleteData && autoCompleteData[source].tagMap.has(this.currentTag)) {
+                    return autoCompleteData[source].tagMap.get(this.currentTag);
+                }
+            })
+            .find((tagData) => tagData !== undefined);
+
         // Update header text with current tag
         this.headerText.innerHTML = ''; // Clear previous content
         this.headerText.textContent = 'Tags related to: ';
-        const tagNameSpan = document.createElement('span');
-        tagNameSpan.className = 'related-tags-header-tag-name';
-        tagNameSpan.textContent = this.currentTag;
-        this.headerText.appendChild(tagNameSpan);
+        const tagName = document.createElement('span');
+        tagName.className = 'related-tags-header-tag-name';
+        tagName.textContent = this.currentTag;
+        if (tagData && ['left', 'right'].includes(settingValues.tagSourceIconPosition)) {
+            const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
+            tagName.innerHTML = settingValues.tagSourceIconPosition == 'left'
+                ? `${tagSourceIconHtml} ${tagData.tag}`
+                : `${tagData.tag} ${tagSourceIconHtml}`;
+        }
+
+        this.headerText.appendChild(tagName);
 
         // Update pin button
         this.pinBtn.textContent = this.isPinned ? '🎯' : '📌';
@@ -421,9 +438,9 @@ class RelatedTagsUI {
 
         if (!this.relatedTags || this.relatedTags.length === 0) {
             // Show no related tags message
-            const messageCell = document.createElement('div');
-            messageCell.textContent = 'No related tags found';
-            this.tagsContainer.appendChild(messageCell);
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = 'No related tags found';
+            this.tagsContainer.appendChild(messageDiv);
             return;
         }
 
@@ -444,10 +461,10 @@ class RelatedTagsUI {
      * @returns {HTMLTableRowElement} The tag row element
      */
     #createTagElement(tagData, isExisting) {
-        const categoryText = DanbooruTagCategory[tagData.category] || "unknown";
+        const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
 
         const tagRow = document.createElement('div');
-        tagRow.className = 'related-tag-item';
+        tagRow.classList.add('related-tag-item', tagData.source);
         tagRow.dataset.tag = tagData.tag;
         tagRow.dataset.tagCategory = categoryText;
 

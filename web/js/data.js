@@ -8,27 +8,27 @@ export const TagSource = {
     E621: 'e621',
 }
 
-// Danbooru tag categories for display
-export const DanbooruTagCategory = [
-    'general',
-    'artist',
-    'unused',
-    'copyright',
-    'character',
-    'meta',
-]
-
-export const E621TagCategory = [
-    'general',
-    'artist',
-    'unused',
-    'copyright',
-    'character',
-    'species',
-    'invalid',
-    'meta',
-    'lore',
-]
+export const TagCategory = {
+    'danbooru': [
+        'general',
+        'artist',
+        'unused',
+        'copyright',
+        'character',
+        'meta',
+    ],
+    'e621': [
+        'general',
+        'artist',
+        'unused',
+        'copyright',
+        'character',
+        'species',
+        'invalid',
+        'meta',
+        'lore',
+    ]
+}
 
 // --- Data Structures ---
 
@@ -102,10 +102,17 @@ const COUNT_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('count');
 // --- Helder Functions ---
 
 /**
- * 
+ * Get the available tag sources in priority order based on the current settings.
+ * @returns {string[]} Array of available tag sources in priority order
  */
-export function getTagSourceInPriorityOrder() {
-    return Object.values(TagSource).toSorted((a, b) => { return a === settingValues.priorityTagSource ? -1 : 1; });
+export function getEnabledTagSourceInPriorityOrder() {
+    return Object.values(TagSource)
+        .filter((s) => {
+            return settingValues.tagSource === s || settingValues.tagSource === 'all';
+        })
+        .toSorted((a, b) => {
+            return a === settingValues.primaryTagSource ? -1 : 1;
+        });
 }
 
 // --- Data Loading Functions ---
