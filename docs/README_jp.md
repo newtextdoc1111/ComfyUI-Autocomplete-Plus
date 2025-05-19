@@ -120,7 +120,7 @@ worst_quality,5,9999999,
 - **Enable Related Tags**: 関連タグ機能の有効化/無効化
 - **Max related tags**: 関連タグの最大表示件数
 - **Default Display Position**: ComfyUI起動時のデフォルト表示位置
-- **Related Tags Trigger Mode** : 関連タグの表示する際、どの操作をトリガーとするか（クリックのみ、Ctrl+クリック）
+- **Related Tags Trigger Mode** : 関連タグを表示する際、どの操作をトリガーとするか（クリックのみ、Ctrl+クリック）
 
 ## 既知の問題
 
