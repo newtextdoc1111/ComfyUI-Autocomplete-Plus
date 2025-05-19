@@ -2,15 +2,35 @@ import { settingValues } from "./settings.js";
 
 // --- Constants ---
 
-// Tag categories for display
-export const TagCategory = [
-    'general',
-    'artist',
-    'unused',
-    'copyright',
-    'character',
-    'meta',
-]
+// Tag data sources
+export const TagSource = {
+    Danbooru: 'danbooru',
+    E621: 'e621',
+}
+
+export const TagCategory = {
+    'danbooru': [
+        'general',
+        'artist',
+        'unused',
+        'copyright',
+        'character',
+        'meta',
+    ],
+    'e621': [
+        'general',
+        'artist',
+        'unused',
+        'copyright',
+        'character',
+        'species',
+        'invalid',
+        'meta',
+        'lore',
+    ]
+}
+
+// --- Data Structures ---
 
 /**
  * Class representing a tag and its metadata
@@ -22,45 +42,54 @@ export class TagData {
      * @param {string[]} [alias=[]] - Array of aliases for the tag
      * @param {string} [category='general'] - Category of the tag
      * @param {number} [count=0] - Frequency count/popularity of the tag
+     * @param {string} [source=TagSources.Danbooru] - The source of the tag data
      */
-    constructor(tag, alias = [], category = 'general', count = 0) {
+    constructor(tag, alias = [], category = 'general', count = 0, source = TagSource.Danbooru) {
         /** @type {string} */
         this.tag = tag;
-        
+
         /** @type {string[]} */
         this.alias = alias;
-        
+
         /** @type {string} */
         this.category = category;
-        
+
         /** @type {number} */
         this.count = count;
+
+        this.source = source;
     }
 }
 
-// Data storage
-export const autoCompleteData = {
-    /** @type {TagData[]} */
-    sortedTags: [],
+class AutocompleteData {
+    constructor() {
+        /** @type {TagData[]} */
+        this.sortedTags = [];
 
-    /** @type {Map<string, TagData>} */
-    tagMap: new Map(), // Stores tag data, mapping tag names to TagData objects
-    
-    /** @type {Map<string, TagData>} */
-    aliasMap: new Map(), // Maps aliases to their main tag names
-    
-    /** @type {Map<string, Map<string, number>>} */
-    cooccurrenceMap: new Map(), // Stores co-occurrence data for related tags
-    
-    isInitializing: false,
-    initialized: false,
+        /** @type {Map<string, TagData>} */
+        this.tagMap = new Map();
 
-     // Progress of "base" csv loading
-    baseLoadingProgress: {
-        // tags: 0, // Commented out because tags csv aren't loaded in chunks
-        cooccurrence: 0
+        /** @type {Map<string, TagData>} */
+        this.aliasMap = new Map();
+
+        /** @type {Map<string, Map<string, number>>} */
+        this.cooccurrenceMap = new Map();
+
+        this.isInitializing = false;
+        this.initialized = false;
+
+        // Progress of "base" csv loading
+        this.baseLoadingProgress = {
+            // tags: 0,
+            cooccurrence: 0
+        };
     }
-};
+}
+
+/**
+ * @type {Object<string, AutocompleteData>}
+ */
+export const autoCompleteData = {};
 
 // CSV Header for tags
 const TAGS_CSV_HEADER = 'tag,category,count,alias';
@@ -70,14 +99,31 @@ const ALIAS_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('alias');
 const CATEGORY_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('category');
 const COUNT_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('count');
 
+// --- Helder Functions ---
+
+/**
+ * Get the available tag sources in priority order based on the current settings.
+ * @returns {string[]} Array of available tag sources in priority order
+ */
+export function getEnabledTagSourceInPriorityOrder() {
+    return Object.values(TagSource)
+        .filter((s) => {
+            return settingValues.tagSource === s || settingValues.tagSource === 'all';
+        })
+        .toSorted((a, b) => {
+            return a === settingValues.primaryTagSource ? -1 : 1;
+        });
+}
+
 // --- Data Loading Functions ---
 
 /**
  * Loads tag data from a single CSV file.
  * @param {string} csvUrl - The URL of the CSV file to load.
+ * @param {string} siteName - The site name (e.g., 'danbooru', 'e621').
  * @returns {Promise<void>}
  */
-async function loadTags(csvUrl) {
+async function loadTags(csvUrl, siteName) {
     try {
         const response = await fetch(csvUrl, { cache: "no-store" });
         if (!response.ok) {
@@ -100,9 +146,9 @@ async function loadTags(csvUrl) {
                 const count = parseInt(columns[COUNT_INDEX].trim(), 10);
 
                 if (!tag || isNaN(count)) continue;
-                
+
                 // Skip if tag already exists (priority to earlier loaded files - extra then base)
-                if (autoCompleteData.tagMap.has(tag)) {
+                if (autoCompleteData[siteName].tagMap.has(tag)) {
                     continue;
                 }
 
@@ -110,26 +156,26 @@ async function loadTags(csvUrl) {
                 const aliases = aliasStr ? aliasStr.split(',').map(a => a.trim()).filter(a => a.length > 0) : [];
 
                 // Create a TagData instance instead of a plain object
-                const tagData = new TagData(tag, aliases, category, count);
+                const tagData = new TagData(tag, aliases, category, count, siteName);
 
-                autoCompleteData.sortedTags.push(tagData);
+                autoCompleteData[siteName].sortedTags.push(tagData);
             } else {
                 console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}. Expected ${TAGS_CSV_HEADER_COLUMNS.length} columns, but got ${columns.length}.`);
                 continue;
             }
         }
-        
+
         // Sort by count in descending order
-        autoCompleteData.sortedTags.sort((a, b) => b.count - a.count);
+        autoCompleteData[siteName].sortedTags.sort((a, b) => b.count - a.count);
 
         // Build maps as before, but ensure not to overwrite if already processed from extra files
-        autoCompleteData.sortedTags.forEach(tagData => {
-            if (!autoCompleteData.tagMap.has(tagData.tag)) {
-                autoCompleteData.tagMap.set(tagData.tag, tagData);
+        autoCompleteData[siteName].sortedTags.forEach(tagData => {
+            if (!autoCompleteData[siteName].tagMap.has(tagData.tag)) {
+                autoCompleteData[siteName].tagMap.set(tagData.tag, tagData);
                 if (tagData.alias && Array.isArray(tagData.alias)) {
                     tagData.alias.forEach(alias => {
-                        if (!autoCompleteData.aliasMap.has(alias)) {
-                            autoCompleteData.aliasMap.set(alias, tagData.tag); // Map alias back to the main tag
+                        if (!autoCompleteData[siteName].aliasMap.has(alias)) {
+                            autoCompleteData[siteName].aliasMap.set(alias, tagData.tag); // Map alias back to the main tag
                         }
                     });
                 }
@@ -144,9 +190,10 @@ async function loadTags(csvUrl) {
 /**
  * Loads co-occurrence data from a single CSV file.
  * @param {string} csvUrl - The URL of the CSV file to load.
+ * @param {string} siteName - The site name (e.g., 'danbooru', 'e621').
  * @returns {Promise<void>}
  */
-async function loadCooccurrence(csvUrl) {
+async function loadCooccurrence(csvUrl, siteName) {
     try {
         const response = await fetch(csvUrl, { cache: "no-store" });
         if (!response.ok) {
@@ -158,7 +205,7 @@ async function loadCooccurrence(csvUrl) {
 
         const startIndex = lines[0].startsWith('tag_a,tag_b,count') ? 1 : 0;
 
-        await processInChunks(lines, startIndex, autoCompleteData.cooccurrenceMap, csvUrl);
+        await processInChunks(lines, startIndex, autoCompleteData[siteName].cooccurrenceMap, csvUrl, siteName);
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process cooccurrence data from ${csvUrl}:`, error);
     }
@@ -168,7 +215,7 @@ async function loadCooccurrence(csvUrl) {
  * Process CSV data in chunks to avoid blocking the UI.
  * Modifies the targetMap directly.
  */
-function processInChunks(lines, startIndex, targetMap, sourceFileName = "CSV") {
+function processInChunks(lines, startIndex, targetMap, csvUrl, siteName) {
     return new Promise((resolve) => {
         const CHUNK_SIZE = 10000;
         let i = startIndex;
@@ -194,7 +241,7 @@ function processInChunks(lines, startIndex, targetMap, sourceFileName = "CSV") {
                     }
                     targetMap.get(tagA).set(tagB, count);
 
-                    
+
                     // Add tagB -> tagA relationship (bidirectional)
                     if (!targetMap.has(tagB)) {
                         targetMap.set(tagB, new Map());
@@ -206,7 +253,7 @@ function processInChunks(lines, startIndex, targetMap, sourceFileName = "CSV") {
             }
 
             if (i < lines.length) {
-                autoCompleteData.baseLoadingProgress.cooccurrence = Math.round((i / lines.length) * 100);
+                autoCompleteData[siteName].baseLoadingProgress.cooccurrence = Math.round((i / lines.length) * 100);
                 setTimeout(processChunk, 0);
             } else {
                 resolve();
@@ -250,76 +297,101 @@ function parseCSVLine(line) {
     return result;
 }
 
-/**
- * Initializes the autocomplete data by fetching the list of CSV files and loading them.
- * This function is called when the extension is initialized.
- */
-export async function initializeData() {
-    if (autoCompleteData.isInitializing || autoCompleteData.initialized) {
-        return;
-    }
-    
-    const startTime = performance.now();
-    autoCompleteData.isInitializing = true;
-    // console.log("[Autocomplete-Plus] Initializing autocomplete data...");
-
+export async function fetchCsvList() {
     try {
         const response = await fetch('/autocomplete-plus/csv');
         if (!response.ok) {
             throw new Error(`[Autocomplete-Plus] Failed to fetch CSV list: ${response.status} ${response.statusText}`);
         }
-        const csvListData = await response.json();
+        return await response.json();
+    } catch (error) {
+        console.error("[Autocomplete-Plus] Error fetch csv data:", error);
+    }
 
-        const extraTagsCount = csvListData.danbooru.extra_tags || 0;
-        const extraCooccurrenceCount = csvListData.danbooru.extra_cooccurrence || 0;
+    return null;
+}
 
-        const tagsUrl = '/autocomplete-plus/csv/tags';
-        const cooccurrenceUrl = '/autocomplete-plus/csv/cooccurrence';
+/**
+ * Initializes the autocomplete data by fetching the list of CSV files and loading them.
+ * This function is called when the extension is initialized.
+ */
+export async function initializeData(csvListData, source) {
+    if (autoCompleteData.hasOwnProperty(source) === false) {
+        autoCompleteData[source] = new AutocompleteData();
+    }
 
-        // Load extra tags first
-        let tagsLoadPromises = [];
-        let currentTagPromise = Promise.resolve();
-        for (let i = 0; i < extraTagsCount; i++) {
-            currentTagPromise = currentTagPromise.then(() => loadTags(`${tagsUrl}/extra/${i}`));
-            tagsLoadPromises.push(currentTagPromise);
+    if (autoCompleteData[source].isInitializing || autoCompleteData[source].initialized) {
+        return;
+    }
+
+    const startTime = performance.now();
+    autoCompleteData[source].isInitializing = true;
+    // console.log("[Autocomplete-Plus] Initializing autocomplete data...");
+
+    try {
+        // Store functions that return Promises (Promise Factories)
+        // These factories will be called later to start the actual loading.
+        const tagsLoadPromiseFactories = [];
+        const cooccurrenceLoadPromiseFactories = [];
+
+        // Check if siteName exists in csvListData to prevent errors if a sourte is removed or misconfigured
+        if (!csvListData[source]) {
+            console.warn(`[Autocomplete-Plus] CSV list data not found for sourte: ${source}. Skipping.`);
+            return;
         }
 
-        // Then load base tags if it exists
-        if (csvListData.danbooru.base_tags) {
-            currentTagPromise = currentTagPromise.then(() => loadTags(`${tagsUrl}/base`));
-            tagsLoadPromises.push(currentTagPromise);
-        }
-        
-        // Load extra cooccurrence first
-        let cooccurrenceLoadPromises = [];
-        let cooccurrencePromiseChain = Promise.resolve();
-        for (let i = 0; i < extraCooccurrenceCount; i++) {
-            cooccurrencePromiseChain = cooccurrencePromiseChain.then(() => loadCooccurrence(`${cooccurrenceUrl}/extra/${i}`));
-            cooccurrenceLoadPromises.push(cooccurrencePromiseChain);
-        }
-        
-        // Then load base cooccurrence if it exists
-        if (csvListData.danbooru.base_cooccurrence) {
-            cooccurrencePromiseChain = cooccurrencePromiseChain.then(() => loadCooccurrence(`${cooccurrenceUrl}/base`));
-            cooccurrenceLoadPromises.push(cooccurrencePromiseChain);
-        }
+        const extraTagsCount = csvListData[source].extra_tags || 0;
+        const extraCooccurrenceCount = csvListData[source].extra_cooccurrence || 0;
 
+        const tagsUrl = `/autocomplete-plus/csv/${source}/tags`;
+        const cooccurrenceUrl = `/autocomplete-plus/csv/${source}/tags_cooccurrence`;
+
+        // Factory for loading tags for the current sourte
+        const siteTagsLoaderFactory = async () => {
+            let promiseChain = Promise.resolve();
+            for (let i = 0; i < extraTagsCount; i++) {
+                promiseChain = promiseChain.then(() => loadTags(`${tagsUrl}/extra/${i}`, source));
+            }
+            if (csvListData[source].base_tags) {
+                promiseChain = promiseChain.then(() => loadTags(`${tagsUrl}/base`, source));
+            }
+            return promiseChain;
+        };
+        tagsLoadPromiseFactories.push(siteTagsLoaderFactory);
+
+        // Factory for loading cooccurrence data for the current sourte
+        const siteCooccurrenceLoaderFactory = async () => {
+            let promiseChain = Promise.resolve();
+            for (let i = 0; i < extraCooccurrenceCount; i++) {
+                promiseChain = promiseChain.then(() => loadCooccurrence(`${cooccurrenceUrl}/extra/${i}`, source));
+            }
+            if (csvListData[source].base_cooccurrence) {
+                promiseChain = promiseChain.then(() => loadCooccurrence(`${cooccurrenceUrl}/base`, source));
+            }
+            return promiseChain;
+        };
+        cooccurrenceLoadPromiseFactories.push(siteCooccurrenceLoaderFactory);
+
+        // Now, execute all promise factories and wait for their completion.
+        // The actual loading (fetch calls) will start when the factories are invoked here.
         await Promise.all([
-            Promise.all(tagsLoadPromises).then(() => {
+            Promise.all(tagsLoadPromiseFactories.map(factory => factory())).then(() => {
                 const endTime = performance.now();
-                console.log(`[Autocomplete-Plus] Tags loading complete in ${(endTime - startTime).toFixed(2)}ms. Extra file count: ${extraTagsCount}`);
-
+                console.log(`[Autocomplete-Plus] "${source}" Tags loading complete in ${(endTime - startTime).toFixed(2)}ms`);
             }),
-            Promise.all(cooccurrenceLoadPromises).then(() => {
+            Promise.all(cooccurrenceLoadPromiseFactories.map(factory => factory())).then(() => {
                 const endTime = performance.now();
-                console.log(`[Autocomplete-Plus] Co-occurrence loading complete in ${(endTime - startTime).toFixed(2)}ms. Extra file count: ${extraCooccurrenceCount}`);
+                // The original log for extraCooccurrenceCount was potentially misleading as it showed
+                // the count for the last processed sourte. Removed for clarity.
+                // If a total count is needed, it should be calculated across all sites.
+                console.log(`[Autocomplete-Plus] "${source}" Co-occurrence loading complete in ${(endTime - startTime).toFixed(2)}ms.`);
             })
         ]);
 
-        autoCompleteData.initialized = true;
+        autoCompleteData[source].initialized = true;
     } catch (error) {
         console.error("[Autocomplete-Plus] Error initializing autocomplete data:", error);
     } finally {
-        autoCompleteData.isInitializing = false;
+        autoCompleteData[source].isInitializing = false;
     }
 }

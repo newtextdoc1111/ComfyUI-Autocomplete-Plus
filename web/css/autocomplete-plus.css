@@ -1,39 +1,29 @@
 /* Light Theme */
  body {
-  --autocomplete-plus-text-color-cat-general: var(--p-blue-600);
-  --autocomplete-plus-text-color-cat-artist: var(--p-red-600);
-  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-600);
-  --autocomplete-plus-text-color-cat-character: var(--p-green-600);
-  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-600);
-  --autocomplete-plus-text-color-cat-unknown: var(--p-gray-600);
+  --autocomplete-plus-text-color-cat-blue: var(--p-blue-600);
+  --autocomplete-plus-text-color-cat-red: var(--p-red-600);
+  --autocomplete-plus-text-color-cat-purple: var(--p-purple-600);
+  --autocomplete-plus-text-color-cat-green: var(--p-green-600);
+  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-600);
+  --autocomplete-plus-text-color-cat-gray: var(--p-gray-600);
+  --autocomplete-plus-text-color-cat-sky: var(--p-sky-500);
+  --autocomplete-plus-text-color-cat-orange: var(--p-orange-600);
+  --autocomplete-plus-text-color-cat-white: var(--p-neutral-700);
   --autocomplete-plus-text-color-disabled: var(--p-gray-400);
-
-  /* Selected color */
-  --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
-  --autocomplete-plus-text-color-cat-artist-selected: var(--p-red-200);
-  --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
-  --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
-  --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
-  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-gray-200);
 }
 
 /* Dark Theme */
 body.dark-theme {
-  --autocomplete-plus-text-color-cat-general: var(--p-blue-400);
-  --autocomplete-plus-text-color-cat-artist: var(--p-red-400);
-  --autocomplete-plus-text-color-cat-copyright: var(--p-purple-400);
-  --autocomplete-plus-text-color-cat-character: var(--p-green-400);
-  --autocomplete-plus-text-color-cat-meta: var(--p-yellow-400);
-  --autocomplete-plus-text-color-cat-unknown: var(--p-gray-500);
+  --autocomplete-plus-text-color-cat-blue: var(--p-blue-400);
+  --autocomplete-plus-text-color-cat-red: var(--p-red-400);
+  --autocomplete-plus-text-color-cat-purple: var(--p-purple-400);
+  --autocomplete-plus-text-color-cat-green: var(--p-green-400);
+  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-400);
+  --autocomplete-plus-text-color-cat-gray: var(--p-gray-400);
+  --autocomplete-plus-text-color-cat-sky: var(--p-sky-300);
+  --autocomplete-plus-text-color-cat-orange: var(--p-orange-400);
+  --autocomplete-plus-text-color-cat-white: var(--p-neutral-200);
   --autocomplete-plus-text-color-disabled: var(--p-gray-500);
-
-  /* Selected color */
-  --autocomplete-plus-text-color-cat-general-selected: var(--p-blue-200);
-  --autocomplete-plus-text-color-cat-artist-selected: var(--p-red-200);
-  --autocomplete-plus-text-color-cat-copyright-selected: var(--p-purple-200);
-  --autocomplete-plus-text-color-cat-character-selected: var(--p-green-200);
-  --autocomplete-plus-text-color-cat-meta-selected: var(--p-yellow-200);
-  --autocomplete-plus-text-color-cat-unknown-selected: var(--p-gray-200);
 }
 
 #autocomplete-plus-root {
@@ -62,28 +52,60 @@ body.dark-theme {
   grid-template-columns: subgrid;
 }
 
-.autocomplete-plus-item[data-tag-category="general"] {
-  color: var(--autocomplete-plus-text-color-cat-general);
+.autocomplete-plus-item.danbooru[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-blue);
 }
 
-.autocomplete-plus-item[data-tag-category="artist"] {
-  color: var(--autocomplete-plus-text-color-cat-artist);
+.autocomplete-plus-item.danbooru[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-red);
 }
 
-.autocomplete-plus-item[data-tag-category="copyright"] {
-  color: var(--autocomplete-plus-text-color-cat-copyright);
+.autocomplete-plus-item.danbooru[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-purple);
 }
 
-.autocomplete-plus-item[data-tag-category="character"] {
-  color: var(--autocomplete-plus-text-color-cat-character);
+.autocomplete-plus-item.danbooru[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-green);
 }
 
-.autocomplete-plus-item[data-tag-category="meta"] {
-  color: var(--autocomplete-plus-text-color-cat-meta);
+.autocomplete-plus-item.danbooru[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-yellow);
 }
 
-.autocomplete-plus-item[data-tag-category="unknown"] {
-  color: var(--autocomplete-plus-text-color-cat-unknown);
+.autocomplete-plus-item.danbooru[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-gray);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-sky);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-orange);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-purple);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-green);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="species"] {
+  color: var(--autocomplete-plus-text-color-cat-red);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-white);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="lore"] {
+  color: var(--autocomplete-plus-text-color-cat-red);
+}
+
+.autocomplete-plus-item.e621[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-purple);
 }
 
 .autocomplete-plus-item span {
@@ -113,20 +135,29 @@ body.dark-theme {
   background-color: var(--comfy-hover-bg);
 }
 
-.autocomplete-plus-tag-name {
-  padding: 8px;
+.autocomplete-plus-item .autocomplete-plus-tag-name {
   white-space: nowrap;
+}
+
+.autocomplete-plus-item .autocomplete-plus-tag-icon-svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
 }
 
 .autocomplete-plus-tag-name.autocomplete-plus-already-exists  {
   color: var(--autocomplete-plus-text-color-disabled);
 }
 
-.autocomplete-plus-alias {
+.autocomplete-plus-item .autocomplete-plus-alias {
   overflow: hidden;
   color: var(--descrip-text);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.autocomplete-plus-item .autocomplete-plus-tag-count {
+  text-align: right;
 }
 
 /* Related Tags UI Styles */
@@ -163,9 +194,16 @@ body.dark-theme {
   font-weight: bold;
 }
 
+.related-tags-header-tag-name .autocomplete-plus-tag-icon-svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+}
+
 .related-tags-header-controls {
   display: flex;
   align-items: center;
+  margin-left: 16px;
   gap: 4px;
 }
 
@@ -210,28 +248,60 @@ body.dark-theme {
   grid-template-columns: subgrid;
 }
 
-.related-tag-item[data-tag-category="general"] {
-  color: var(--autocomplete-plus-text-color-cat-general);
+.related-tag-item.danbooru[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-blue);
 }
 
-.related-tag-item[data-tag-category="artist"] {
-  color: var(--autocomplete-plus-text-color-cat-artist);
+.related-tag-item.danbooru[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-red);
 }
 
-.related-tag-item[data-tag-category="copyright"] {
-  color: var(--autocomplete-plus-text-color-cat-copyright);
+.related-tag-item.danbooru[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-purple);
 }
 
-.related-tag-item[data-tag-category="character"] {
-  color: var(--autocomplete-plus-text-color-cat-character);
+.related-tag-item.danbooru[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-green);
 }
 
-.related-tag-item[data-tag-category="meta"] {
-  color: var(--autocomplete-plus-text-color-cat-meta);
+.related-tag-item.danbooru[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-yellow);
 }
 
-.related-tag-item[data-tag-category="unknown"] {
-  color: var(--autocomplete-plus-text-color-cat-unknown);
+.related-tag-item.danbooru[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-gray);
+}
+
+.related-tag-item.e621[data-tag-category="general"] {
+  color: var(--autocomplete-plus-text-color-cat-sky);
+}
+
+.related-tag-item.e621[data-tag-category="artist"] {
+  color: var(--autocomplete-plus-text-color-cat-orange);
+}
+
+.related-tag-item.e621[data-tag-category="copyright"] {
+  color: var(--autocomplete-plus-text-color-cat-purple);
+}
+
+.related-tag-item.e621[data-tag-category="character"] {
+  color: var(--autocomplete-plus-text-color-cat-green);
+}
+
+.related-tag-item.e621[data-tag-category="species"] {
+  color: var(--autocomplete-plus-text-color-cat-red);
+}
+
+.related-tag-item.e621[data-tag-category="meta"] {
+  color: var(--autocomplete-plus-text-color-cat-white);
+}
+
+.related-tag-item.e621[data-tag-category="lore"] {
+  color: var(--autocomplete-plus-text-color-cat-red);
+}
+
+.related-tag-item.e621[data-tag-category="unknown"] {
+  color: var(--autocomplete-plus-text-color-cat-gray);
 }
 
 /* stylelint-disable-next-line no-descending-specificity */
@@ -261,23 +331,22 @@ body.dark-theme {
   font-weight: bold;
 }
 
-.related-tag-name {
-  padding: 8px;
+.related-tag-item .related-tag-name {
   white-space: nowrap;
 }
 
-.related-tag-name.related-tag-already-exists  {
+.related-tag-item .related-tag-name.related-tag-already-exists  {
   color: var(--autocomplete-plus-text-color-disabled);
 }
 
-.related-tag-alias {
+.related-tag-item .related-tag-alias {
   overflow: hidden;
   color: var(--descrip-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.related-tag-similarity {
+.related-tag-item .related-tag-similarity {
   color: var(--descrip-text);
   text-align: right;
   white-space: nowrap;

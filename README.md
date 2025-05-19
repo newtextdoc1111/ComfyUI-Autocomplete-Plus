@@ -9,8 +9,7 @@
 
 ## Overview
 
-**ComfyUI-Autocomplete-Plus** is a custom node that provides multiple input assistance features for any text area in [ComfyUI](https://github.com/comfyanonymous/ComfyUI). Currently, it mainly supports Danbooru-style tag input.
-
+**ComfyUI-Autocomplete-Plus** is a custom node that provides multiple input assistance features for any text area in [ComfyUI](https://github.com/comfyanonymous/ComfyUI). Currently, it supports Danbooru and e621 tags (e621 does not support some functions).
 ## Features
 
 - **:zap:No setup required**: Automatically downloads CSV data optimized for Danbooru tags.
@@ -38,6 +37,7 @@ When you type in a text input area, tags that partially match the text are displ
 - Tag aliases are also included in the search. Japanese hiragana and katakana are searched without distinction.
 - Tags are color-coded by category. The color-coding rules are the same as Danbooru.
 - Tags that have already been entered are displayed grayed out.
+- You can display Danbooru and e621 tags at the same time. You can also change the priority from the settings.
 
 ## Related Tags
 
@@ -76,6 +76,11 @@ This is a CSV file for related tag calculation, recording tag pairs and their co
 Tag pairs are further filtered from the tag information CSV under the following conditions:
 - Co-occurrence count of 100 or more
 
+### e621 CSV
+
+Currently, automatic download of CSV for e621 is not supported, so please manually place a CSV with the same structure as `danbooru_tags.csv` in the data folder with the name `e621_tags.csv`.
+Also, displaying related tags is not supported.
+
 ### User CSV
 
 Users can also use their own CSV files. For example, frequently used meta tags can be added to the autocomplete suggestions by placing a file named `danbooru_tags_meta.csv` in the `data` folder.
@@ -97,6 +102,15 @@ worst_quality,5,9999999,
 
 ## Settings
 
+### Tag Source
+
+> [!TIP]
+> The source of tag data such as Danbooru or e621 is called the "tag source".
+
+- **Autocomplete Tag Source**: The tag source to display in the autocomplete suggestions. Select "all" to display all loaded tag sources.
+- **Primary source for 'all' Source**: When `Autocomplete Tag Source` is set to "all", the tag source specified here will be displayed with priority.
+- **Tag Source Icon Position**: Where to display the icon of the tag source. Select "hidden" to hide it.
+
 ### Autocomplete
 
 - **Enable Autocomplete**: Enable/disable the autocomplete feature.
@@ -107,7 +121,7 @@ worst_quality,5,9999999,
 - **Enable Related Tags**: Enable/disable the related tags feature.
 - **Max related tags**: Maximum number of related tags to display.
 - **Default Display Position**: Default display position when ComfyUI starts.
-- **Related Tags Trigger Mode**: Trigger for displaying related tags (click, Ctrl+click).
+- **Related Tags Trigger Mode**: Which action will trigger displaying related tags (click only, Ctrl+click)
 
 
 ## Known Issues
@@ -120,8 +134,7 @@ worst_quality,5,9999999,
 ### Autocomplete
 
 ### Related Tags
-- When the UI is pinned, some keys other than specific ones may be entered into the text area during keyboard input.
-
+- Cannot retrieve the correct tag when clicking on a dynamic prompt like `from {above|below|side}`. This is because the exact tag is not determined until the wildcard processor is executed.
 
 ## Credits
 

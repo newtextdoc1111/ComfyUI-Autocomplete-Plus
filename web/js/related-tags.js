@@ -1,4 +1,4 @@
-import { TagCategory, TagData, autoCompleteData } from './data.js';
+import { TagSource, TagCategory, TagData, autoCompleteData } from './data.js';
 import { settingValues } from './settings.js';
 import {
     extractTagsFromTextArea,
@@ -7,7 +7,7 @@ import {
     isValidTag,
     normalizeTagToInsert,
     normalizeTagToSearch,
-    getCurrentTagRange
+    getCurrentTagRange,
 } from './utils.js';
 
 // --- RelatedTags Logic ---
@@ -15,19 +15,20 @@ import {
 /**
  * Calculates the Jaccard similarity between two tags.
  * Jaccard similarity = (A ∩ B) / (A ∪ B) = (A ∩ B) / (|A| + |B| - |A ∩ B|)
+ * @param {string} tagSource The name of the site (e.g., 'danbooru', 'e621')
  * @param {string} tagA The first tag
  * @param {string} tagB The second tag
  * @returns {number} Similarity score between 0 and 1
  */
-function calculateJaccardSimilarity(tagA, tagB) {
+function calculateJaccardSimilarity(tagSource, tagA, tagB) {
     // Get the count of tagA and tagB individually
-    const countA = autoCompleteData.tagMap.get(tagA)?.count || 0;
-    const countB = autoCompleteData.tagMap.get(tagB)?.count || 0;
+    const countA = autoCompleteData[tagSource].tagMap.get(tagA)?.count || 0;
+    const countB = autoCompleteData[tagSource].tagMap.get(tagB)?.count || 0;
 
     if (countA === 0 || countB === 0) return 0;
 
     // Get the cooccurrence count
-    const cooccurrenceAB = autoCompleteData.cooccurrenceMap.get(tagA)?.get(tagB) || 0;
+    const cooccurrenceAB = autoCompleteData[tagSource].cooccurrenceMap.get(tagA)?.get(tagB) || 0;
 
     // Calculate Jaccard similarity
     // (A ∩ B) / (A ∪ B) = (A ∩ B) / (|A| + |B| - |A ∩ B|)
@@ -64,11 +65,13 @@ export function getTagFromCursorPosition(inputElement) {
 function searchRelatedTags(tag) {
     const startTime = performance.now(); // Record start time for performance measurement
 
-    if (!tag || !autoCompleteData.cooccurrenceMap.has(tag)) {
+    const tagSource = TagSource.Danbooru; // TODO: Leave the tag source as Danbooru until e621_tags_cooccurrence.csv is ready
+
+    if (!tag || !autoCompleteData[tagSource].cooccurrenceMap.has(tag)) {
         return [];
     }
 
-    const cooccurrences = autoCompleteData.cooccurrenceMap.get(tag);
+    const cooccurrences = autoCompleteData[tagSource].cooccurrenceMap.get(tag);
     const relatedTags = [];
 
     // Convert to array for sorting
@@ -77,17 +80,18 @@ function searchRelatedTags(tag) {
         if (coTag === tag) return;
 
         // Get tag data
-        const tagData = autoCompleteData.tagMap.get(coTag);
+        const tagData = autoCompleteData[tagSource].tagMap.get(coTag);
         if (!tagData) return;
 
         // Calculate similarity
-        const similarity = calculateJaccardSimilarity(tag, coTag);
+        const similarity = calculateJaccardSimilarity(tagSource, tag, coTag);
 
         relatedTags.push({
             tag: coTag,
             similarity: similarity,
             alias: tagData.alias,
             category: tagData.category,
+            source: tagData.source,
             count: tagData.count,
         });
     });
@@ -320,7 +324,7 @@ class RelatedTagsUI {
         this.root.style.display = 'block';
 
         // Update initialization status if not already done
-        if (!autoCompleteData.initialized) {
+        if (!autoCompleteData[TagSource.Danbooru].initialized) {
             if (this.autoRefreshTimerId) {
                 clearTimeout(this.autoRefreshTimerId);
             }
@@ -384,13 +388,29 @@ class RelatedTagsUI {
      * Updates header content
      */
     #updateHeader() {
+        // Find the tag data for the current tag
+        const tagData = Object.values(TagSource)
+            .map((source) => {
+                if (source in autoCompleteData && autoCompleteData[source].tagMap.has(this.currentTag)) {
+                    return autoCompleteData[source].tagMap.get(this.currentTag);
+                }
+            })
+            .find((tagData) => tagData !== undefined);
+
         // Update header text with current tag
         this.headerText.innerHTML = ''; // Clear previous content
         this.headerText.textContent = 'Tags related to: ';
-        const tagNameSpan = document.createElement('span');
-        tagNameSpan.className = 'related-tags-header-tag-name';
-        tagNameSpan.textContent = this.currentTag;
-        this.headerText.appendChild(tagNameSpan);
+        const tagName = document.createElement('span');
+        tagName.className = 'related-tags-header-tag-name';
+        tagName.textContent = this.currentTag;
+        if (tagData && ['left', 'right'].includes(settingValues.tagSourceIconPosition)) {
+            const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
+            tagName.innerHTML = settingValues.tagSourceIconPosition == 'left'
+                ? `${tagSourceIconHtml} ${tagData.tag}`
+                : `${tagData.tag} ${tagSourceIconHtml}`;
+        }
+
+        this.headerText.appendChild(tagName);
 
         // Update pin button
         this.pinBtn.textContent = this.isPinned ? '🎯' : '📌';
@@ -407,20 +427,20 @@ class RelatedTagsUI {
     #updateContent() {
         this.tagsContainer.innerHTML = '';
 
-        if (!autoCompleteData.initialized) {
+        if (!autoCompleteData[TagSource.Danbooru].initialized) {
             // Show loading message
             const messageDiv = document.createElement('div');
             messageDiv.className = 'related-tags-loading-message';
-            messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData.baseLoadingProgress.cooccurrence}%]`;
+            messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData[TagSource.Danbooru].baseLoadingProgress.cooccurrence}%]`;
             this.tagsContainer.appendChild(messageDiv);
             return;
         }
 
         if (!this.relatedTags || this.relatedTags.length === 0) {
             // Show no related tags message
-            const messageCell = document.createElement('div');
-            messageCell.textContent = 'No related tags found';
-            this.tagsContainer.appendChild(messageCell);
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = 'No related tags found';
+            this.tagsContainer.appendChild(messageDiv);
             return;
         }
 
@@ -441,10 +461,10 @@ class RelatedTagsUI {
      * @returns {HTMLTableRowElement} The tag row element
      */
     #createTagElement(tagData, isExisting) {
-        const categoryText = TagCategory[tagData.category] || "unknown";
+        const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
 
         const tagRow = document.createElement('div');
-        tagRow.className = 'related-tag-item';
+        tagRow.classList.add('related-tag-item', tagData.source);
         tagRow.dataset.tag = tagData.tag;
         tagRow.dataset.tagCategory = categoryText;
 

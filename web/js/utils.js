@@ -1,3 +1,29 @@
+// --- Html String constants ---
+
+/**
+ * HTML string for the tag source icon.
+ */
+export const IconSvgHtmlString = `
+    <svg>
+        <defs>
+            <symbol id="autocomplete-plus-icon-danbooru" viewBox="14 12 42 42">
+                <polygon points="20,20 20,44 44,44 44,20" fill="#a67c52" stroke="#2d1400" stroke-width="2" stroke-linejoin="bevel"/>
+                <polygon points="20,20 26,14 50,14 44,20" fill="#6e4b2c" stroke="#2d1400" stroke-width="2" stroke-linejoin="bevel"/>
+                <polygon points="44,20 50,14 50,38 44,44" fill="#8b5e3c" stroke="#2d1400" stroke-width="2" stroke-linejoin="bevel"/>
+            </symbol>
+            <symbol id="autocomplete-plus-icon-e621" viewBox="-33 -38 66 76">
+                <style>
+                .e621-blue { fill: #0d2e69; }
+                .e621-white { fill:rgb(230, 230, 230); }
+                </style>
+                <g>
+                <path class="e621-blue" d="M0 -38 L32.909 -19 L32.909 19 L0 38 L-32.909 19 L-32.909 -19 Z"/>
+                <text x="0" y="0" class="e621-white" font-family="Arial Black, Gadget, sans-serif" font-size="56" text-anchor="middle" dominant-baseline="middle">e</text>
+                </g>
+            </symbol>
+        </defs>
+    </svg>`;
+
 // --- String Helper Functions ---
 
 const MAX_PROMPT_WEIGHT_VALUE = 9.9;
@@ -491,7 +517,10 @@ export function getCurrentTagRange(text, cursorPos) {
 
 // --- End String Helper Functions ---
 
-// Function to load a CSS file
+/**
+ * Load a CSS file dynamically.
+ * @param {string} href 
+ */
 export function loadCSS(href) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -500,7 +529,7 @@ export function loadCSS(href) {
     // Ensure the CSS is loaded before other scripts might rely on its styles
     // by adding it to the head.
     document.head.appendChild(link);
-    console.debug(`Loaded CSS: ${href}`); // Optional: Log loading
+    // console.debug(`[Autocomplete-Plus] Loaded CSS: ${href}`); // Optional: Log loading
 }
 
 /**
