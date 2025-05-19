@@ -2,7 +2,7 @@ import { app } from "/scripts/app.js";
 import { ComfyWidgets } from "/scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
-import { initializeData } from "./data.js";
+import { TagSource, fetchCsvList, initializeData } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 
@@ -126,17 +126,57 @@ const name = "Autocomplete Plus";
 app.registerExtension({
     id: id,
     name: name,
-    setup() {
+    async setup() {
         initializeEventHandlers();
 
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
-        initializeData();
+        fetchCsvList().then((csvList) => {
+            Object.values(TagSource).forEach((source) => {
+                initializeData(csvList, source);
+            });
+        });
     },
-    
-    //One the Settings Screen, displays reverse order in same category
-    settings: [ 
+
+    // One the Settings Screen, displays reverse order in same category
+    settings: [
+        // --- Tag source Settings ---
+        {
+            id: id + ".tag_source_icon_position",
+            name: "Tag Source Icon Position",
+            type: "combo",
+            options: ["left", "right", "hidden"],
+            defaultValue: "left",
+            category: [name, "Tag Source", "Tag Source Icon Position"],
+            onChange: (newVal, oldVal) => {
+                settingValues.tagSourceIconPosition = newVal;
+            }
+        },
+        {
+            id: id + ".primary_tag_source",
+            name: "Primary source for 'all' Source",
+            tooltip: "When 'Autocomplete Tag Source' is 'all', this determines which source's tags appear first in suggestions.",
+            type: "combo",
+            options: Object.values(TagSource),
+            defaultValue: TagSource.Danbooru,
+            category: [name, "Tag Source", "Prioritize Tag Source"],
+            onChange: (newVal, oldVal) => {
+                settingValues.primaryTagSource = newVal;
+            }
+        },
+        {
+            id: id + ".tag_source",
+            name: "Autocomplete Tag Source",
+            tooltip: "Select the tag source for autocomplete suggestions. 'all' includes tags from all loaded sources.",
+            type: "combo",
+            options: [...Object.values(TagSource), "all"],
+            defaultValue: "all",
+            category: [name, "Tag Source", "Tag Source"],
+            onChange: (newVal, oldVal) => {
+                settingValues.tagSource = newVal;
+            }
+        },
         // --- Autocomplete Settings ---
         {
             id: id + ".max_suggestions",
@@ -164,7 +204,7 @@ app.registerExtension({
                 settingValues.enabled = newVal;
             }
         },
-        
+
         // --- Related Tags Settings ---
         {
             id: id + ".related_tags_trigger_mode",
