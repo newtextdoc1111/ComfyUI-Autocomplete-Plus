@@ -9,7 +9,7 @@
 
 ## Overview
 
-**ComfyUI-Autocomplete-Plus** is a custom node that provides multiple input assistance features for any text area in [ComfyUI](https://github.com/comfyanonymous/ComfyUI). Currently, it mainly supports Currently, it supports Danbooru and e621 tags (e621 does not support some functions).
+**ComfyUI-Autocomplete-Plus** is a custom node that provides multiple input assistance features for any text area in [ComfyUI](https://github.com/comfyanonymous/ComfyUI). Currently, it supports Danbooru and e621 tags (e621 does not support some functions).
 ## Features
 
 - **:zap:No setup required**: Automatically downloads CSV data optimized for Danbooru tags.
