@@ -7,7 +7,7 @@
 
 ## 概要
 
-**ComfyUI-Autocomplete-Plus** は、[ComfyUI](https://github.com/comfyanonymous/ComfyUI) の任意のテキストエリアに複数の入力支援機能を提供するカスタムノードです。現在は主にDanbooruスタイルのタグ入力に対応しています。
+**ComfyUI-Autocomplete-Plus** は、[ComfyUI](https://github.com/comfyanonymous/ComfyUI) の任意のテキストエリアに複数の入力支援機能を提供するカスタムノードです。現在はDanbooruとe621のタグに対応しています（e621は一部の機能が未対応です）。
 
 ## 特徴
 
@@ -36,6 +36,7 @@
 - タグのエイリアスも検索対象に含まれます。日本語のひらがな、カタカナは区別せず検索されます
 - タグのカテゴリ毎に色分けされます。色分けのルールは Danbooru と同じです
 - 入力済みのタグはグレーアウトで表示されます
+- Danbooruとe621のタグを同時に表示出来ます。設定から優先順位を変更できます
 
 ## 関連タグ
 
@@ -74,9 +75,14 @@
 タグペアはタグ情報 CSV から、さらに以下の条件でフィルタリングされています。
 - 共起回数が100件以上
 
+### e621 CSV
+
+現在、e621用 CSV の自動ダウンロードは未対応なため `danbooru_tags.csv` と同じ構造の CSV を `e621_tags.csv` という名前でデータフォルダーに手動配置してください。  
+また、関連タグ表示も同様に未対応です。
+
 ### ユーザーCSV
 
-ユーザーが自身で用意したCSVを使用することも可能です。例として、よく使うメタタグを `danbooru_tags_meta.csv` の名前で `data` フォルダーに配置することでオートコンプリート候補に追加できます。  
+ユーザーが自身で用意した CSV を使用することも可能です。例として、よく使うメタタグを `danbooru_tags_meta.csv` の名前で `data` フォルダーに配置することでオートコンプリート候補に追加できます。  
 ヘッダー行はなくても構いません。反映にはブラウザのリロードが必要です。
 
 **メタタグの例**
@@ -95,6 +101,15 @@ worst_quality,5,9999999,
 
 ## 設定
 
+### タグソース
+
+> [!TIP]
+> Danbooruやe621等のタグデータの提供元を「タグソース」と呼びます
+
+- **Autocomplete Tag Source**: オートコンプリート候補に表示するタグソース。「all」を選択するとロード済みの全てのタグソースを表示します
+- **Primary source for 'all' Source**: `Autocomplete Tag Source` が「all」のとき、ここで指定したタグソースが優先して表示されます
+- **Tag Source Icon Position**: タグの情報源のアイコンをどの位置に表示するか。「hidden」を選択すると非表示になります
+
 ### オートコンプリート
 
 - **Enable Autocomplete**: オートコンプリート機能の有効化/無効化
@@ -105,7 +120,7 @@ worst_quality,5,9999999,
 - **Enable Related Tags**: 関連タグ機能の有効化/無効化
 - **Max related tags**: 関連タグの最大表示件数
 - **Default Display Position**: ComfyUI起動時のデフォルト表示位置
-- **Related Tags Trigger Mode** : 関連タグの表示トリガー（クリック、Ctrl+クリック）
+- **Related Tags Trigger Mode** : 関連タグの表示する際、どの操作をトリガーとするか（クリックのみ、Ctrl+クリック）
 
 ## 既知の問題
 
