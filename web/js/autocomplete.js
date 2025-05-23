@@ -889,7 +889,7 @@ export class AutocompleteEventHandler {
             // If UI is not visible, and the key is a non-character key (length > 1)
             // and not Delete or Backspace, then do nothing.
             // This prevents UI from appearing on ArrowUp, F1, Shift (alone), etc.
-            if (event.key.length > 1 && event.key !== "Delete" && event.key !== "Backspace") {
+            if (event.key.length > 1 && !["Delete", "Backspace", "Process"].includes(event.key)) {
                 return;
             }
         }
