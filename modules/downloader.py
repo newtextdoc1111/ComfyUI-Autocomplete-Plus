@@ -211,10 +211,10 @@ class Downloader:
         os.makedirs(DATA_DIR, exist_ok=True)
         os.makedirs(TEMP_DOWNLOAD_DIR, exist_ok=True)
 
-    def _check_new_csv_from_hf_dataset(self, dataset_meta: dict, now_utc: datetime):
+    def _check_new_csv_from_hf_dataset(self, dataset_meta: dict, now_utc: datetime, force_check: bool = False):
         """Checks HuggingFace for file updates and updates metadata."""
         perform_hf_check = True
-        if dataset_meta.get("last_remote_check_timestamp"):
+        if not force_check and dataset_meta.get("last_remote_check_timestamp"):
             try:
                 last_check_dt = datetime.fromisoformat(dataset_meta["last_remote_check_timestamp"])
                 if now_utc - last_check_dt < timedelta(days=7):
@@ -295,17 +295,20 @@ class Downloader:
 
         return None
 
-    def run_check_and_download(self):
+    def run_check_and_download(self, force_check: bool = False):
         """
         Orchestrates the process of checking for updates and downloading CSV files.
         This is the main entry point for the downloader logic.
+        
+        Args:
+            force_check: If True, forces a check of HuggingFace regardless of the last check timestamp.
         """
 
         now_utc = datetime.now(timezone.utc)
 
         datasets_meta = self.metadata.get("hf_datasets", [])
         for dataset_meta in datasets_meta:
-            self._check_new_csv_from_hf_dataset(dataset_meta, now_utc)
+            self._check_new_csv_from_hf_dataset(dataset_meta, now_utc, force_check)
             self._download_csv_files_if_needed(dataset_meta)
 
         self._save_metadata()

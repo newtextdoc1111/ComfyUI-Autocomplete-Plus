@@ -1,4 +1,5 @@
 import { app } from "/scripts/app.js";
+import { $el } from "/scripts/ui.js";
 import { ComfyWidgets } from "/scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
@@ -6,6 +7,14 @@ import { TagSource, fetchCsvList, initializeData } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 
+// --- Constants ---
+const id = "AutocompletePlus";
+const name = "Autocomplete Plus";
+
+// --- Functions ---
+/**
+ * Initialize event handlers for the autocomplete and related tags features.
+ */
 function initializeEventHandlers() {
     const autocompleteEventHandler = new AutocompleteEventHandler();
     const relatedTagsEventHandler = new RelatedTagsEventHandler();
@@ -121,13 +130,112 @@ function initializeEventHandlers() {
     }
 }
 
-const id = "AutocompletePlus";
-const name = "Autocomplete Plus";
+/**
+ * Add Miscellaneous settings to the settings screen
+ */
+async function addExtraSettings() {
+    // Function to perform the update check
+    async function performUpdateCheck(checkButton, lastCheckSpan) {
+        checkButton.textContent = "Checking...";
+        checkButton.disabled = true;
+
+        app.extensionManager.toast.add({
+            severity: "info",
+            summary: "Check new CSV",
+            detail: "Checking the CSV updates, see console for more details.",
+            life: 5000
+        });
+
+        try {
+            const response = await fetch('/autocomplete-plus/csv/force-check-updates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                // Update last check time display using the response data
+                if (result.last_check_time) {
+                    const newLastCheckDate = new Date(result.last_check_time);
+                    lastCheckSpan.textContent = "Last checked: " + newLastCheckDate.toLocaleString();
+                } else {
+                    lastCheckSpan.textContent = "Last checked: Never";
+                }
+            }
+        } catch (error) {
+            console.error("[Autocomplete-Plus] Error during force check:", error);
+        } finally {
+            checkButton.textContent = "Check now";
+            checkButton.disabled = false;
+        }
+    }
+        
+    // Fetch last check time from API
+    let lastCheckTimeText = "Loading...";
+    try {
+        const response = await fetch('/autocomplete-plus/csv/last-check-time');
+        const data = await response.json();
+        
+        if (data.last_check_time) {
+            const lastCheckDate = new Date(data.last_check_time);
+            lastCheckTimeText = "Last checked: " + lastCheckDate.toLocaleString();
+        } else {
+            lastCheckTimeText = "Last checked: Never";
+        }
+    } catch (error) {
+        console.error("[Autocomplete-Plus] Error fetching last check time:", error);
+        lastCheckTimeText = "Last checked: Error loading";
+    }
+
+    // Add extra setting for checking new CSV updates
+    app.ui.settings.addSetting({
+        id: id + ".check_new_csv",
+        defaultValue: null,
+        name: "Check CSV updates",
+        category: [name, "Misc", "Check new CSV"],
+        type: () => {
+            const lastCheckSpan = $el("span", {
+                textContent: lastCheckTimeText,
+                className: "text-sm text-gray-500",
+                style: {
+                    marginRight: "16px"
+                }
+            });
+
+            const checkButton = $el("button", {
+                textContent: "Check now",
+                className: "p-button p-component p-button-primary",
+                onclick: async () => {
+                    await performUpdateCheck(checkButton, lastCheckSpan);
+                }
+            });
+
+            return $el("div", {
+                className: "flex-row items-center gap-2",
+            }, [
+                $el("div", {
+                    className: "p-component",
+                }, [
+                    lastCheckSpan,
+                    checkButton,
+                ]),
+            ]);
+        }
+    });
+}
+
+/**
+ * Registration of the extension
+ */
 app.registerExtension({
     id: id,
     name: name,
     async setup() {
         initializeEventHandlers();
+
+        addExtraSettings();
 
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete

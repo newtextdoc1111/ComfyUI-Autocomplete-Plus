@@ -1,12 +1,14 @@
 import os
+import json
 import server
 from aiohttp import web
+from . import downloader as dl
 
 # Get the absolute path to the 'data' directory
 # __file__ is the path to the current script (api.py)
 # os.path.dirname(__file__) is the directory of the current script (modules)
 # os.path.join(..., '..', 'data') goes up one level and then into 'data'
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+DATA_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data"))
 
 DANBOORU_PREFIX = 'danbooru'
 E621_PREFIX = 'e621'
@@ -45,8 +47,6 @@ def get_csv_file_status():
         cooccurrence_extra_files = []
 
         all_csv_files = [f for f in os.listdir(DATA_DIR) if f.startswith(prefix) and f.endswith('.csv')]
-        if len(all_csv_files) == 0:
-            print("[Autocomplete-Plus] No CSV files found in the data directory.")
 
         # Create extra CSV files list
         for filename in all_csv_files:
@@ -66,6 +66,28 @@ def get_csv_file_status():
 
     # Return the lists of extra files
     return data
+
+def get_last_check_time_from_metadata():
+    """
+    Helper function to get the last remote check timestamp from csv_meta.json.
+    Returns the timestamp string if found, None otherwise.
+    """
+    try:
+        if not os.path.exists(dl.CSV_META_FILE):
+            return None
+        
+        with open(dl.CSV_META_FILE, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        
+        datasets = metadata.get("hf_datasets", [])
+        if datasets and len(datasets) > 0:
+            return datasets[0].get("last_remote_check_timestamp")
+        
+        return None
+        
+    except (IOError, json.JSONDecodeError) as e:
+        print(f"[Autocomplete-Plus] Error reading csv_meta.json: {e}")
+        return None
 
 # --- API Endpoints ---
 
@@ -135,3 +157,65 @@ async def get_extra_tags_file(request):
 
     except ValueError:
         return web.json_response({"error": "Invalid index format"}, status=400)
+
+@server.PromptServer.instance.routes.post('/autocomplete-plus/csv/force-check-updates')
+async def force_check_csv_updates(request):
+    """
+    Forces a check for CSV file updates from HuggingFace, ignoring cooldown.
+    This allows users to manually trigger an update check at any time.
+    """
+    try:
+        print("[Autocomplete-Plus] Starting forced check for CSV updates from HuggingFace...")
+        
+        downloader = dl.Downloader()
+        downloader.run_check_and_download(force_check=True)
+        
+        print("[Autocomplete-Plus] Forced check completed successfully.")
+        
+        # Get the updated last check time
+        last_check_time = get_last_check_time_from_metadata()
+        
+        return web.json_response({
+            "success": True,
+            "message": "Force check completed successfully",
+            "last_check_time": last_check_time
+        })
+        
+    except Exception as e:
+        print(f"[Autocomplete-Plus] Error during forced check: {e}")
+        return web.json_response({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+@server.PromptServer.instance.routes.get('/autocomplete-plus/csv/last-check-time')
+async def get_last_check_time(_request):
+    """
+    Returns the last remote check timestamp from csv_meta.json.
+    Returns null if the file doesn't exist or if there's an error reading it.
+    """
+    try:
+        if not os.path.exists(dl.CSV_META_FILE):
+            return web.json_response({
+                "last_check_time": None,
+                "message": "csv_meta.json file not found"
+            })
+        
+        last_check_time = get_last_check_time_from_metadata()
+        
+        if last_check_time is not None:
+            return web.json_response({
+                "last_check_time": last_check_time
+            })
+        else:
+            return web.json_response({
+                "last_check_time": None,
+                "message": "No datasets found in metadata"
+            })
+            
+    except (IOError, json.JSONDecodeError) as e:
+        print(f"[Autocomplete-Plus] Error reading csv_meta.json: {e}")
+        return web.json_response({
+            "last_check_time": None,
+            "error": str(e)
+        }, status=500)
