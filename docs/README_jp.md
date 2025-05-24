@@ -2,9 +2,6 @@
 
 ![ss01](https://github.com/user-attachments/assets/bb139951-ad78-4d87-b290-97aafa1221d7)
 
-> [!WARNING]
-> このカスタムノードは現在ベータ版です。予告なく機能が変更されたり不具合が発生する場合があります。
-
 ## 概要
 
 **ComfyUI-Autocomplete-Plus** は、[ComfyUI](https://github.com/comfyanonymous/ComfyUI) の任意のテキストエリアに複数の入力支援機能を提供するカスタムノードです。現在はDanbooruとe621のタグに対応しています（e621は一部の機能が未対応です）。
@@ -29,7 +26,8 @@
 
 ## インストール
 
-ベータ版では以下の手順でインストールできます。
+### マニュアル
+
 1. このリポジトリを ComfyUI の `custom_nodes` フォルダにクローンまたはコピーします  
     `git clone https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus.git`
 3. ComfyUI を起動します。初回起動時のみ、必要な CSV データが HuggingFace から自動的にダウンロードされます
