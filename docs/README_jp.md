@@ -9,6 +9,11 @@
 
 **ComfyUI-Autocomplete-Plus** は、[ComfyUI](https://github.com/comfyanonymous/ComfyUI) の任意のテキストエリアに複数の入力支援機能を提供するカスタムノードです。現在はDanbooruとe621のタグに対応しています（e621は一部の機能が未対応です）。
 
+## 最近の更新 :fire:
+- CSV ファイルの自動・手動更新チェック機能の追加
+- Microsoft IMEでオートコンプリート候補が表示されないタイミングがある不具合の修正
+- e621タグ CSV の読み込みと表示のサポート
+
 ## 特徴
 
 - **:zap:セットアップ不要**: Danbooruタグに最適化された CSV データを自動でダウンロード
@@ -121,6 +126,10 @@ worst_quality,5,9999999,
 - **Max related tags**: 関連タグの最大表示件数
 - **Default Display Position**: ComfyUI起動時のデフォルト表示位置
 - **Related Tags Trigger Mode** : 関連タグを表示する際、どの操作をトリガーとするか（クリックのみ、Ctrl+クリック）
+
+### その他
+
+- **Check CSV updates**: 「Check Now」ボタンを押すと新しい CSV ファイルがHuggingFaceにあるか確認し、必要に応じてダウンロードを行います
 
 ## 既知の問題
 
