@@ -9,9 +9,9 @@
 
 **ComfyUI-Autocomplete-Plus** は、[ComfyUI](https://github.com/comfyanonymous/ComfyUI) の任意のテキストエリアに複数の入力支援機能を提供するカスタムノードです。現在はDanbooruとe621のタグに対応しています（e621は一部の機能が未対応です）。
 
-## :fire:最近の更新
+## 最近の更新 :fire:
 - CSV ファイルの自動・手動更新チェック機能の追加
-- Microsoft IMEでオートコンプリート候補が表示されないタイミングがある不具合の修正 (#11)
+- Microsoft IMEでオートコンプリート候補が表示されないタイミングがある不具合の修正
 - e621タグ CSV の読み込みと表示のサポート
 
 ## 特徴
