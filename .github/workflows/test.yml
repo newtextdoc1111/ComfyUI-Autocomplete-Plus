@@ -1,9 +1,10 @@
-name: Run Jest Tests
+name: Run Tests and Linters
 
 on: [push, pull_request]
 
 jobs:
   test:
+    name: jest
     runs-on: ubuntu-latest
 
     steps:
@@ -21,3 +22,13 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  linters:
+    name: stylelint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-hub/stylelint@master
+        env:
+          PATTERN : 'web/css/*.css'
