@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-autocomplete-plus"
-description = "Custom node to add autocomplete functionality [ComfyUI-Autocomplete-Plus](https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus)."
+description = "Autocomplete and Related Tag display for ComfyUI"
 version = "1.0.0"
 license = {file = "LICENSE"}
 dependencies = ["",]
