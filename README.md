@@ -10,6 +10,12 @@
 ## Overview
 
 **ComfyUI-Autocomplete-Plus** is a custom node that provides multiple input assistance features for any text area in [ComfyUI](https://github.com/comfyanonymous/ComfyUI). Currently, it supports Danbooru and e621 tags (e621 does not support some functions).
+
+## :fire:Recent Updates
+- Added automatic and manual update check functionality for CSV files
+- Fixed bug where autocomplete suggestions wouldn't display at certain timings with Microsoft IME (#11)
+- Support for loading and displaying e621 tag CSV
+
 ## Features
 
 - **:zap:No setup required**: Automatically downloads CSV data optimized for Danbooru tags.
@@ -123,6 +129,9 @@ worst_quality,5,9999999,
 - **Default Display Position**: Default display position when ComfyUI starts.
 - **Related Tags Trigger Mode**: Which action will trigger displaying related tags (click only, Ctrl+click)
 
+### Miscellaneous
+
+- **Check CSV updates**: Click the "Check Now" button to check if new CSV files are available in HuggingFace and download them if necessary.
 
 ## Known Issues
 
