@@ -28,11 +28,16 @@
 
 ## Installation
 
+### ComfyUI-Manager
+
+1. Search for `Autocomplete-Plus` in [ComfyUI-Manager](https://github.com/Comfy-Org/ComfyUI-Manager), install the custom node that appears, and restart.
+2. The necessary CSV data will be automatically downloaded from HuggingFace upon startup.
+
 ### Manual
 
 1. Clone or copy this repository into the `custom_nodes` folder of ComfyUI.
    `git clone https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus.git`
-2. Launch ComfyUI. The necessary CSV data will be automatically downloaded from HuggingFace on the first launch only.
+2. Launch ComfyUI. The necessary CSV data will be automatically downloaded from HuggingFace upon startup.
 
 ## Autocomplete
 
@@ -47,7 +52,7 @@ When you type in a text input area, tags that partially match the text are displ
 
 ![ss02](https://github.com/user-attachments/assets/854571cd-01eb-4e92-a118-2303bec0b175)
 
-When you select any tag in a text input area, highly related tags list are displayed. The UI's position and size are automatically adjusted based on the text area being edited.
+When you select any tag in a text input area, a list of highly related tags is displayed. You can insert a tag by clicking it or by selecting it with the up/down arrow keys and then pressing Enter or Tab. The UI's position and size are automatically adjusted based on the text area being edited.
 
 - The display position is primarily at the bottom of the text area and automatically adjusts vertically based on available space.
   - You can switch between vertical and horizontal display positions using the "↕️|↔️" button in the header.
