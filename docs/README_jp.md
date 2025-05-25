@@ -26,11 +26,16 @@
 
 ## インストール
 
+### ComfyUI-Manager
+
+1. [ComfyUI-Manager](https://github.com/Comfy-Org/ComfyUI-Manager) で `Autocomplete-Plus` と検索して表示されたカスタムノードをインストールし、再起動します
+2. 起動時に必要な CSV データが HuggingFace から自動的にダウンロードされます
+
 ### マニュアル
 
 1. このリポジトリを ComfyUI の `custom_nodes` フォルダにクローンまたはコピーします  
     `git clone https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus.git`
-3. ComfyUI を起動します。初回起動時のみ、必要な CSV データが HuggingFace から自動的にダウンロードされます
+2. ComfyUI を起動します。起動時に必要な CSV データが HuggingFace から自動的にダウンロードされます
 
 ## オートコンプリート
 
@@ -45,7 +50,7 @@
 
 ![ss02](https://github.com/user-attachments/assets/854571cd-01eb-4e92-a118-2303bec0b175)
 
-テキスト入力エリアの任意のタグを選択すると、関連性の高いタグを一覧表示します。UIは編集中のテキストエリアを基準に位置とサイズが自動で調整されます。
+テキスト入力エリアの任意のタグを選択すると、関連性の高いタグを一覧表示します。タグをクリックするか、キーボードの上下キーで選択後にEnterまたはTabキーでタグを挿入出来ます。UIは編集中のテキストエリアを基準に位置とサイズが自動で調整されます。
 
 - 表示位置は、テキストエリアの下部を基本とし、空きスペースに応じて上下に自動調整されます
   - ヘッダーの「↕️|↔️」ボタンで上下と左右の表示位置に切り替えられます
