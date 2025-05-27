@@ -318,10 +318,12 @@ class RelatedTagsUI {
         this.#updateHeader();
         this.#updateContent();
         this.#updatePosition();
-        this.#highlightItem();
 
         // Make visible
         this.root.style.display = 'block';
+
+        // This function must be called after the content is updated and the root is displayed.
+        this.#highlightItem();
 
         // Update initialization status if not already done
         if (!autoCompleteData[TagSource.Danbooru].initialized) {

@@ -332,10 +332,11 @@ class AutocompleteUI {
         // Calculate caret position using the helper function (returns viewport-relative coordinates)
         this.#updatePosition();
 
-        // Highlight the first item
-        this.#highlightItem();
-
         this.root.style.display = 'block'; // Make it visible
+
+        // Highlight the selected item
+        // This function must be called after the route has been displayed, in order to scroll the highlighted item into view.
+        this.#highlightItem();
     }
 
     /**
@@ -826,7 +827,7 @@ export class AutocompleteEventHandler {
         this.keyDownWithModifier.set(event.key.toLowerCase(), event.ctrlKey || event.altKey || event.metaKey);
 
         // Handle autocomplete navigation
-        if (this.autocompleteUI && this.autocompleteUI.isVisible()) {
+        if (this.autocompleteUI.isVisible()) {
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
@@ -878,11 +879,11 @@ export class AutocompleteEventHandler {
 
         if (this.autocompleteUI.isVisible()) {
             switch (event.key) {
-                case "Escape":
+                case 'ArrowDown':
+                case 'ArrowUp':
                     event.preventDefault();
-                    this.autocompleteUI.hide();
-                    return; // Return here to prevent updateDisplay after hiding with Escape
-                // Other keys like Enter, Tab, Arrows are handled in keyDown.
+                    return; // Prevent redundant display updates
+
                 // For other character keys, Backspace, Delete, we fall through to updateDisplay.
             }
         } else {
@@ -894,9 +895,9 @@ export class AutocompleteEventHandler {
             }
         }
 
-        // If the event was not handled by the above (e.g. Escape, or ignored special keys)
+        // If the event was not handled by the above (e.g. Arrow keys, or ignored special keys)
         // and default action is not prevented, update the display.
-        // This will typically be for character inputs, Delete, or Backspace.
+        // This will typically be for character inputs, Delete, Backspace or IME composition.
         if (!event.defaultPrevented) {
             this.autocompleteUI.updateDisplay(event.target);
         }
