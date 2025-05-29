@@ -90,7 +90,12 @@
 
 ### ユーザーCSV
 
-ユーザーが自身で用意した CSV を使用することも可能です。例として、よく使うメタタグを `danbooru_tags_meta.csv` の名前で `data` フォルダーに配置することでオートコンプリート候補に追加できます。  
+ユーザーが自身で用意した CSV を使用することも可能です。 CSV ファイルは以下の命名規則に従って `data` フォルダーに配置してください。
+
+- **オートコンプリート用 CSV**: <danbooru | e621>_tags*.csv
+- **関連タグ用 CSV**: <danbooru | e621>_tags_cooccurrence*.csv
+
+例として、よく使うメタタグを `danbooru_tags_meta.csv` の名前で `data` フォルダーに配置することでオートコンプリート候補に追加できます。
 ヘッダー行はなくても構いません。反映にはブラウザのリロードが必要です。
 
 **メタタグの例**
@@ -102,6 +107,15 @@ high_quality,5,9999999,
 normal_quality,5,9999999,
 low_quality,5,9999999,
 worst_quality,5,9999999,
+```
+
+ブラウザリロード時、ロードされる CSV ファイル一覧をComfyUIのコンソールのログで確認出来ます。ログ出力に含まれていない場合はファイル名が命名規則に沿っているか確認してください。
+
+**ComfyUIコンソールログ出力の例:**
+```
+[Autocomplete-Plus] CSV file status:
+  * Danbooru -> base: True, extra: danbooru_tags_meta.csv // ここに表示されていればメタタグを入力補完できます
+  * E621     -> base: False, extra: 
 ```
 
 >[!NOTE]

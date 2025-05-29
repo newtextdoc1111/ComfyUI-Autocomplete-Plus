@@ -103,17 +103,23 @@ async def get_csv_list(_request):
     response = {
         DANBOORU_PREFIX: {
             'base_tags': csv_file_status[DANBOORU_PREFIX]['base_tags'],
-            'extra_tags': len(csv_file_status[DANBOORU_PREFIX]['extra_tags']),
+            'extra_tags': csv_file_status[DANBOORU_PREFIX]['extra_tags'],
             'base_cooccurrence': csv_file_status[DANBOORU_PREFIX]['base_cooccurrence'],
-            'extra_cooccurrence': len(csv_file_status[DANBOORU_PREFIX]['extra_cooccurrence']),
+            'extra_cooccurrence': csv_file_status[DANBOORU_PREFIX]['extra_cooccurrence'],
         },
         E621_PREFIX: {
             'base_tags': csv_file_status[E621_PREFIX]['base_tags'],
-            'extra_tags': len(csv_file_status[E621_PREFIX]['extra_tags']),
+            'extra_tags': csv_file_status[E621_PREFIX]['extra_tags'],
             'base_cooccurrence': csv_file_status[E621_PREFIX]['base_cooccurrence'],
-            'extra_cooccurrence': len(csv_file_status[E621_PREFIX]['extra_cooccurrence']),
+            'extra_cooccurrence': csv_file_status[E621_PREFIX]['extra_cooccurrence'],
         }
     }
+
+    # Print csv file status to the console for debugging
+    print(f"""[Autocomplete-Plus] CSV file status:
+  * Danbooru -> base: {response[DANBOORU_PREFIX]['base_tags']}, extra: {", ".join(response[DANBOORU_PREFIX]['extra_tags'])}
+  * E621     -> base: {response[E621_PREFIX]['base_tags']}, extra: {", ".join(response[E621_PREFIX]['extra_tags'])}""")
+
     return web.json_response(response)
 
 @server.PromptServer.instance.routes.get('/autocomplete-plus/csv/{source}/{suffix}/base')

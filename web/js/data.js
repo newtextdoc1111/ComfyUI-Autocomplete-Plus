@@ -340,8 +340,8 @@ export async function initializeData(csvListData, source) {
             return;
         }
 
-        const extraTagsCount = csvListData[source].extra_tags || 0;
-        const extraCooccurrenceCount = csvListData[source].extra_cooccurrence || 0;
+        const extraTagsFileList = csvListData[source].extra_tags || [];
+        const extraCooccurrenceFileList = csvListData[source].extra_cooccurrence || [];
 
         const tagsUrl = `/autocomplete-plus/csv/${source}/tags`;
         const cooccurrenceUrl = `/autocomplete-plus/csv/${source}/tags_cooccurrence`;
@@ -349,7 +349,7 @@ export async function initializeData(csvListData, source) {
         // Factory for loading tags for the current sourte
         const siteTagsLoaderFactory = async () => {
             let promiseChain = Promise.resolve();
-            for (let i = 0; i < extraTagsCount; i++) {
+            for (let i = 0; i < extraTagsFileList.length; i++) {
                 promiseChain = promiseChain.then(() => loadTags(`${tagsUrl}/extra/${i}`, source));
             }
             if (csvListData[source].base_tags) {
@@ -362,7 +362,7 @@ export async function initializeData(csvListData, source) {
         // Factory for loading cooccurrence data for the current sourte
         const siteCooccurrenceLoaderFactory = async () => {
             let promiseChain = Promise.resolve();
-            for (let i = 0; i < extraCooccurrenceCount; i++) {
+            for (let i = 0; i < extraCooccurrenceFileList.length; i++) {
                 promiseChain = promiseChain.then(() => loadCooccurrence(`${cooccurrenceUrl}/extra/${i}`, source));
             }
             if (csvListData[source].base_cooccurrence) {
@@ -377,14 +377,15 @@ export async function initializeData(csvListData, source) {
         await Promise.all([
             Promise.all(tagsLoadPromiseFactories.map(factory => factory())).then(() => {
                 const endTime = performance.now();
-                console.log(`[Autocomplete-Plus] "${source}" Tags loading complete in ${(endTime - startTime).toFixed(2)}ms`);
+                if (csvListData[source].base_tags) {
+                    console.log(`[Autocomplete-Plus] "${source}" Tags loading complete in ${(endTime - startTime).toFixed(2)}ms`);
+                }
             }),
             Promise.all(cooccurrenceLoadPromiseFactories.map(factory => factory())).then(() => {
                 const endTime = performance.now();
-                // The original log for extraCooccurrenceCount was potentially misleading as it showed
-                // the count for the last processed sourte. Removed for clarity.
-                // If a total count is needed, it should be calculated across all sites.
-                console.log(`[Autocomplete-Plus] "${source}" Co-occurrence loading complete in ${(endTime - startTime).toFixed(2)}ms.`);
+                if (csvListData[source].base_cooccurrence) {
+                    console.log(`[Autocomplete-Plus] "${source}" Co-occurrence loading complete in ${(endTime - startTime).toFixed(2)}ms.`);
+                }
             })
         ]);
 
