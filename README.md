@@ -92,7 +92,12 @@ Also, displaying related tags is not supported.
 
 ### User CSV
 
-Users can also use their own CSV files. For example, frequently used meta tags can be added to the autocomplete suggestions by placing a file named `danbooru_tags_meta.csv` in the `data` folder.
+Users can also use their own CSV files. CSV files should be placed in the `data` folder according to the following naming convention:
+
+- **CSV for Autocomplete**: `<danbooru | e621>_tags*.csv`
+- **CSV for Related Tags**: `<danbooru | e621>_tags_cooccurrence*.csv`
+
+For example, you can add frequently used meta tags to the autocomplete suggestions by placing a file named `danbooru_tags_meta.csv` in the `data` folder.
 A header row is not required. A browser reload is necessary to apply the changes.
 
 **Example of meta tags:**
@@ -104,6 +109,15 @@ high_quality,5,9999999,
 normal_quality,5,9999999,
 low_quality,5,9999999,
 worst_quality,5,9999999,
+```
+
+When the browser is reloaded, you can check the list of loaded CSV files in the ComfyUI console log. If a file is not included in the log output, please verify that the file name follows the naming convention.
+
+**Example of ComfyUI console log output:**
+```
+[Autocomplete-Plus] CSV file status:
+  * Danbooru -> base: True, extra: danbooru_tags_meta.csv // If displayed here, meta tags can be autocompleted
+  * E621 -> base: False, extra:
 ```
 
 >[!NOTE]
