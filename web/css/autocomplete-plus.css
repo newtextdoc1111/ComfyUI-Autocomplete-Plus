@@ -288,12 +288,6 @@ body.dark-theme {
   background-color: var(--border-color);
 }
 
-.related-tags-layout-toggle {
-}
-
-.related-tags-pin-toggle {
-}
-
 #related-tags-list {
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
