@@ -67,7 +67,7 @@ function searchRelatedTags(tag) {
 
     const tagSource = TagSource.Danbooru; // TODO: Leave the tag source as Danbooru until e621_tags_cooccurrence.csv is ready
 
-    if (!tag || !autoCompleteData[tagSource].cooccurrenceMap.has(tag)) {
+    if (!tag || !autoCompleteData[tagSource].initialized || !autoCompleteData[tagSource].cooccurrenceMap.has(tag)) {
         return [];
     }
 
@@ -199,11 +199,20 @@ class RelatedTagsUI {
         this.header = document.createElement('div');
         this.header.id = 'related-tags-header';
 
+        this.headerTextContainer = document.createElement('div');
+        this.headerTextContainer.className = 'related-tags-header-text-container';
+        this.header.appendChild(this.headerTextContainer);
+
         // Create header text div for the left side
         this.headerText = document.createElement('div');
-        this.headerText.className = 'related-tags-header-text';
+        this.headerText.className = 'related-tags-header-tag-text';
         this.headerText.textContent = 'Related Tags';
-        this.header.appendChild(this.headerText);
+        this.headerTextContainer.appendChild(this.headerText);
+
+        // Create header alias div for the 2nd line
+        this.headerAlias = document.createElement('div');
+        this.headerAlias.className = 'related-tags-header-tag-alias';
+        this.headerTextContainer.appendChild(this.headerAlias);
 
         // Create header controls for the right side
         this.headerControls = document.createElement('div');
@@ -249,7 +258,7 @@ class RelatedTagsUI {
         this.headerControls.appendChild(this.pinBtn);
 
         this.header.appendChild(this.headerControls);
-
+        
         this.root.appendChild(this.header);
 
         // Create a tbody for the tags
@@ -391,7 +400,7 @@ class RelatedTagsUI {
      */
     #updateHeader() {
         // Find the tag data for the current tag
-        const tagData = Object.values(TagSource)
+        let tagData = Object.values(TagSource)
             .map((source) => {
                 if (source in autoCompleteData && autoCompleteData[source].tagMap.has(this.currentTag)) {
                     return autoCompleteData[source].tagMap.get(this.currentTag);
@@ -399,20 +408,48 @@ class RelatedTagsUI {
             })
             .find((tagData) => tagData !== undefined);
 
+        if (!tagData) {
+            tagData = new TagData({
+                tag: this.currentTag,
+                source: TagSource.Danbooru,
+                category: 'unknown',
+                count: 0,
+                alias: [],
+            });
+        }
+
+        const tagText = this.currentTag;
+        const categoryText = TagCategory[tagData.source][tagData.category];
+
         // Update header text with current tag
         this.headerText.innerHTML = ''; // Clear previous content
         this.headerText.textContent = 'Tags related to: ';
+
         const tagName = document.createElement('span');
-        tagName.className = 'related-tags-header-tag-name';
-        tagName.textContent = this.currentTag;
-        if (tagData && ['left', 'right'].includes(settingValues.tagSourceIconPosition)) {
+        tagName.classList.add('related-tags-header-tag-name', tagData.source);
+        tagName.title = `Count: ${tagData.count}\nCategory: ${categoryText}`;
+        tagName.dataset.tagCategory = categoryText;
+        if (tagData.source && ['left', 'right'].includes(settingValues.tagSourceIconPosition)) {
             const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
             tagName.innerHTML = settingValues.tagSourceIconPosition == 'left'
-                ? `${tagSourceIconHtml} ${tagData.tag}`
-                : `${tagData.tag} ${tagSourceIconHtml}`;
+                ? `${tagSourceIconHtml} ${tagText}`
+                : `${tagText} ${tagSourceIconHtml}`;
+        } else {
+            tagName.textContent += tagText;
         }
 
+
         this.headerText.appendChild(tagName);
+
+        // Clear previous alias
+        this.headerAlias.style.display = 'none';
+        this.headerAlias.innerHTML = '';
+
+        // Add alias if available
+        if (tagData.alias?.length > 0) {
+            this.headerAlias.textContent = tagData.alias.join(', ');
+            this.headerAlias.style.display = 'block';
+        }
 
         // Update pin button
         this.pinBtn.textContent = this.isPinned ? '🎯' : '📌';
@@ -432,7 +469,7 @@ class RelatedTagsUI {
         if (!autoCompleteData[TagSource.Danbooru].initialized) {
             // Show loading message
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'related-tags-loading-message';
+            messageDiv.className = 'related-tags-message';
             messageDiv.textContent = `Initializing cooccurrence data... [${autoCompleteData[TagSource.Danbooru].baseLoadingProgress.cooccurrence}%]`;
             this.tagsContainer.appendChild(messageDiv);
             return;
@@ -441,6 +478,7 @@ class RelatedTagsUI {
         if (!this.relatedTags || this.relatedTags.length === 0) {
             // Show no related tags message
             const messageDiv = document.createElement('div');
+            messageDiv.className = 'related-tags-message';
             messageDiv.textContent = 'No related tags found';
             this.tagsContainer.appendChild(messageDiv);
             return;
@@ -530,20 +568,24 @@ class RelatedTagsUI {
         this.root.style.maxWidth = '';
         this.tagsContainer.style.maxHeight = '';
         const rootRect = this.root.getBoundingClientRect();
-        const headerRect = this.header.getBoundingClientRect();
-        // Hide it again after measurement
-        this.root.style.display = 'none';
-        this.root.style.visibility = 'visible';
 
         // Get the optimal placement area
         const placementArea = this.#getOptimalPlacementArea(rootRect.width, rootRect.height);
 
-        // Apply Styles
+        // Apply position and size
         this.root.style.left = `${placementArea.x}px`;
         this.root.style.top = `${placementArea.y}px`;
         this.root.style.maxWidth = `${placementArea.width}px`;
 
-        this.tagsContainer.style.maxHeight = `${placementArea.height - headerRect.height}px`;
+        const newHeaderRect = this.header.getBoundingClientRect();
+
+        if(this.relatedTags.length > 0){
+            this.tagsContainer.style.maxHeight = `${placementArea.height - newHeaderRect.height}px`;
+        }
+
+        // Hide it again after measurement
+        this.root.style.display = 'none';
+        this.root.style.visibility = 'visible';
     }
 
     /** Highlights the item (row) at the given index */
