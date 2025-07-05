@@ -121,8 +121,8 @@ async def get_csv_list(_request):
 
     # Print csv file status to the console for debugging
     print(f"""[Autocomplete-Plus] CSV file status:
-  * Danbooru -> base: {response[DANBOORU_PREFIX]["base_tags"]}, extra: {", ".join(response[DANBOORU_PREFIX]["extra_tags"])}
-  * E621     -> base: {response[E621_PREFIX]["base_tags"]}, extra: {", ".join(response[E621_PREFIX]["extra_tags"])}""")
+  * Danbooru -> base: {response[DANBOORU_PREFIX]["base_tags"]}, extra: [{", ".join(response[DANBOORU_PREFIX]["extra_tags"])}]
+  * E621     -> base: {response[E621_PREFIX]["base_tags"]}, extra: [{", ".join(response[E621_PREFIX]["extra_tags"])}]""")
 
     return web.json_response(response)
 
