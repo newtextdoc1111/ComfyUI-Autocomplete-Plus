@@ -8,11 +8,6 @@
 
 **ComfyUI-Autocomplete-Plus** is a custom node that provides multiple input assistance features for any text area in [ComfyUI](https://github.com/comfyanonymous/ComfyUI). Currently, it supports Danbooru and e621 tags (e621 does not support some functions).
 
-## Recent Updates :fire:
-- Added automatic and manual update check functionality for CSV files
-- Fixed bug where autocomplete suggestions wouldn't display at certain timings with Microsoft IME
-- Support for loading and displaying e621 tag CSV
-
 ## Features
 
 - **:zap:No setup required**: Automatically downloads CSV data optimized for Danbooru tags.
