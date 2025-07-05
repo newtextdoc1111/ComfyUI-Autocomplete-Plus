@@ -20,6 +20,7 @@ CSV_META_FILE = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", C
 
 DEFAULT_CSV_METADATA = {
     "version": 1,
+    "offline_mode": False,
     "hf_datasets": [
         {
             "hf_dataset_id": "newtextdoc1111/danbooru-tag-csv",
@@ -323,6 +324,10 @@ class Downloader:
         Args:
             force_check: If True, forces a check of HuggingFace regardless of the last check timestamp.
         """
+        # If offline mode is enabled and force_check is false, skip the check and download.
+        if self.metadata.get("offline_mode", False) and not force_check:
+            print("[Autocomplete-Plus] Offline mode is enabled. Skipping CSV update check and download.")
+            return
 
         now_utc = datetime.now(timezone.utc)
 
