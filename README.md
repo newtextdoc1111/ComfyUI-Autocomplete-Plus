@@ -145,6 +145,23 @@ When the browser is reloaded, you can check the list of loaded CSV files in the 
 
 - **Check CSV updates**: Click the "Check Now" button to check if new CSV files are available in HuggingFace and download them if necessary.
 
+## Advanced Settings
+
+### Disabling CSV Update Check on Startup
+
+By default, ComfyUI performs CSV file update checks and downloads at regular intervals during startup.
+When starting in an environment without internet access, startup may be delayed until a timeout occurs.
+
+You can skip the check process during ComfyUI startup by following these steps:
+
+1. Start ComfyUI once with this custom node installed to generate the `csv_meta.json` file  
+  The `csv_meta.json` file is created directly under this custom node's folder
+2. Open `csv_meta.json` in a text editor and change the value of `check_updates_on_startup` from `true` to `false` and save
+
+Additional notes:
+- The check process will not be performed until the value of `check_updates_on_startup` is changed back to `true` or the `version` is switched
+- Even when `check_updates_on_startup` is `false`, manual checking is still possible by pressing the `Check CSV updates` button in the Autocomplete Plus settings
+
 ## Known Issues
 
 ### Performance
