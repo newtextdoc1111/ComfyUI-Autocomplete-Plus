@@ -40,6 +40,9 @@ DEFAULT_CSV_METADATA = {
     ],
 }
 
+# --- HuggingFace Constants ---
+HUGGINGFACE_URL = "https://huggingface.co"
+
 
 # --- Helper Functions ---
 def get_file_path(file_name: str) -> str:
@@ -113,7 +116,7 @@ class Downloader:
         Retrieves the Last-Modified header for a file on HuggingFace and returns it as an ISO 8601 string.
         hf_filename should be the full filename, e.g., "danbooru_tags.csv".
         """
-        url = f"https://huggingface.co/datasets/{dataset_repo_id}/resolve/main/{hf_filename}"
+        url = f"{HUGGINGFACE_URL}/datasets/{dataset_repo_id}/resolve/main/{hf_filename}"
         try:
             req = urllib.request.Request(
                 url,
@@ -146,7 +149,7 @@ class Downloader:
         """
         Downloads a file synchronously with progress display to a temporary location.
         """
-        download_url = f"https://huggingface.co/datasets/{hf_dataset_id}/resolve/main/{file_name}"
+        download_url = f"{HUGGINGFACE_URL}/datasets/{hf_dataset_id}/resolve/main/{file_name}"
         final_path = get_file_path(file_name)
         temp_path = get_temp_download_path(file_name)
         now_utc = datetime.now(timezone.utc).isoformat()
