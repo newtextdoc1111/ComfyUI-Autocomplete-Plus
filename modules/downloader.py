@@ -20,6 +20,7 @@ CSV_META_FILE = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", C
 
 DEFAULT_CSV_METADATA = {
     "version": 1,
+    "check_updates_on_startup": True,
     "hf_datasets": [
         {
             "hf_dataset_id": "newtextdoc1111/danbooru-tag-csv",
@@ -326,6 +327,10 @@ class Downloader:
         Args:
             force_check: If True, forces a check of HuggingFace regardless of the last check timestamp.
         """
+        # If check_updates_on_startup is False and force_check is not set, skip the check
+        if not (self.metadata.get("check_updates_on_startup", True) or force_check):
+            print('[Autocomplete-Plus] "check_updates_on_startup" is disabled. Skipping CSV update check and download.')
+            return
 
         now_utc = datetime.now(timezone.utc)
 
