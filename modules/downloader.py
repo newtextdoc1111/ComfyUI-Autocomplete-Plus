@@ -20,7 +20,8 @@ CSV_META_FILE = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", C
 
 DEFAULT_CSV_METADATA = {
     "version": 1,
-    "hf_datasets" : [
+    "check_updates_on_startup": True,
+    "hf_datasets": [
         {
             "hf_dataset_id": "newtextdoc1111/danbooru-tag-csv",
             "last_remote_check_timestamp": None,
@@ -34,11 +35,14 @@ DEFAULT_CSV_METADATA = {
                     "file_name": "danbooru_tags_cooccurrence.csv",
                     "last_download": None,
                     "last_modified_on_hf": None,
-                }
-            ]
+                },
+            ],
         }
-    ]
+    ],
 }
+
+# --- HuggingFace Constants ---
+HUGGINGFACE_URL = "https://huggingface.co"
 
 
 # --- Helper Functions ---
@@ -82,12 +86,14 @@ class Downloader:
             return default_metadata
 
         try:
-            with open(CSV_META_FILE, 'r', encoding='utf-8') as f:
+            with open(CSV_META_FILE, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
 
                 if not isinstance(metadata, dict) or metadata.get("version") != DEFAULT_CSV_METADATA["version"]:
-                    print(f"[Autocomplete-Plus] Metadata version mismatch. Expected {DEFAULT_CSV_METADATA['version']}, "
-                          f"found {metadata.get('version')}. Using default metadata.")
+                    print(
+                        f"[Autocomplete-Plus] Metadata version mismatch. Expected {DEFAULT_CSV_METADATA['version']}, "
+                        f"found {metadata.get('version')}. Using default metadata."
+                    )
                     return default_metadata
                 else:
                     self.csv_meta_file_exists_at_start = True
@@ -101,7 +107,7 @@ class Downloader:
         """Saves metadata to CSV_META_FILE."""
         try:
             os.makedirs(os.path.dirname(CSV_META_FILE), exist_ok=True)
-            with open(CSV_META_FILE, 'w', encoding='utf-8') as f:
+            with open(CSV_META_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.metadata, f, indent=2)
         except IOError as e:
             print(f"[Autocomplete-Plus] Error saving metadata to {CSV_META_FILE}: {e}")
@@ -111,12 +117,15 @@ class Downloader:
         Retrieves the Last-Modified header for a file on HuggingFace and returns it as an ISO 8601 string.
         hf_filename should be the full filename, e.g., "danbooru_tags.csv".
         """
-        url = f"https://huggingface.co/datasets/{dataset_repo_id}/resolve/main/{hf_filename}"
+        url = f"{HUGGINGFACE_URL}/datasets/{dataset_repo_id}/resolve/main/{hf_filename}"
         try:
-            req = urllib.request.Request(url, method='HEAD',
-                                         headers={"User-Agent": "ComfyUI-Autocomplete-Plus (Python urllib)"})
+            req = urllib.request.Request(
+                url,
+                method="HEAD",
+                headers={"User-Agent": "ComfyUI-Autocomplete-Plus (Python urllib)"},
+            )
             with urllib.request.urlopen(req, timeout=10) as response:
-                last_modified_http = response.getheader('Last-Modified')
+                last_modified_http = response.getheader("Last-Modified")
                 if last_modified_http:
                     dt_object = parsedate_to_datetime(last_modified_http)
                     if dt_object.tzinfo is None or dt_object.tzinfo.utcoffset(dt_object) is None:
@@ -141,7 +150,7 @@ class Downloader:
         """
         Downloads a file synchronously with progress display to a temporary location.
         """
-        download_url = f"https://huggingface.co/datasets/{hf_dataset_id}/resolve/main/{file_name}"
+        download_url = f"{HUGGINGFACE_URL}/datasets/{hf_dataset_id}/resolve/main/{file_name}"
         final_path = get_file_path(file_name)
         temp_path = get_temp_download_path(file_name)
         now_utc = datetime.now(timezone.utc).isoformat()
@@ -155,18 +164,28 @@ class Downloader:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
-            req = urllib.request.Request(download_url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 11.0; Win64)"})
+            req = urllib.request.Request(
+                download_url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 11.0; Win64)"},
+            )
 
             with urllib.request.urlopen(req) as response:
                 total_size_str = response.getheader("Content-Length")
                 total_size = int(total_size_str) if total_size_str else None
                 chunk_size = 8192
 
-                with open(temp_path, "wb") as f_out, \
-                        tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024,
-                             desc=f"[Autocomplete-Plus] Downloading {file_name}", leave=False,
-                             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'
-                             ) as pbar:
+                with (
+                    open(temp_path, "wb") as f_out,
+                    tqdm(
+                        total=total_size,
+                        unit="B",
+                        unit_scale=True,
+                        unit_divisor=1024,
+                        desc=f"[Autocomplete-Plus] Downloading {file_name}",
+                        leave=False,
+                        bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]",
+                    ) as pbar,
+                ):
                     while True:
                         chunk = response.read(chunk_size)
                         if not chunk:
@@ -197,12 +216,15 @@ class Downloader:
             if os.path.exists(final_path):
                 try:
                     file_size_at_final = os.path.getsize(final_path)
-                    if file_size_at_final == 0 or \
-                            (total_size and total_size > 0 and file_size_at_final < total_size) or \
-                            (not total_size and downloaded_size > 0 and file_size_at_final < downloaded_size):
+                    if (
+                        file_size_at_final == 0
+                        or (total_size and total_size > 0 and file_size_at_final < total_size)
+                        or (not total_size and downloaded_size > 0 and file_size_at_final < downloaded_size)
+                    ):
                         os.remove(final_path)
                         print(
-                            f"[Autocomplete-Plus] Removed potentially corrupted file at final destination: {final_path}")
+                            f"[Autocomplete-Plus] Removed potentially corrupted file at final destination: {final_path}"
+                        )
                 except OSError as rm_e:
                     print(f"[Autocomplete-Plus] Error removing potentially corrupted file {final_path}: {rm_e}")
 
@@ -221,7 +243,8 @@ class Downloader:
                     perform_hf_check = False
             except (ValueError, KeyError, TypeError):
                 print(
-                    "[Autocomplete-Plus] Invalid or missing timestamp for last_remote_check_timestamp. Will perform remote check.")
+                    "[Autocomplete-Plus] Invalid or missing timestamp for last_remote_check_timestamp. Will perform remote check."
+                )
 
         if perform_hf_check:
             huggingface_dataset_id = dataset_meta["hf_dataset_id"]
@@ -246,7 +269,8 @@ class Downloader:
                 dataset_meta["last_remote_check_timestamp"] = now_utc.isoformat()
             else:
                 print(
-                    "[Autocomplete-Plus] Could not update all remote timestamps from HuggingFace. Will try again later.")
+                    "[Autocomplete-Plus] Could not update all remote timestamps from HuggingFace. Will try again later."
+                )
 
     def _download_csv_files_if_needed(self, dataset_meta: dict):
         """Downloads CSV files if they are missing, outdated, or previously failed."""
@@ -299,10 +323,14 @@ class Downloader:
         """
         Orchestrates the process of checking for updates and downloading CSV files.
         This is the main entry point for the downloader logic.
-        
+
         Args:
             force_check: If True, forces a check of HuggingFace regardless of the last check timestamp.
         """
+        # If check_updates_on_startup is False and force_check is not set, skip the check
+        if not (self.metadata.get("check_updates_on_startup", True) or force_check):
+            print('[Autocomplete-Plus] "check_updates_on_startup" is disabled. Skipping CSV update check and download.')
+            return
 
         now_utc = datetime.now(timezone.utc)
 

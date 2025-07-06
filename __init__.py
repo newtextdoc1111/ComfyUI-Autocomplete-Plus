@@ -1,4 +1,4 @@
-from .modules.api import *  
+from .modules.api import *
 from .modules import downloader
 
 # check and download necessary csv files

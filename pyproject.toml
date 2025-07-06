@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-autocomplete-plus"
 description = "Autocomplete and Related Tag display for ComfyUI"
-version = "1.1.0"
+version = "1.2.0"
 license = {file = "LICENSE"}
 dependencies = ["",]
 
@@ -9,7 +9,16 @@ dependencies = ["",]
 Repository = "https://github.com/newtextdoc1111/ComfyUI-Autocomplete-Plus"
 #  Used by Comfy Registry https://comfyregistry.org
 
+[dependency-groups]
+dev = [
+    "ruff>=0.12.2",
+]
+
 [tool.comfy]
 PublisherId = "newtextdoc1111"
 DisplayName = "ComfyUI-Autocomplete-Plus"
 Icon = ""
+
+[tool.ruff]
+# Allow lines to be as long as 120.
+line-length = 120

@@ -6,11 +6,6 @@
 
 **ComfyUI-Autocomplete-Plus** は、[ComfyUI](https://github.com/comfyanonymous/ComfyUI) の任意のテキストエリアに複数の入力支援機能を提供するカスタムノードです。現在はDanbooruとe621のタグに対応しています（e621は一部の機能が未対応です）。
 
-## 最近の更新 :fire:
-- CSV ファイルの自動・手動更新チェック機能の追加
-- Microsoft IMEでオートコンプリート候補が表示されないタイミングがある不具合の修正
-- e621タグ CSV の読み込みと表示のサポート
-
 ## 特徴
 
 - **:zap:セットアップ不要**: Danbooruタグに最適化された CSV データを自動でダウンロード
@@ -147,6 +142,23 @@ worst_quality,5,9999999,
 ### その他
 
 - **Check CSV updates**: 「Check Now」ボタンを押すと新しい CSV ファイルがHuggingFaceにあるか確認し、必要に応じてダウンロードを行います
+
+## 上級者向け設定
+
+### 起動時のCSV更新チェックを無効化する
+
+デフォルトの動作では、ComfyUI起動時に一定の間隔で CSV ファイルの更新チェックとダウンロード行います。
+インターネットにアクセス出来ない環境で起動した場合、タイムアウトが発生するまで起動が遅延する事があります。
+
+以下の手順を行う事により、ComfyUI起動時のチェック処理をスキップする事が出来ます。
+
+1. このカスタムノードをインストールした状態でComfyUIを一度起動し、 `csv_meta.json` ファイルを生成する  
+  `csv_meta.json` はこのカスタムノードのフォルダー直下に作成されます
+2. `csv_meat.json` をテキストエディターで開き、`check_updates_on_startup` の値を `true` -> `false` に変更し保存する
+
+補足事項:
+- `check_updates_on_startup` の値を再び `true` にするか、 `version` が切り替わるまでチェック処理は行われなくなります
+- `check_updates_on_startup` が `false` でも、Autocompelte Plusの設定から `Check CSV updates` のボタンを押す事で手動チェックが可能です
 
 ## 既知の問題
 
