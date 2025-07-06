@@ -154,9 +154,19 @@ worst_quality,5,9999999,
 
 1. このカスタムノードをインストールした状態でComfyUIを一度起動し、 `csv_meta.json` ファイルを生成する  
   `csv_meta.json` はこのカスタムノードのフォルダー直下に作成されます
-2. `csv_meat.json` をテキストエディターで開き、`check_updates_on_startup` の値を `true` -> `false` に変更し保存する
+2. `csv_meat.json` をテキストエディターで開き、`check_updates_on_startup` の値を `true` -> `false` に変更し保存する  
+  `check_updates_on_startup` が存在しない場合、 `version` の下に追記してください
 
-補足事項:
+**変更後の `csv_meta.json`：**
+```json
+{
+  "version": 1,
+  "check_updates_on_startup": false,
+  ...
+}
+```
+
+**補足事項：**
 - `check_updates_on_startup` の値を再び `true` にするか、 `version` が切り替わるまでチェック処理は行われなくなります
 - `check_updates_on_startup` が `false` でも、Autocompelte Plusの設定から `Check CSV updates` のボタンを押す事で手動チェックが可能です
 

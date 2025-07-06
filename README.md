@@ -154,13 +154,23 @@ When starting in an environment without internet access, startup may be delayed 
 
 You can skip the check process during ComfyUI startup by following these steps:
 
-1. Start ComfyUI once with this custom node installed to generate the `csv_meta.json` file  
-  The `csv_meta.json` file is created directly under this custom node's folder
-2. Open `csv_meta.json` in a text editor and change the value of `check_updates_on_startup` from `true` to `false` and save
+1. Start ComfyUI once with this custom node installed to generate the `csv_meta.json` file.  
+  The `csv_meta.json` file is created directly under this custom node's folder.
+2. Open `csv_meta.json` in a text editor and change the value of `check_updates_on_startup` from `true` to `false` and save.  
+  If `check_updates_on_startup` does not exist, add it under `version`.
 
-Additional notes:
-- The check process will not be performed until the value of `check_updates_on_startup` is changed back to `true` or the `version` is switched
-- Even when `check_updates_on_startup` is `false`, manual checking is still possible by pressing the `Check CSV updates` button in the Autocomplete Plus settings
+**`csv_meta.json` after modification:**
+```json
+{
+  "version": 1,
+  "check_updates_on_startup": false,
+  ...
+}
+```
+
+**Additional notes:**
+- The check process will not be performed until the value of `check_updates_on_startup` is changed back to `true` or the `version` is switched.
+- Even when `check_updates_on_startup` is `false`, manual checking is still possible by pressing the `Check CSV updates` button in the Autocomplete Plus settings.
 
 ## Known Issues
 
