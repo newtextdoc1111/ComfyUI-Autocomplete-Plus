@@ -1,4 +1,4 @@
-import { settingValues } from "./settings.js";
+import { settingValues, updateMaxTagLength } from "./settings.js";
 
 // --- Constants ---
 
@@ -157,6 +157,8 @@ async function loadTags(csvUrl, siteName) {
 
                 // Create a TagData instance instead of a plain object
                 const tagData = new TagData(tag, aliases, category, count, siteName);
+
+                updateMaxTagLength(tag.length);
 
                 autoCompleteData[siteName].sortedTags.push(tagData);
             } else {
@@ -326,7 +328,6 @@ export async function initializeData(csvListData, source) {
 
     const startTime = performance.now();
     autoCompleteData[source].isInitializing = true;
-    // console.log("[Autocomplete-Plus] Initializing autocomplete data...");
 
     try {
         // Store functions that return Promises (Promise Factories)

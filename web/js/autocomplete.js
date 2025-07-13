@@ -5,9 +5,10 @@ import {
     getEnabledTagSourceInPriorityOrder
 } from './data.js';
 import {
-    formatCountHumanReadable,
+    isLongText,
     hiraToKata,
     kataToHira,
+    formatCountHumanReadable,
     isContainsLetterOrNumber,
     normalizeTagToInsert,
     normalizeTagToSearch,
@@ -82,8 +83,10 @@ function searchCompletionCandidates(textareaElement) {
 
     const ESCAPE_SEQUENCE = ["#", "/"]; // If the first string is that character, autocomplete will not be displayed.
     const partialTag = getCurrentPartialTag(textareaElement);
-    if (!partialTag || partialTag.length <= 0 || ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq))) {
-        return []; // No valid input for autocomplete    
+    if (!partialTag || partialTag.length <= 0 || 
+        ESCAPE_SEQUENCE.some(seq => partialTag.startsWith(seq)) || 
+        isLongText(partialTag)) {
+        return []; // No valid input for autocomplete
     }
 
     const exactMatches = [];
