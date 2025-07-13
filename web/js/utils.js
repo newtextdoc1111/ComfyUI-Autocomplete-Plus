@@ -52,7 +52,7 @@ const REG_WILDCARD_SIMPLE_WORD = /[^{}_|]+/g;
  * @return {boolean} True if the text is longer than the maximum tag length, false otherwise.
  */
 export function isLongText(text) {
-    return text.length > settingValues._maxTagLength;
+    return text?.length > settingValues._maxTagLength;
 }
 
 /**
