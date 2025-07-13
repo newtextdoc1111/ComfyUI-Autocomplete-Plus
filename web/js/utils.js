@@ -1,3 +1,5 @@
+import { settingValues } from './settings.js';
+
 // --- Html String constants ---
 
 /**
@@ -43,6 +45,15 @@ const REG_STRIP_TRAILING_PAREN = /(.*)(?<!\\)\)$/s;
 
 const REG_WILDCARD_WEIGHTED_TAG = /(\d+)[_\s]*::(.*?)(?=\||$)/g;
 const REG_WILDCARD_SIMPLE_WORD = /[^{}_|]+/g;
+
+/**
+ * Checks if the input text is longer than the maximum allowed tag length.
+ * @param {string} text The text to check.
+ * @return {boolean} True if the text is longer than the maximum tag length, false otherwise.
+ */
+export function isLongText(text) {
+    return text.length > settingValues._maxTagLength;
+}
 
 /**
  * Converts Hiragana to Katakana.
