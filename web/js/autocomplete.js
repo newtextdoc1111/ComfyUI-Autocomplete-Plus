@@ -103,59 +103,85 @@ function searchCompletionCandidates(textareaElement) {
 
     const sources = getEnabledTagSourceInPriorityOrder();
     for (const source of sources) {
-        // Search in sortedTags (already sorted by count)
-        for (const tagData of autoCompleteData[source].sortedTags) {
-            let matched = false;
-            let isExactMatch = false;
-            let matchedAlias = null;
+		if (autoCompleteData[source].use_fuse && autoCompleteData[source].fuse) {
+			const searchResults = autoCompleteData[source].fuse.search(partialTag, {
+				limit: settingValues.maxSuggestions,
+				suggest: false,
+				cache: true,
+			});
+			if (settingValues._logprocessingTime) {
+				const endTime = performance.now();
+				const duration = endTime - startTime;
+				console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" in ${source} took ${duration.toFixed(2)}ms. Found ${searchResults.length} candidates.`);
+			}
+			let result = [];
+			searchResults.sort((a, b) => {
+				if (matchWord(autoCompleteData[source].sortedTags[b].tag, queryVariations).matched) {
+					return 999999999999;
+				}
+				if (matchWord(autoCompleteData[source].sortedTags[a].tag, queryVariations).matched) {
+					return -999999999999;
+				}
+				return autoCompleteData[source].sortedTags[b].count - autoCompleteData[source].sortedTags[a].count;
+			}).forEach(seachResult => {
+				result.push(autoCompleteData[source].sortedTags[seachResult]);
+			});
+			return result;
+		} else {
+			// Search in sortedTags (already sorted by count)
+			for (const tagData of autoCompleteData[source].sortedTags) {
+				let matched = false;
+				let isExactMatch = false;
+				let matchedAlias = null;
 
-            // Check primary tag against all variations for exact/partial match
-            const tagMatch = matchWord(tagData.tag, queryVariations);
-            matched = tagMatch.matched;
-            isExactMatch = tagMatch.isExactMatch;
+				// Check primary tag against all variations for exact/partial match
+				const tagMatch = matchWord(tagData.tag, queryVariations);
+				matched = tagMatch.matched;
+				isExactMatch = tagMatch.isExactMatch;
 
-            // If primary tag didn't match, check aliases against all variations
-            if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
-                for (const alias of tagData.alias) {
-                    const lowerAlias = alias.toLowerCase();
-                    const aliasMatch = matchWord(lowerAlias, queryVariations);
-                    if (aliasMatch.matched) {
-                        matched = true;
-                        isExactMatch = aliasMatch.isExactMatch;
-                        matchedAlias = alias;
-                        break;
-                    }
-                }
-            }
+				// If primary tag didn't match, check aliases against all variations
+				if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
+					for (const alias of tagData.alias) {
+						const lowerAlias = alias.toLowerCase();
+						const aliasMatch = matchWord(lowerAlias, queryVariations);
+						if (aliasMatch.matched) {
+							matched = true;
+							isExactMatch = aliasMatch.isExactMatch;
+							matchedAlias = alias;
+							break;
+						}
+					}
+				}
 
-            const tagSetKey = tagData.tag;
+				const tagSetKey = tagData.tag;
 
-            // Add candidate if matched and not already added
-            if (matched && !addedTags.has(tagSetKey)) {
-                // Add to exact matches or partial matches based on match type
-                if (isExactMatch) {
-                    exactMatches.push(tagData);
-                } else {
-                    partialMatches.push(tagData);
-                }
+				// Add candidate if matched and not already added
+				if (matched && !addedTags.has(tagSetKey)) {
+					// Add to exact matches or partial matches based on match type
+					if (isExactMatch) {
+						exactMatches.push(tagData);
+					} else {
+						partialMatches.push(tagData);
+					}
 
-                addedTags.add(tagSetKey);
+					addedTags.add(tagSetKey);
 
-                // Check if we've reached the maximum suggestions limit combining both arrays
-                if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
-                    // Return the combined results, prioritizing exact matches
-                    const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
+					// Check if we've reached the maximum suggestions limit combining both arrays
+					if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
+						// Return the combined results, prioritizing exact matches
+						const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
 
-                    if (settingValues._logprocessingTime) {
-                        const endTime = performance.now();
-                        const duration = endTime - startTime;
-                        console.debug(`[Autocomplete-Plus] Search for "${partialTag}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
-                    }
+						if (settingValues._logprocessingTime) {
+							const endTime = performance.now();
+							const duration = endTime - startTime;
+							console.debug(`[Autocomplete-Plus] Search for "${partialTag}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
+						}
 
-                    return result; // Early exit
-                }
-            }
-        }
+						return result; // Early exit
+					}
+				}
+			}
+		}
     }
 
     // Combine results, with exact matches first
@@ -182,9 +208,10 @@ function getCurrentPartialTag(inputElement) {
     // Find the last newline or comma before the cursor
     const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
+	const lastPeriod = text.lastIndexOf('.', cursorPos - 1);
 
     // Get the position of the last separator (newline or comma) before cursor
-    const lastSeparator = Math.max(lastNewLine, lastComma);
+    const lastSeparator = Math.max(lastNewLine, lastComma, lastPeriod);
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
     // Check if the cursor is inside a prompt weight modifier (e.g., :1.2, :.5, :1.)
