@@ -64,11 +64,11 @@ export class TagData {
 
 class AutocompleteData {
     constructor() {
-		/** @type {Index} */
-		this.fuse = null;
+        /** @type {Index} */
+        this.fuse = null;
 
-		/** @type {boolean} */
-		this.use_fuse = false;
+        /** @type {boolean} */
+        this.use_fuse = false;
 
         /** @type {TagData[]} */
         this.sortedTags = [];
@@ -189,39 +189,39 @@ async function loadTags(csvUrl, siteName) {
             }
         });
 
-		autoCompleteData[siteName].fuse = new Index({
-			tokenize: "forward",
-		});
+        autoCompleteData[siteName].fuse = new Index({
+            tokenize: "forward",
+        });
 
-		let startIdx = 0;
-    	const startTime = performance.now();
-		function processChunkTasks() {
-			const chunkSize = 1000;
-			const end = Math.min(startIdx + chunkSize, autoCompleteData[siteName].sortedTags.length);
-			for (; startIdx < end; startIdx++) {
-				const tagData = autoCompleteData[siteName].sortedTags[startIdx];
-				let allTags = [];
-				allTags.push(tagData.tag);
-				if (tagData.alias && Array.isArray(tagData.alias)) {
-					tagData.alias.forEach(alias => {
-						allTags.push(alias);
-					});
-				}
-				allTags = [...new Set(allTags)];
-				autoCompleteData[siteName].fuse.add(startIdx, allTags.join(','));
-			}
+        let startIdx = 0;
+        const startTime = performance.now();
+        function processChunkTasks() {
+            const chunkSize = 1000;
+            const end = Math.min(startIdx + chunkSize, autoCompleteData[siteName].sortedTags.length);
+            for (; startIdx < end; startIdx++) {
+                const tagData = autoCompleteData[siteName].sortedTags[startIdx];
+                let allTags = [];
+                allTags.push(tagData.tag);
+                if (tagData.alias && Array.isArray(tagData.alias)) {
+                    tagData.alias.forEach(alias => {
+                        allTags.push(alias);
+                    });
+                }
+                allTags = [...new Set(allTags)];
+                autoCompleteData[siteName].fuse.add(startIdx, allTags.join(','));
+            }
 
-			if (startIdx < autoCompleteData[siteName].sortedTags.length) {
-				setTimeout(processChunkTasks, 0);
-				// console.log(`[Autocomplete-Plus] Current porcess: ${startIdx}`);
-			} else {
-				const endTime = performance.now();
-				const duration = endTime - startTime;
-				autoCompleteData[siteName].use_fuse = true;
-				console.debug(`[Autocomplete-Plus] Building ${autoCompleteData[siteName].sortedTags.length} index for ${siteName} took ${duration.toFixed(2)}ms.`);
-			}
-		}
-		processChunkTasks();
+            if (startIdx < autoCompleteData[siteName].sortedTags.length) {
+                setTimeout(processChunkTasks, 0);
+                // console.log(`[Autocomplete-Plus] Current porcess: ${startIdx}`);
+            } else {
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                autoCompleteData[siteName].use_fuse = true;
+                console.debug(`[Autocomplete-Plus] Building ${autoCompleteData[siteName].sortedTags.length} index for ${siteName} took ${duration.toFixed(2)}ms.`);
+            }
+        }
+        processChunkTasks();
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${csvUrl}:`, error);
     }
