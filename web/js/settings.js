@@ -7,6 +7,7 @@ export const settingValues = {
     // Autocomplete feature settings
     enabled: true,
     maxSuggestions: 10,
+    useFastSearch: false,
 
     // Related tags feature settings
     enableRelatedTags: true,

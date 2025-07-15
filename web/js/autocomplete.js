@@ -103,8 +103,8 @@ function searchCompletionCandidates(textareaElement) {
 
     const sources = getEnabledTagSourceInPriorityOrder();
     for (const source of sources) {
-        if (autoCompleteData[source].use_fuse && autoCompleteData[source].fuse) {
-            const searchResults = autoCompleteData[source].fuse.search(partialTag, {
+        if (settingValues.useFastSearch && autoCompleteData[source].flexSearchIndex) {
+            const searchResults = autoCompleteData[source].flexSearchIndex.search(partialTag, {
                 limit: settingValues.maxSuggestions,
                 suggest: false,
                 cache: true,

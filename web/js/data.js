@@ -1,4 +1,4 @@
-import { Index } from './thirdparty/flexsearch.bundle.module.min.js'
+import { Charset, Index } from './thirdparty/flexsearch.bundle.module.min.js'
 import { settingValues } from "./settings.js";
 
 // --- Constants ---
@@ -65,10 +65,7 @@ export class TagData {
 class AutocompleteData {
     constructor() {
         /** @type {Index} */
-        this.fuse = null;
-
-        /** @type {boolean} */
-        this.use_fuse = false;
+        this.flexSearchIndex = null;
 
         /** @type {TagData[]} */
         this.sortedTags = [];
@@ -189,8 +186,20 @@ async function loadTags(csvUrl, siteName) {
             }
         });
 
-        autoCompleteData[siteName].fuse = new Index({
+    } catch (error) {
+        console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${csvUrl}:`, error);
+    }
+}
+
+/**
+ * Build FlexSearch index for the given site name.
+ * @param {string} siteName 
+ */
+async function buildFlexSearchIndex(siteName) {
+    try {
+        const index = new Index({
             tokenize: "forward",
+            // encoder: Charset.CJK, // FIXME: English search doesn't work properly when using CJK
         });
 
         let startIdx = 0;
@@ -208,7 +217,7 @@ async function loadTags(csvUrl, siteName) {
                     });
                 }
                 allTags = [...new Set(allTags)];
-                autoCompleteData[siteName].fuse.add(startIdx, allTags.join(','));
+                index.add(startIdx, allTags.join(','));
             }
 
             if (startIdx < autoCompleteData[siteName].sortedTags.length) {
@@ -217,13 +226,13 @@ async function loadTags(csvUrl, siteName) {
             } else {
                 const endTime = performance.now();
                 const duration = endTime - startTime;
-                autoCompleteData[siteName].use_fuse = true;
+                autoCompleteData[siteName].flexSearchIndex = index;
                 console.debug(`[Autocomplete-Plus] Building ${autoCompleteData[siteName].sortedTags.length} index for ${siteName} took ${duration.toFixed(2)}ms.`);
             }
         }
         processChunkTasks();
     } catch (error) {
-        console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${csvUrl}:`, error);
+        console.error(`[Autocomplete-Plus] Failed to building flexSearch index`, error);
     }
 }
 
@@ -415,12 +424,17 @@ export async function initializeData(csvListData, source) {
         // Now, execute all promise factories and wait for their completion.
         // The actual loading (fetch calls) will start when the factories are invoked here.
         await Promise.all([
-            Promise.all(tagsLoadPromiseFactories.map(factory => factory())).then(() => {
-                const endTime = performance.now();
-                if (csvListData[source].base_tags) {
-                    console.log(`[Autocomplete-Plus] "${source}" Tags loading complete in ${(endTime - startTime).toFixed(2)}ms`);
-                }
-            }),
+            Promise.all(tagsLoadPromiseFactories.map(factory => factory()))
+                .then(() => {
+                    // Build FlexSearch index after tags are loaded
+                    return buildFlexSearchIndex(source);
+                })
+                .then(() => {
+                    const endTime = performance.now();
+                    if (csvListData[source].base_tags) {
+                        console.log(`[Autocomplete-Plus] "${source}" Tags loading complete in ${(endTime - startTime).toFixed(2)}ms`);
+                    }
+                }),
             Promise.all(cooccurrenceLoadPromiseFactories.map(factory => factory())).then(() => {
                 const endTime = performance.now();
                 if (csvListData[source].base_cooccurrence) {
