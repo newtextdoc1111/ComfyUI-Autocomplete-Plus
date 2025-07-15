@@ -287,6 +287,16 @@ app.registerExtension({
         },
         // --- Autocomplete Settings ---
         {
+            id: id + ".use_fast_search",
+            name: "Use Fast Search",
+            type: "boolean",
+            defaultValue: false,
+            category: [name, "Autocompletion", "Use Fast Search"],
+            onChange: (newVal, oldVal) => {
+                settingValues.useFastSearch = newVal;
+            }
+        },
+        {
             id: id + ".max_suggestions",
             name: "Max suggestions",
             type: "slider",
