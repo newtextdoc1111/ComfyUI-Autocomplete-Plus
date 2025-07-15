@@ -116,13 +116,17 @@ function searchCompletionCandidates(textareaElement) {
             }
             let result = [];
             searchResults.sort((a, b) => {
-                if (matchWord(autoCompleteData[source].sortedTags[b].tag, queryVariations).matched) {
+                const aTag = autoCompleteData[source].sortedTags[a];
+                const bTag = autoCompleteData[source].sortedTags[b];
+                if (matchWord(bTag.tag, queryVariations).isExactMatch ||
+                    (bTag.alias && bTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch))) {
                     return 999999999999;
                 }
-                if (matchWord(autoCompleteData[source].sortedTags[a].tag, queryVariations).matched) {
+                if (matchWord(aTag.tag, queryVariations).isExactMatch ||
+                    (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch))) {
                     return -999999999999;
                 }
-                return autoCompleteData[source].sortedTags[b].count - autoCompleteData[source].sortedTags[a].count;
+                return bTag.count - aTag.count;
             }).forEach(seachResult => {
                 result.push(autoCompleteData[source].sortedTags[seachResult]);
             });
