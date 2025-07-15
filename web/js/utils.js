@@ -349,13 +349,11 @@ export function findAllTagPositions(text) {
         // Find the end of this tag (next comma or newline)
         let endPosComma = text.indexOf(',', startPos);
         let endPosNewline = text.indexOf('\n', startPos);
-        let endPosPeriod = text.indexOf('.', startPos);
 
         if (endPosComma === -1) endPosComma = text.length;
         if (endPosNewline === -1) endPosNewline = text.length;
-        if (endPosPeriod === -1) endPosPeriod = text.length;
 
-        const endPos = Math.min(endPosComma, endPosNewline, endPosPeriod);
+        const endPos = Math.min(endPosComma, endPosNewline);
         const tagText = text.substring(startPos, endPos);
 
         if (tagText.trim().length > 0) {
