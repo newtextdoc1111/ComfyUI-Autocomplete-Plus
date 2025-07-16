@@ -212,10 +212,9 @@ function getCurrentPartialTag(inputElement) {
     // Find the last newline or comma before the cursor
     const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
     const lastComma = text.lastIndexOf(',', cursorPos - 1);
-    const lastPeriod = text.lastIndexOf('.', cursorPos - 1);
 
     // Get the position of the last separator (newline or comma) before cursor
-    const lastSeparator = Math.max(lastNewLine, lastComma, lastPeriod);
+    const lastSeparator = Math.max(lastNewLine, lastComma);
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
     // Check if the cursor is inside a prompt weight modifier (e.g., :1.2, :.5, :1.)
