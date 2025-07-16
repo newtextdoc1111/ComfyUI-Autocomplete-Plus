@@ -105,7 +105,7 @@ function searchCompletionCandidates(textareaElement) {
     for (const source of sources) {
         if (settingValues.useFastSearch && autoCompleteData[source].flexSearchIndex) {
             const searchResults = autoCompleteData[source].flexSearchIndex.search(partialTag, {
-                limit: settingValues.maxSuggestions,
+                limit: settingValues.maxSuggestions * 10,
                 suggest: false,
                 cache: true,
             });
@@ -114,8 +114,13 @@ function searchCompletionCandidates(textareaElement) {
                 const duration = endTime - startTime;
                 console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" in ${source} took ${duration.toFixed(2)}ms. Found ${searchResults.length} candidates.`);
             }
+
             let result = [];
-            searchResults.sort((a, b) => {
+            result = searchResults.map((index) => {
+                return autoCompleteData[source].flexSearchMapping[index];
+            });
+            result = [...new Set(result)];
+            result = result.sort((a, b) => {
                 const aTag = autoCompleteData[source].sortedTags[a];
                 const bTag = autoCompleteData[source].sortedTags[b];
                 if (matchWord(bTag.tag, queryVariations).isExactMatch ||
@@ -126,9 +131,11 @@ function searchCompletionCandidates(textareaElement) {
                     (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch))) {
                     return -999999999999;
                 }
-                return bTag.count - aTag.count;
-            }).forEach(seachResult => {
-                result.push(autoCompleteData[source].sortedTags[seachResult]);
+                return a - b;
+            });
+            result = result.slice(0, Math.min(result.length, settingValues.maxSuggestions));
+            result = result.map((index) => {
+                return autoCompleteData[source].sortedTags[index];
             });
             return result;
         } else {

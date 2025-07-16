@@ -67,6 +67,9 @@ class AutocompleteData {
         /** @type {Index} */
         this.flexSearchIndex = null;
 
+        /** @type {number[]} */
+        this.flexSearchMapping = [];
+
         /** @type {TagData[]} */
         this.sortedTags = [];
 
@@ -197,9 +200,12 @@ async function loadTags(csvUrl, siteName) {
  */
 async function buildFlexSearchIndex(siteName) {
     try {
+        if (autoCompleteData[siteName].sortedTags.length === 0) {
+            return;
+        }
+
         const index = new Index({
-            tokenize: "forward",
-            // encoder: Charset.CJK, // FIXME: English search doesn't work properly when using CJK
+            tokenize: "bidirectional",
         });
 
         let startIdx = 0;
@@ -209,15 +215,14 @@ async function buildFlexSearchIndex(siteName) {
             const end = Math.min(startIdx + chunkSize, autoCompleteData[siteName].sortedTags.length);
             for (; startIdx < end; startIdx++) {
                 const tagData = autoCompleteData[siteName].sortedTags[startIdx];
-                let allTags = [];
-                allTags.push(tagData.tag);
-                if (tagData.alias && Array.isArray(tagData.alias)) {
-                    tagData.alias.forEach(alias => {
-                        allTags.push(alias);
-                    });
-                }
-                allTags = [...new Set(allTags)];
-                index.add(startIdx, allTags.join(','));
+
+                index.add(autoCompleteData[siteName].flexSearchMapping.length, tagData.tag);
+                autoCompleteData[siteName].flexSearchMapping.push(startIdx);
+
+                tagData.alias.forEach(alias => {
+                    index.add(autoCompleteData[siteName].flexSearchMapping.length, alias);
+                    autoCompleteData[siteName].flexSearchMapping.push(startIdx);
+                })
             }
 
             if (startIdx < autoCompleteData[siteName].sortedTags.length) {
