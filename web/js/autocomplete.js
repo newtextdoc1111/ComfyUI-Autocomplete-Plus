@@ -123,12 +123,16 @@ function searchCompletionCandidates(textareaElement) {
             result = result.sort((a, b) => {
                 const aTag = autoCompleteData[source].sortedTags[a];
                 const bTag = autoCompleteData[source].sortedTags[b];
-                if (matchWord(bTag.tag, queryVariations).isExactMatch ||
-                    (bTag.alias && bTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch))) {
+                if (matchWord(bTag.tag, queryVariations).isExactMatch) {
                     return 999999999999;
                 }
-                if (matchWord(aTag.tag, queryVariations).isExactMatch ||
-                    (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch))) {
+                if (matchWord(aTag.tag, queryVariations).isExactMatch) {
+                    return -999999999999;
+                }
+                if (bTag.alias && bTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
+                    return 999999999999;
+                }
+                if (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
                     return -999999999999;
                 }
                 return a - b;
