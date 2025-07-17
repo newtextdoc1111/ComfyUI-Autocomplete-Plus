@@ -112,11 +112,6 @@ function searchCompletionCandidates(textareaElement) {
                 suggest: false,
                 cache: true,
             });
-            if (settingValues._logprocessingTime) {
-                const endTime = performance.now();
-                const duration = endTime - startTime;
-                console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" in ${source} took ${duration.toFixed(2)}ms. Found ${searchResults.length} candidates.`);
-            }
 
             let result = [];
             result = searchResults.map((index) => {
@@ -144,6 +139,12 @@ function searchCompletionCandidates(textareaElement) {
             result = result.map((index) => {
                 return autoCompleteData[source].sortedTags[index];
             });
+
+            if (settingValues._logprocessingTime) {
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" in ${source} took ${duration.toFixed(2)}ms. Found ${result.length} candidates within ${searchResults.length} searches with aliases.`);
+            }
             return result;
         } else {
             // Search in sortedTags (already sorted by count)
