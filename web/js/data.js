@@ -70,6 +70,10 @@ class AutocompleteData {
         /** @type {number[]} */
         this.flexSearchMapping = [];
 
+        /** @type {number} */
+        // The actual number will be calculated later when loading CSV files
+        this.flexSearchLimit = settingValues.maxSuggestions * 10;
+
         /** @type {TagData[]} */
         this.sortedTags = [];
 
@@ -211,6 +215,7 @@ async function buildFlexSearchIndex(siteName) {
         });
 
         let startIdx = 0;
+        let maxCountOfAlias = 0;
         const startTime = performance.now();
         function processChunkTasks() {
             const chunkSize = 1000;
@@ -225,6 +230,8 @@ async function buildFlexSearchIndex(siteName) {
                     index.add(autoCompleteData[siteName].flexSearchMapping.length, alias);
                     autoCompleteData[siteName].flexSearchMapping.push(startIdx);
                 })
+
+                maxCountOfAlias = Math.max(maxCountOfAlias, tagData.alias.length);
             }
 
             if (startIdx < autoCompleteData[siteName].sortedTags.length) {
@@ -234,6 +241,7 @@ async function buildFlexSearchIndex(siteName) {
                 const endTime = performance.now();
                 const duration = endTime - startTime;
                 autoCompleteData[siteName].flexSearchIndex = index;
+                autoCompleteData[siteName].flexSearchLimit = settingValues.maxSuggestions * Math.min(10, maxCountOfAlias + 1);
                 console.debug(`[Autocomplete-Plus] Building ${autoCompleteData[siteName].sortedTags.length} index for ${siteName} took ${duration.toFixed(2)}ms.`);
             }
         }
