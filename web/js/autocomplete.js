@@ -108,7 +108,7 @@ function searchCompletionCandidates(textareaElement) {
     for (const source of sources) {
         if (settingValues.useFastSearch && autoCompleteData[source].flexSearchIndex) {
             const searchResults = autoCompleteData[source].flexSearchIndex.search(partialTag, {
-                limit: autoCompleteData[source].flexSearchLimit,
+                limit: settingValues.maxSuggestions * autoCompleteData[source].flexSearchLimitMultiplier,
                 suggest: false,
                 cache: true,
             });
