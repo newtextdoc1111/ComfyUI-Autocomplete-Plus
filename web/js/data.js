@@ -1,3 +1,4 @@
+import { Charset, Index } from './thirdparty/flexsearch.bundle.module.min.js'
 import { settingValues, updateMaxTagLength } from "./settings.js";
 
 // --- Constants ---
@@ -63,6 +64,16 @@ export class TagData {
 
 class AutocompleteData {
     constructor() {
+        /** @type {Index} */
+        this.flexSearchIndex = null;
+
+        /** @type {number[]} */
+        this.flexSearchMapping = [];
+
+        /** @type {number} */
+        // The actual number will be calculated later when loading CSV files
+        this.flexSearchLimitMultiplier = 10;
+
         /** @type {TagData[]} */
         this.sortedTags = [];
 
@@ -186,6 +197,57 @@ async function loadTags(csvUrl, siteName) {
 
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${csvUrl}:`, error);
+    }
+}
+
+/**
+ * Build FlexSearch index for the given site name.
+ * @param {string} siteName 
+ */
+async function buildFlexSearchIndex(siteName) {
+    try {
+        if (autoCompleteData[siteName].sortedTags.length === 0) {
+            return;
+        }
+
+        const index = new Index({
+            tokenize: "bidirectional",
+        });
+
+        let startIdx = 0;
+        let maxCountOfAlias = 0;
+        const startTime = performance.now();
+        function processChunkTasks() {
+            const chunkSize = 1000;
+            const end = Math.min(startIdx + chunkSize, autoCompleteData[siteName].sortedTags.length);
+            for (; startIdx < end; startIdx++) {
+                const tagData = autoCompleteData[siteName].sortedTags[startIdx];
+
+                index.add(autoCompleteData[siteName].flexSearchMapping.length, tagData.tag);
+                autoCompleteData[siteName].flexSearchMapping.push(startIdx);
+
+                tagData.alias.forEach(alias => {
+                    index.add(autoCompleteData[siteName].flexSearchMapping.length, alias);
+                    autoCompleteData[siteName].flexSearchMapping.push(startIdx);
+                })
+
+                maxCountOfAlias = Math.max(maxCountOfAlias, tagData.alias.length);
+            }
+
+            if (startIdx < autoCompleteData[siteName].sortedTags.length) {
+                setTimeout(processChunkTasks, 0);
+                // console.log(`[Autocomplete-Plus] Current porcess: ${startIdx}`);
+            } else {
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+                autoCompleteData[siteName].flexSearchIndex = index;
+                autoCompleteData[siteName].flexSearchLimitMultiplier = Math.min(10, maxCountOfAlias + 1);
+                console.debug(`[Autocomplete-Plus] Building ${autoCompleteData[siteName].sortedTags.length} index for ${siteName} took ${duration.toFixed(2)}ms.`);
+            }
+        }
+        processChunkTasks();
+    } catch (error) {
+        console.error(`[Autocomplete-Plus] Failed to building flexSearch index`, error);
     }
 }
 
@@ -376,12 +438,17 @@ export async function initializeData(csvListData, source) {
         // Now, execute all promise factories and wait for their completion.
         // The actual loading (fetch calls) will start when the factories are invoked here.
         await Promise.all([
-            Promise.all(tagsLoadPromiseFactories.map(factory => factory())).then(() => {
-                const endTime = performance.now();
-                if (csvListData[source].base_tags) {
-                    console.log(`[Autocomplete-Plus] "${source}" Tags loading complete in ${(endTime - startTime).toFixed(2)}ms`);
-                }
-            }),
+            Promise.all(tagsLoadPromiseFactories.map(factory => factory()))
+                .then(() => {
+                    // Build FlexSearch index after tags are loaded
+                    return buildFlexSearchIndex(source);
+                })
+                .then(() => {
+                    const endTime = performance.now();
+                    if (csvListData[source].base_tags) {
+                        console.log(`[Autocomplete-Plus] "${source}" Tags loading complete in ${(endTime - startTime).toFixed(2)}ms`);
+                    }
+                }),
             Promise.all(cooccurrenceLoadPromiseFactories.map(factory => factory())).then(() => {
                 const endTime = performance.now();
                 if (csvListData[source].base_cooccurrence) {
