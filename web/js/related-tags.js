@@ -1,13 +1,14 @@
-import { TagSource, TagCategory, TagData, autoCompleteData } from './data.js';
+import { TagCategory, TagData, TagSource, autoCompleteData } from './data.js';
 import { settingValues } from './settings.js';
 import {
     extractTagsFromTextArea,
     findAllTagPositions,
+    getCurrentTagRange,
     getViewportMargin,
+    isLongText,
     isValidTag,
     normalizeTagToInsert,
     normalizeTagToSearch,
-    getCurrentTagRange,
 } from './utils.js';
 
 // --- RelatedTags Logic ---
@@ -309,7 +310,7 @@ class RelatedTagsUI {
         const currentTag = getTagFromCursorPosition(textareaElement);
 
         if (!this.isPinned) {
-            if (isValidTag(currentTag)) {
+            if (!isLongText(currentTag) && isValidTag(currentTag)) {
                 this.currentTag = currentTag
             } else {
                 this.hide();
