@@ -106,18 +106,22 @@ function searchCompletionCandidates(textareaElement) {
 
     const sources = getEnabledTagSourceInPriorityOrder();
     for (const source of sources) {
+        // Use fast search if enabled and available for the source
         if (settingValues.useFastSearch && autoCompleteData[source].flexSearchIndex) {
+            // Use the FlexSearch Index to search tag and alias IDs that match the partial tag.
             const searchResults = autoCompleteData[source].flexSearchIndex.search(partialTag, {
                 limit: settingValues.maxSuggestions * autoCompleteData[source].flexSearchLimitMultiplier,
                 suggest: false,
                 cache: true,
             });
 
-            let result = [];
-            result = searchResults.map((index) => {
+            // Get tag IDs from search results and filter duplicates
+            let result = searchResults.map((index) => {
                 return autoCompleteData[source].flexSearchMapping[index];
             });
             result = [...new Set(result)];
+
+            // Sort results based on exact matches or id values (ID order is equal to tag count order)
             result = result.sort((a, b) => {
                 const aTag = autoCompleteData[source].sortedTags[a];
                 const bTag = autoCompleteData[source].sortedTags[b];
@@ -135,6 +139,8 @@ function searchCompletionCandidates(textareaElement) {
                 }
                 return a - b;
             });
+
+            // Limit the results to maxSuggestions and map to TagData
             result = result.slice(0, Math.min(result.length, settingValues.maxSuggestions));
             result = result.map((index) => {
                 return autoCompleteData[source].sortedTags[index];
