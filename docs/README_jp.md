@@ -17,7 +17,6 @@
     - カーソル位置や既存のテキストを考慮した自然なタグ挿入
 - **:art:デザイン**: ComfyUIのライトテーマとダークテーマの両方に対応
 - **:pencil:ユーザーCSV**: ユーザーが用意した CSV をオートコンプリート候補に追加可能
-- **依存ライブラリゼロ**: 外部ライブラリを使用せず、すべての入力支援処理がブラウザで動作
 
 ## インストール
 
@@ -130,7 +129,8 @@ worst_quality,5,9999999,
 ### オートコンプリート
 
 - **Enable Autocomplete**: オートコンプリート機能の有効化/無効化
-- **Max suggestions**: オートコンプリート候補の最大表示件数
+- **Max Suggestions**: オートコンプリート候補の最大表示件数
+- **Use Fast Search**: オートコンプリート候補の検索を高速な処理に切り替える（詳細は [オートコンプリートの高速検索について](#オートコンプリートの高速検索について) を確認してください)
 
 ### 関連タグ
 
@@ -170,6 +170,30 @@ worst_quality,5,9999999,
 - `check_updates_on_startup` の値を再び `true` にするか、 `version` が切り替わるまでチェック処理は行われなくなります
 - `check_updates_on_startup` が `false` でも、Autocompelte Plusの設定から `Check CSV updates` のボタンを押す事で手動チェックが可能です
 
+## 動作に関する詳細
+
+## オートコンプリートの高速検索について
+
+`v1.3.0` にて、オートコンプリートにタグの検索を高速化する機能を追加しました。設定画面から有効にする事でテキスト入力時のタグ検索処理が高速に動作し、応答性が改善されます。  
+どのような場面でも高速な動作が期待できますが、特に以下のユースケースで **有効** にすることをお勧めします。
+
+- 読み込む CSV ファイルに大量のタグやエイリアスが含まれている場合。タグの合計が **10万件** を超える場合は特に有用です
+- プロンプト入力でタグのカンマ区切りの代わりに自然言語を使う場合
+
+**ブラウザ起動時の動作**
+
+高速検索はタグのインデックス構築が必要なため、ブラウザ起動直後は利用できません。構築が完了するまでは従来の検索処理で動作します。  
+`v1.3.0` 時点では構築が完了したタイミングはブラウザーの開発ツールにのみが表示されます。これは将来のバージョンで改善予定です。
+
+例として、約22万件のタグのインデックス構築が完了した際は以下のようなログが記録されます。
+```
+[Autocomplete-Plus] Building 221787 index for danbooru took 9398.70ms.
+```
+
+> [!NOTE]
+> - インデックス構築は設定から高速検索を無効にしてもバックグラウンドで行われます
+> - 高速検索の実現に全文検索ライブラリの (nextapps-de/flexsearch)[https://github.com/nextapps-de/flexsearch] を使用しています 
+
 ## 既知の問題
 
 ### パフォーマンス
@@ -184,7 +208,9 @@ worst_quality,5,9999999,
 
 ## クレジット
 
-- [ComfyUI-Custom-Node](https://github.com/pythongosssss/ComfyUI-Custom-Scripts)
+- [pythongosssss/ComfyUI-Custom-Node](https://github.com/pythongosssss/ComfyUI-Custom-Scripts)
   - オートコンプリート機能の実装にあたり参考にしました
 - [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete)
   - オートコンプリートの主要な機能や CSV の仕様で参考にしました
+- [nextapps-de/flexsearch](https://github.com/nextapps-de/flexsearch)
+  - オートコンプリートの高速なタグ検索処理の実装に利用させてもらいました
