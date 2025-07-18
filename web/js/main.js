@@ -289,6 +289,7 @@ app.registerExtension({
         {
             id: id + ".use_fast_search",
             name: "Use Fast Search",
+            tooltip: "Tag search processing during text input operates faster, improving responsiveness",
             type: "boolean",
             defaultValue: false,
             category: [name, "Autocompletion", "Use Fast Search"],
