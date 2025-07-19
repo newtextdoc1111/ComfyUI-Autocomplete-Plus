@@ -192,7 +192,7 @@ worst_quality,5,9999999,
 
 > [!NOTE]
 > - インデックス構築は設定から高速検索を無効にしてもバックグラウンドで行われます
-> - 高速検索の実現に全文検索ライブラリの (nextapps-de/flexsearch)[https://github.com/nextapps-de/flexsearch] を使用しています 
+> - 高速検索の実現に全文検索ライブラリの [nextapps-de/flexsearch](https://github.com/nextapps-de/flexsearch) を使用しています 
 
 ## 既知の問題
 
