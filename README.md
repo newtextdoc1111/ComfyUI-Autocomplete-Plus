@@ -19,7 +19,6 @@
     - Natural tag insertion that considers cursor position and existing text.
 - **:art:Design**: Supports both light and dark themes of ComfyUI.
 - **:pencil:User CSV**: Allows users to add their own CSV files for autocomplete suggestions.
-- **Zero Dependencies**: All input assistance processing works in the browser without external libraries.
 
 ## Installation
 
@@ -133,6 +132,7 @@ When the browser is reloaded, you can check the list of loaded CSV files in the 
 
 - **Enable Autocomplete**: Enable/disable the autocomplete feature.
 - **Max suggestions**: Maximum number of autocomplete suggestions to display.
+- **Use Fast Search**: Switch autocomplete suggestions search to fast processing (see [About Fast Search for Autocomplete](#about-fast-search-for-autocomplete) for details).
 
 ### Related Tags
 
@@ -172,6 +172,31 @@ You can skip the check process during ComfyUI startup by following these steps:
 - The check process will not be performed until the value of `check_updates_on_startup` is changed back to `true` or the `version` is switched.
 - Even when `check_updates_on_startup` is `false`, manual checking is still possible by pressing the `Check CSV updates` button in the Autocomplete Plus settings.
 
+## More details on how it works
+
+### About Fast Search for Autocomplete
+
+In `v1.3.0`, Added a fast search feature functionality to autocomplete. By enabling this function in the settings screen, tag search processing during text input operates faster, improving responsiveness.  
+While fast operation can be expected in any scenario, I particularly recommend **enabling** it in the following use cases:
+
+- When the loaded CSV files contain a large number of tags or aliases. This is especially useful when the total number of tags exceeds **100,000**.
+- When using natural language instead of comma-separated tags in prompt input.
+
+**Browser startup behavior**
+
+Fast search requires tag index building and is not available immediately after browser startup. The conventional search process is used until building is complete.  
+As of `v1.3.0`, The notification when building is completed is displayed only in the browser's developer tools. This is planned to be improved in future versions.
+
+For example, when index building for approximately 220,000 tags is completed, the following log is recorded:
+
+```
+[Autocomplete-Plus] Building 221787 index for danbooru took 9398.70ms.
+```
+
+> [!NOTE]
+> - Index building occurs in the background even when fast search is disabled in settings
+> - Fast search uses the full-text search library [nextapps-de/flexsearch](https://github.com/nextapps-de/flexsearch)
+
 ## Known Issues
 
 ### Performance
@@ -186,7 +211,9 @@ You can skip the check process during ComfyUI startup by following these steps:
 
 ## Credits
 
-- [ComfyUI-Custom-Node](https://github.com/pythongosssss/ComfyUI-Custom-Scripts)
+- [pythongosssss/ComfyUI-Custom-Node](https://github.com/pythongosssss/ComfyUI-Custom-Scripts)
   - Referenced for implementing the autocomplete function.
 - [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete)
   - Referenced for autocomplete function and CSV specifications.
+- [nextapps-de/flexsearch](https://github.com/nextapps-de/flexsearch)
+  - Used to implement fast tag search processing for autocomplete.
