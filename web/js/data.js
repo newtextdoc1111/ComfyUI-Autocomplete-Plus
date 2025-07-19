@@ -1,4 +1,4 @@
-import { Charset, Index } from './thirdparty/flexsearch.bundle.module.min.js'
+import { Index } from './thirdparty/flexsearch.bundle.module.min.js'
 import { settingValues, updateMaxTagLength } from "./settings.js";
 
 // --- Constants ---
