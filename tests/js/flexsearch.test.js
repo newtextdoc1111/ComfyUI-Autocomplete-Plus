@@ -1,5 +1,10 @@
 
-import { Document, Charset, Encoder } from '../../web/js/thirdparty/flexsearch.bundle.module.min.js'
+import { 
+    createFlexSearchDocument,
+    __test__
+ } from "../../web/js/searchengine.js";
+
+const { createTagEncoder, createCJKEncoder } = __test__;
 
 function parseCSVLine(line) {
     const result = [];
@@ -36,6 +41,7 @@ describe('FlexSearch Integration', () => {
 highres,5,5256195,"high_res,high_resolution,hires"
 solo,0,5000954,"alone,female_solo,single,solo_female,solo_in_panel"
 long_hair,0,4350743,"/lh,longhair,very_long_hair"
+one_two_three,0,29389,
 `;
 
     const cjkAliasCSV = `
@@ -62,18 +68,21 @@ __wildcard__,0,1000,
 Embedding: my_embedding,0,1000,
 `;
 
-    const mockCSV = [commonCSV, cjkAliasCSV, specialCharCSV, ControlCSV].map(csv => csv.trim()).join('\n');
-    let mockTags = [];
+    const mockCSV = [
+        commonCSV, cjkAliasCSV, specialCharCSV, ControlCSV
+    ].map(csv => csv.trim()).join('\n');
+    
+    let mockTags;
 
-    let tagEncoder, cjkEncoder, customEncoder
-    let index;
+    let tagEncoder, cjkEncoder;
+    let document;
 
     let performSearch = function (query, limit = null) {
-        const results = index.search(query, { field: ["tag", "alias"], limit: limit, suggest: false });
+        const results = document.search(query, { field: ["tag", "alias"], limit: limit, suggest: false });
 
         const ids = results.map(r => r.result).flat();
 
-        return mockTags.filter(tag => ids.includes(tag.id)).map(tag => tag.tag);;
+        return mockTags.filter(tag => ids.includes(tag.id)).map(tag => tag.tag);
     }
 
     beforeEach(() => {
@@ -82,83 +91,43 @@ Embedding: my_embedding,0,1000,
             return { id, tag, category: parseInt(category), count: parseInt(count), alias };
         });
 
-        tagEncoder = new Encoder({
-            normalize: true,
-            dedupe: false,
-            numeric: false,
-            cache: true,
-            split: /(?<=[a-zA-Z\)])_(?=[a-zA-Z\(])|\((?=[a-zA-Z])|(?<=[a-zA-Z\)])\)|[ \n]/
-        });
+        tagEncoder = createTagEncoder();
+        cjkEncoder = createCJKEncoder();
 
-        cjkEncoder = new Encoder(Charset.CJK, {
-            dedupe: true,
-            numeric: true,
-            cache: false,
-            filter: new Set(['_', '(', ')']),
-            finalize: (term) => {
-                return term.map(str => str.replace(/[\u30a1-\u30f6]/g, function (match) {
-                    const chr = match.charCodeAt(0) - 0x60;
-                    return String.fromCharCode(chr);
-                }));
-            }
-        });
+        document = createFlexSearchDocument();
 
-        customEncoder = function (term) {
-            return term.split(",")
-                .flatMap(str => {
-                    if (/[^\u0000-\u007f]/.test(str)) {
-                        // Contains non-ASCII characters
-                        return cjkEncoder.encode(str);
-                    } else {
-                        // ASCII characters only
-                        return tagEncoder.encode(str);
-                    }
-                })
-                .filter(Boolean);
-        }
-
-        index = new Document({
-            document: {
-                id: "id",
-                index: [
-                    {
-                        field: "tag",
-                        tokenize: "bidirectional",
-                        encoder: tagEncoder,
-                    },
-                    {
-                        field: "alias",
-                        tokenize: "default",
-                        encode: customEncoder,
-                    }
-                ]
-            }
-        });
-
-        mockTags.forEach(data => index.add(data));
+        mockTags.forEach(data => document.add(data));
     });
 
     describe('Encoder', () => {
-        test('should be encoded 1', () => {
+        test('should split underscore-separated tags', () => {
             const encoded = tagEncoder.encode('sanshoku_dango');
             expect(encoded).toEqual(['sanshoku', 'dango']);
         });
 
-        test('should be encoded 2', () => {
+        test('should extract words from parentheses', () => {
             const encoded = tagEncoder.encode('copyright_(series)');
             expect(encoded).toEqual(['copyright', 'series']);
         });
-        test('should be encoded 3', () => {
+        test('should preserve colon-separated special tags', () => {
             const encoded = tagEncoder.encode('year:1234');
             expect(encoded).toEqual(['year:1234']);
         });
-        test('should be encoded 4', () => {
+        test('should preserve dot-separated tags', () => {
             const encoded = tagEncoder.encode('d.d.');
             expect(encoded).toEqual(['d.d.']);
         });
-        test('should be encoded 5', () => {
+        test('should preserve double underscore wildcard tags', () => {
             const encoded = tagEncoder.encode('__wildcard__');
             expect(encoded).toEqual(['__wildcard__']);
+        });
+        test('should convert katakana to hiragana', () => {
+            const encoded = cjkEncoder.encode('ガーデン');
+            expect(encoded).toEqual(['がーでん']);
+        });
+        test('should remove trailing underscores when splitting', () => {
+            const encoded = tagEncoder.encode('one_two_');
+            expect(encoded).toEqual(['one', 'two']);
         });
     });
 
@@ -187,6 +156,20 @@ Embedding: my_embedding,0,1000,
             expect(results.length).toEqual(1);
 
             expect(results).toContain('dragon_girl');
+        });
+
+        test('should find a tag for terms contain space', () => {
+            const results = performSearch('double ');
+            expect(results.length).toEqual(1);
+
+            expect(results).toContain('double_bun');
+        });
+
+        test('should find a tag for terms contain underscore', () => {
+            const results = performSearch('double_');
+            expect(results.length).toEqual(1);
+
+            expect(results).toContain('double_bun');
         });
     });
 
