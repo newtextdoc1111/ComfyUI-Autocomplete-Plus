@@ -8,7 +8,7 @@ import { kataToHira } from './utils.js';
  */
 function createTagEncoder() {
     return new Encoder({
-        normalize: true, 
+        normalize: true,
         dedupe: false,
         numeric: false,
         cache: true,
