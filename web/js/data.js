@@ -1,5 +1,5 @@
-import { Index } from './thirdparty/flexsearch.bundle.module.min.js'
 import { settingValues, updateMaxTagLength } from "./settings.js";
+import { createFlexSearchDocument } from "./searchengine.js";
 
 // --- Constants ---
 
@@ -64,15 +64,8 @@ export class TagData {
 
 class AutocompleteData {
     constructor() {
-        /** @type {Index} */
-        this.flexSearchIndex = null;
-
-        /** @type {number[]} */
-        this.flexSearchMapping = [];
-
-        /** @type {number} */
-        // The actual number will be calculated later when loading CSV files
-        this.flexSearchLimitMultiplier = 10;
+        /** @type {Document} */
+        this.flexSearchDocument = null;
 
         /** @type {TagData[]} */
         this.sortedTags = [];
@@ -91,7 +84,6 @@ class AutocompleteData {
 
         // Progress of "base" csv loading
         this.baseLoadingProgress = {
-            // tags: 0,
             cooccurrence: 0
         };
     }
@@ -210,39 +202,27 @@ async function buildFlexSearchIndex(siteName) {
             return;
         }
 
-        const index = new Index({
-            tokenize: "bidirectional",
-        });
+        const document = createFlexSearchDocument();
 
         let startIdx = 0;
-        let maxCountOfAlias = 0;
         const startTime = performance.now();
         function processChunkTasks() {
             const chunkSize = 1000;
             const end = Math.min(startIdx + chunkSize, autoCompleteData[siteName].sortedTags.length);
             for (; startIdx < end; startIdx++) {
                 const tagData = autoCompleteData[siteName].sortedTags[startIdx];
-
-                index.add(autoCompleteData[siteName].flexSearchMapping.length, tagData.tag);
-                autoCompleteData[siteName].flexSearchMapping.push(startIdx);
-
-                tagData.alias.forEach(alias => {
-                    index.add(autoCompleteData[siteName].flexSearchMapping.length, alias);
-                    autoCompleteData[siteName].flexSearchMapping.push(startIdx);
-                })
-
-                maxCountOfAlias = Math.max(maxCountOfAlias, tagData.alias.length);
+                document.add(startIdx, tagData);
             }
 
             if (startIdx < autoCompleteData[siteName].sortedTags.length) {
                 setTimeout(processChunkTasks, 0);
                 // console.log(`[Autocomplete-Plus] Current porcess: ${startIdx}`);
             } else {
+                autoCompleteData[siteName].flexSearchDocument = document;
+
                 const endTime = performance.now();
                 const duration = endTime - startTime;
-                autoCompleteData[siteName].flexSearchIndex = index;
-                autoCompleteData[siteName].flexSearchLimitMultiplier = Math.min(10, maxCountOfAlias + 1);
-                console.debug(`[Autocomplete-Plus] Building ${autoCompleteData[siteName].sortedTags.length} index for ${siteName} took ${duration.toFixed(2)}ms.`);
+                console.info(`[Autocomplete-Plus] Building ${autoCompleteData[siteName].sortedTags.length} index for ${siteName} took ${duration.toFixed(2)}ms.`);
             }
         }
         processChunkTasks();
