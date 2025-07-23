@@ -77,10 +77,15 @@ Embedding: my_embedding,0,1000,
     let tagEncoder, cjkEncoder;
     let document;
 
-    let performSearch = function (query, limit = null) {
-        const results = document.search(query, { field: ["tag", "alias"], limit: limit, suggest: false });
+    let performSearch = function (query, limit = 100) {
+        const results = document.search(query, {
+            field: ["tag", "alias"],
+            limit: limit, 
+            suggest: false,
+            merge: true,
+        });
 
-        const ids = results.map(r => r.result).flat();
+        const ids = results.map(r => r.id);
 
         return mockTags.filter(tag => ids.includes(tag.id)).map(tag => tag.tag);
     }

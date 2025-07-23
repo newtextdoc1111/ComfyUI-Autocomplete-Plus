@@ -109,16 +109,17 @@ function searchCompletionCandidates(textareaElement) {
         // Use fast search if enabled and available for the source
         if (settingValues.useFastSearch && autoCompleteData[source].flexSearchDocument) {
             // Use the FlexSearch Document to search
-            let result = autoCompleteData[source].flexSearchDocument.search(partialTag, {
+            // NOTE: The limit param is reflected separately for "tag" and "alias".
+            let searchResults = autoCompleteData[source].flexSearchDocument.search(partialTag, {
                 field: ["tag", "alias"],
-                limit: settingValues.maxSuggestions,
+                limit:  Math.min(settingValues.maxSuggestions * 10, 500),
                 merge: true,
                 suggest: false,
                 cache: true,
             });
 
-            // Sort results based on exact matches or tag count
-            result = result
+            // Sort and limit results based on exact matches and counts
+            const result = searchResults
                 .map(r => autoCompleteData[source].sortedTags[r.id])
                 .sort((aTag, bTag) => {
                     if (matchWord(bTag.tag, queryVariations).isExactMatch) {
@@ -134,12 +135,13 @@ function searchCompletionCandidates(textareaElement) {
                         return -999999999999;
                     }
                     return bTag.count - aTag.count;
-                });
+                })
+                .slice(0, Math.min(searchResults.length, settingValues.maxSuggestions));
 
             if (settingValues._logprocessingTime) {
                 const endTime = performance.now();
                 const duration = endTime - startTime;
-                console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" in ${source} took ${duration.toFixed(2)}ms. Found ${result.length} candidates.`);
+                console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" in ${source} took ${duration.toFixed(2)}ms.Found ${result.length} candidates within ${searchResults.length} searches from flexsearch.`);
             }
 
             return result;
