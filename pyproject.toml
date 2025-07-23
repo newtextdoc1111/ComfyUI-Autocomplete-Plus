@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-autocomplete-plus"
 description = "Autocomplete and Related Tag display for ComfyUI"
-version = "1.3.0"
+version = "1.3.1"
 license = {file = "LICENSE"}
 dependencies = ["",]
 
