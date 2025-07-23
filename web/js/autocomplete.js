@@ -79,7 +79,6 @@ function matchWord(target, queries) {
  * @returns {Array<TagData>} The list of matching candidates.
  */
 function searchCompletionCandidates(textareaElement) {
-    const startTime = performance.now(); // Record start time for performance measurement
 
     const ESCAPE_SEQUENCE = ["#", "/"]; // If the first string is that character, autocomplete will not be displayed.
     const partialTag = getCurrentPartialTag(textareaElement);
@@ -88,10 +87,6 @@ function searchCompletionCandidates(textareaElement) {
         isLongText(partialTag)) {
         return []; // No valid input for autocomplete
     }
-
-    const exactMatches = [];
-    const partialMatches = [];
-    const addedTags = new Set();
 
     // Generate Hiragana/Katakana variations if applicable
     const queryVariations = new Set([partialTag, normalizeTagToSearch(partialTag)]);
@@ -104,99 +99,78 @@ function searchCompletionCandidates(textareaElement) {
         queryVariations.add(hiraQuery);
     }
 
+    if (settingValues.useFastSearch) {
+        return searchWithFlexSearch(partialTag, queryVariations);
+    } else {
+        return sequentialSearch(partialTag, queryVariations);
+    }
+}
+
+/**
+ * Search completion candidates using sequential search.
+ * @param {string} partialTag 
+ * @param {Set<string>} queryVariations 
+ * @returns 
+ */
+function sequentialSearch(partialTag, queryVariations) {
+    const startTime = performance.now();
+
+    const exactMatches = [];
+    const partialMatches = [];
+    const addedTags = new Set();
+
     const sources = getEnabledTagSourceInPriorityOrder();
     for (const source of sources) {
-        // Use fast search if enabled and available for the source
-        if (settingValues.useFastSearch && autoCompleteData[source].flexSearchDocument) {
-            // Use the FlexSearch Document to search
-            // NOTE: The limit param is reflected separately for "tag" and "alias".
-            let searchResults = autoCompleteData[source].flexSearchDocument.search(partialTag, {
-                field: ["tag", "alias"],
-                limit:  Math.min(settingValues.maxSuggestions * 10, 500),
-                merge: true,
-                suggest: false,
-                cache: true,
-            });
+        // Search in sortedTags (already sorted by count)
+        for (const tagData of autoCompleteData[source].sortedTags) {
+            let matched = false;
+            let isExactMatch = false;
+            let matchedAlias = null;
 
-            // Sort and limit results based on exact matches and counts
-            const result = searchResults
-                .map(r => autoCompleteData[source].sortedTags[r.id])
-                .sort((aTag, bTag) => {
-                    if (matchWord(bTag.tag, queryVariations).isExactMatch) {
-                        return 999999999999;
-                    }
-                    if (matchWord(aTag.tag, queryVariations).isExactMatch) {
-                        return -999999999999;
-                    }
-                    if (bTag.alias && bTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
-                        return 999999999999;
-                    }
-                    if (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
-                        return -999999999999;
-                    }
-                    return bTag.count - aTag.count;
-                })
-                .slice(0, Math.min(searchResults.length, settingValues.maxSuggestions));
+            // Check primary tag against all variations for exact/partial match
+            const tagMatch = matchWord(tagData.tag, queryVariations);
+            matched = tagMatch.matched;
+            isExactMatch = tagMatch.isExactMatch;
 
-            if (settingValues._logprocessingTime) {
-                const endTime = performance.now();
-                const duration = endTime - startTime;
-                console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" in ${source} took ${duration.toFixed(2)}ms.Found ${result.length} candidates within ${searchResults.length} searches from flexsearch.`);
-            }
-
-            return result;
-        } else {
-            // Search in sortedTags (already sorted by count)
-            for (const tagData of autoCompleteData[source].sortedTags) {
-                let matched = false;
-                let isExactMatch = false;
-                let matchedAlias = null;
-
-                // Check primary tag against all variations for exact/partial match
-                const tagMatch = matchWord(tagData.tag, queryVariations);
-                matched = tagMatch.matched;
-                isExactMatch = tagMatch.isExactMatch;
-
-                // If primary tag didn't match, check aliases against all variations
-                if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
-                    for (const alias of tagData.alias) {
-                        const lowerAlias = alias.toLowerCase();
-                        const aliasMatch = matchWord(lowerAlias, queryVariations);
-                        if (aliasMatch.matched) {
-                            matched = true;
-                            isExactMatch = aliasMatch.isExactMatch;
-                            matchedAlias = alias;
-                            break;
-                        }
+            // If primary tag didn't match, check aliases against all variations
+            if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
+                for (const alias of tagData.alias) {
+                    const lowerAlias = alias.toLowerCase();
+                    const aliasMatch = matchWord(lowerAlias, queryVariations);
+                    if (aliasMatch.matched) {
+                        matched = true;
+                        isExactMatch = aliasMatch.isExactMatch;
+                        matchedAlias = alias;
+                        break;
                     }
                 }
+            }
 
-                const tagSetKey = tagData.tag;
+            const tagSetKey = tagData.tag;
 
-                // Add candidate if matched and not already added
-                if (matched && !addedTags.has(tagSetKey)) {
-                    // Add to exact matches or partial matches based on match type
-                    if (isExactMatch) {
-                        exactMatches.push(tagData);
-                    } else {
-                        partialMatches.push(tagData);
+            // Add candidate if matched and not already added
+            if (matched && !addedTags.has(tagSetKey)) {
+                // Add to exact matches or partial matches based on match type
+                if (isExactMatch) {
+                    exactMatches.push(tagData);
+                } else {
+                    partialMatches.push(tagData);
+                }
+
+                addedTags.add(tagSetKey);
+
+                // Check if we've reached the maximum suggestions limit combining both arrays
+                if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
+                    // Return the combined results, prioritizing exact matches
+                    const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
+
+                    if (settingValues._logprocessingTime) {
+                        const endTime = performance.now();
+                        const duration = endTime - startTime;
+                        console.debug(`[Autocomplete-Plus] Search for "${partialTag}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
                     }
 
-                    addedTags.add(tagSetKey);
-
-                    // Check if we've reached the maximum suggestions limit combining both arrays
-                    if (exactMatches.length + partialMatches.length >= settingValues.maxSuggestions) {
-                        // Return the combined results, prioritizing exact matches
-                        const result = [...exactMatches, ...partialMatches].slice(0, settingValues.maxSuggestions);
-
-                        if (settingValues._logprocessingTime) {
-                            const endTime = performance.now();
-                            const duration = endTime - startTime;
-                            console.debug(`[Autocomplete-Plus] Search for "${partialTag}" took ${duration.toFixed(2)}ms. Found ${result.length} candidates (max reached).`);
-                        }
-
-                        return result; // Early exit
-                    }
+                    return result; // Early exit
                 }
             }
         }
@@ -212,6 +186,69 @@ function searchCompletionCandidates(textareaElement) {
     }
 
     return candidates;
+}
+
+/**
+ * Search completion candidates using FlexSearch for fast matching.
+ * @param {string} partialTag 
+ * @param {Set<string>} queryVariations 
+ * @returns 
+ */
+function searchWithFlexSearch(partialTag, queryVariations) {
+    const startTime = performance.now();
+
+    let mergedResult = [];
+    let totalSearchCount = 0;
+
+    const sources = getEnabledTagSourceInPriorityOrder();
+    for (const source of sources) {
+        if (!autoCompleteData[source].flexSearchDocument) continue;
+        if (mergedResult.length >= settingValues.maxSuggestions) break;
+
+        // Use the FlexSearch Document to search
+        // NOTE: The limit param is reflected separately for "tag" and "alias".
+        let searchResult = autoCompleteData[source].flexSearchDocument.search(partialTag, {
+            field: ["tag", "alias"],
+            limit: Math.min(settingValues.maxSuggestions * 10, 500),
+            merge: true,
+            suggest: false,
+            cache: true,
+        });
+
+        if (!searchResult || searchResult.length <= 0) continue;
+
+        // Sort results based on exact matches and counts
+        searchResult = searchResult
+            .map(r => autoCompleteData[source].sortedTags[r.id])
+            .sort((aTag, bTag) => {
+                if (matchWord(bTag.tag, queryVariations).isExactMatch) {
+                    return 999999999999;
+                }
+                if (matchWord(aTag.tag, queryVariations).isExactMatch) {
+                    return -999999999999;
+                }
+                if (bTag.alias && bTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
+                    return 999999999999;
+                }
+                if (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
+                    return -999999999999;
+                }
+                return bTag.count - aTag.count;
+            });
+
+        // Merge results into the final array
+        mergedResult = mergedResult.concat(searchResult.slice(0, settingValues.maxSuggestions - mergedResult.length));
+
+        totalSearchCount += searchResult.length;
+    }
+
+    if (settingValues._logprocessingTime) {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        console.debug(`[Autocomplete-Plus] Fast Search for "${partialTag}" took ${duration.toFixed(2)}ms.Found ${mergedResult.length} candidates within ${totalSearchCount} searches from flexsearch.`);
+    }
+
+    return mergedResult;
 }
 
 /**
