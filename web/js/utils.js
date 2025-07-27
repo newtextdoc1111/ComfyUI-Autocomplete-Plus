@@ -110,6 +110,30 @@ export function formatCountHumanReadable(num) {
 }
 
 /**
+ * Escapes HTML special characters in a string.
+ * @param {string} str The input string.
+ * @returns {string} The escaped string.
+ */
+export function escapeHtml(str) {
+    if (typeof str !== 'string') {
+        return str;
+    }
+
+    const escapeMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        '`': '&#x60;',
+        '/': '&#x2F;'
+    };
+
+    return str.replace(/[&<>"'`/]/g, match =>
+        escapeMap[match]);
+}
+
+/**
  * Escapes parentheses in a string for use in prompts.
  * Replaces '(' with '\(' and ')' with '\)'.
  * Ignores already escaped parentheses like '\('.

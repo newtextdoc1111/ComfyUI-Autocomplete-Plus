@@ -3,7 +3,7 @@ import { $el } from "/scripts/ui.js";
 import { ComfyWidgets } from "/scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
-import { TagSource, fetchCsvList, initializeData } from "./data.js";
+import { TagSource, loadDataAsync } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 
@@ -240,11 +240,7 @@ app.registerExtension({
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
-        fetchCsvList().then((csvList) => {
-            Object.values(TagSource).forEach((source) => {
-                initializeData(csvList, source);
-            });
-        });
+        await loadDataAsync();
     },
 
     // One the Settings Screen, displays reverse order in same category
@@ -295,6 +291,17 @@ app.registerExtension({
             category: [name, "Autocompletion", "Use Fast Search"],
             onChange: (newVal, oldVal) => {
                 settingValues.useFastSearch = newVal;
+            }
+        },
+        {
+            id: id + ".enable_models",
+            name: "Enable Loras and Embeddings",
+            tooltip: "Enable Lora and Embedding suggestions",
+            type: "boolean",
+            defaultValue: true,
+            category: [name, "Autocompletion", "Enable Loras and Embeddings"],
+            onChange: (newVal, oldVal) => {
+                settingValues.enableModels = newVal;
             }
         },
         {

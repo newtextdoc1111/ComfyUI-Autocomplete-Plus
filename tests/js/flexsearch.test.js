@@ -1,10 +1,10 @@
 
-import { 
+import {
     createFlexSearchDocument,
     __test__
- } from "../../web/js/searchengine.js";
+} from "../../web/js/searchengine.js";
 
-const { createTagEncoder, createCJKEncoder } = __test__;
+const { createTagEncoder, createCJKEncoder, createModelEncoder } = __test__;
 
 function parseCSVLine(line) {
     const result = [];
@@ -64,23 +64,23 @@ copyright_(series),2,1298,"copyright,コピーライト (シリーズ),コピー
 
     const ControlCSV = `
 __wildcard__,0,1000,
-<lora:my_lora1:1.0>,0,1000,
-Embedding: my_embedding,0,1000,
+<lora:my_lora1>,0,1000,
+embedding: my_embedding,0,1000,
 `;
 
     const mockCSV = [
         commonCSV, cjkAliasCSV, specialCharCSV, ControlCSV
     ].map(csv => csv.trim()).join('\n');
-    
+
     let mockTags;
 
-    let tagEncoder, cjkEncoder;
+    let tagEncoder, cjkEncoder, modelEncoder;
     let document;
 
     let performSearch = function (query, limit = 100) {
         const results = document.search(query, {
             field: ["tag", "alias"],
-            limit: limit, 
+            limit: limit,
             suggest: false,
             merge: true,
         });
@@ -98,6 +98,7 @@ Embedding: my_embedding,0,1000,
 
         tagEncoder = createTagEncoder();
         cjkEncoder = createCJKEncoder();
+        modelEncoder = createModelEncoder();
 
         document = createFlexSearchDocument();
 
@@ -133,6 +134,32 @@ Embedding: my_embedding,0,1000,
         test('should remove trailing underscores when splitting', () => {
             const encoded = tagEncoder.encode('one_two_');
             expect(encoded).toEqual(['one', 'two']);
+        });
+        test('should properly encode embedding notation', () => {
+            expect(
+                modelEncoder.encode('embedding:path/to/my_embed1')
+            ).toEqual(['embedding:', 'path', 'to', 'my', 'embed1']);
+
+            expect(
+                modelEncoder.encode('embedding:path\\to\\my-embed1')
+            ).toEqual(['embedding:', 'path', 'to', 'my', 'embed1']);
+
+            expect(
+                modelEncoder.encode('embedding:path\\to\\this is my embed. my-negative01 (v1)__by me')
+            ).toEqual(['embedding:', 'path', 'to', 'this', 'is', 'my', 'embed', 'my', 'negative01', 'v1', 'by', 'me']);
+        });
+        test('should properly encode lora notation', () => {
+            expect(
+                modelEncoder.encode('<lora:path/to/my_lora1>')
+            ).toEqual(['lora:', 'path', 'to', 'my', 'lora1']);
+
+            expect(
+                modelEncoder.encode('<lora:path\\to\\my-lora1>')
+            ).toEqual(['lora:', 'path', 'to', 'my', 'lora1']);
+
+            expect(
+                modelEncoder.encode('<lora:path\\to\\this is my lora. my-style01 (v1)__by me>')
+            ).toEqual(['lora:', 'path', 'to', 'this', 'is', 'my', 'lora', 'my', 'style01', 'v1', 'by', 'me']);
         });
     });
 
@@ -300,7 +327,7 @@ Embedding: my_embedding,0,1000,
             const results = performSearch(tag);
             expect(results.length).toEqual(1);
 
-            expect(results).toContain("<lora:my_lora1:1.0>");
+            expect(results).toContain("<lora:my_lora1>");
         });
     });
 
