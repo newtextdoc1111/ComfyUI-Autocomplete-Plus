@@ -2,7 +2,6 @@ import {
     ModelTagSource,
     TagCategory,
     TagData,
-    TagSource,
     autoCompleteData,
     getEnabledTagSourceInPriorityOrder
 } from './data.js';
@@ -92,7 +91,7 @@ function searchCompletionCandidates(textareaElement) {
     }
 
     // Generate Hiragana/Katakana variations if applicable
-    const queryVariations = new Set([partialTag.toLocaleLowerCase(), normalizeTagToSearch(partialTag).toLocaleLowerCase()]);
+    const queryVariations = new Set([partialTag.toLowerCase(), normalizeTagToSearch(partialTag).toLowerCase()]);
     const kataQuery = hiraToKata(partialTag);
     if (kataQuery !== partialTag) {
         queryVariations.add(kataQuery);
@@ -131,14 +130,14 @@ function sequentialSearch(partialTag, queryVariations) {
             let matchedAlias = null;
 
             // Check primary tag against all variations for exact/partial match
-            const tagMatch = matchWord(tagData.tag.toLocaleLowerCase(), queryVariations);
+            const tagMatch = matchWord(tagData.tag.toLowerCase(), queryVariations);
             matched = tagMatch.matched;
             isExactMatch = tagMatch.isExactMatch;
 
             // If primary tag didn't match, check aliases against all variations
             if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
                 for (const alias of tagData.alias) {
-                    const aliasMatch = matchWord(alias.toLocaleLowerCase(), queryVariations);
+                    const aliasMatch = matchWord(alias.toLowerCase(), queryVariations);
                     if (aliasMatch.matched) {
                         matched = true;
                         isExactMatch = aliasMatch.isExactMatch;
