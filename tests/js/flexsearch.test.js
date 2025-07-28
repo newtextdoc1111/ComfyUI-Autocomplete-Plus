@@ -1,6 +1,7 @@
 
 import {
     createFlexSearchDocument,
+    createFlexSearchDocumentForModel,
     __test__
 } from "../../web/js/searchengine.js";
 
@@ -60,34 +61,44 @@ sanshoku_dango,0,2061,"三色団子,三色团子,花見団子,花见团子"
 year:1999,0,1999,
 d.d.,0,1999,
 copyright_(series),2,1298,"copyright,コピーライト (シリーズ),コピーライト名,コピーライト,著作"
+__wildcard__,0,0,
 `;
 
-    const ControlCSV = `
-__wildcard__,0,1000,
-<lora:my_lora1>,0,1000,
-embedding: my_embedding,0,1000,
+    const ModelCSV = `
+<lora:my_lora1>,0,0,
+<lora:日本語Lora_v1>,0,0,
+embedding: my_embedding,0,0,
 `;
 
     const mockCSV = [
-        commonCSV, cjkAliasCSV, specialCharCSV, ControlCSV
+        commonCSV, cjkAliasCSV, specialCharCSV
     ].map(csv => csv.trim()).join('\n');
 
-    let mockTags;
+    let mockTags, mockModelTags;
 
     let tagEncoder, cjkEncoder, modelEncoder;
-    let document;
+    let document, modelDocument;
 
     let performSearch = function (query, limit = 100) {
-        const results = document.search(query, {
+        const ids1 = document.search(query, {
             field: ["tag", "alias"],
             limit: limit,
             suggest: false,
             merge: true,
-        });
+        }).map(r => r.id);
 
-        const ids = results.map(r => r.id);
+        const result1 = mockTags.filter(tag => ids1.includes(tag.id)).map(tag => tag.tag);
 
-        return mockTags.filter(tag => ids.includes(tag.id)).map(tag => tag.tag);
+        const ids2 = modelDocument.search(query, {
+            field: ["tag", "alias"],
+            limit: limit,
+            suggest: false,
+            merge: true,
+        }).map(r => r.id);
+
+        const result2 = mockModelTags.filter(tag => ids2.includes(tag.id)).map(tag => tag.tag);
+
+        return [...result1, ...result2];
     }
 
     beforeEach(() => {
@@ -98,11 +109,19 @@ embedding: my_embedding,0,1000,
 
         tagEncoder = createTagEncoder();
         cjkEncoder = createCJKEncoder();
-        modelEncoder = createModelEncoder();
 
         document = createFlexSearchDocument();
 
         mockTags.forEach(data => document.add(data));
+
+        mockModelTags = ModelCSV.split('\n').map((line, id) => {
+            const [tag, category, count, alias] = parseCSVLine(line);
+            return { id, tag, category: parseInt(category), count: parseInt(count), alias };
+        });
+
+        modelEncoder = createModelEncoder();
+        modelDocument = createFlexSearchDocumentForModel();
+        mockModelTags.forEach(data => modelDocument.add(data));
     });
 
     describe('Encoder', () => {
@@ -136,9 +155,8 @@ embedding: my_embedding,0,1000,
             expect(encoded).toEqual(['one', 'two']);
         });
         test('should properly encode embedding notation', () => {
-            expect(
-                modelEncoder.encode('embedding:path/to/my_embed1')
-            ).toEqual(['embedding:', 'path', 'to', 'my', 'embed1']);
+            let encoded = modelEncoder.encode('embedding:path/to/my_embed1');
+            expect(encoded).toEqual(['embedding:', 'path', 'to', 'my', 'embed1']);
 
             expect(
                 modelEncoder.encode('embedding:path\\to\\my-embed1')
@@ -325,9 +343,27 @@ embedding: my_embedding,0,1000,
         test('should match to lora tag', () => {
             const tag = '<lora';
             const results = performSearch(tag);
-            expect(results.length).toEqual(1);
+            expect(results.length).toEqual(2);
 
             expect(results).toContain("<lora:my_lora1>");
+            expect(results).toContain("<lora:日本語Lora_v1>");
+        });
+
+        test('should match to lora tag2', () => {
+            const tag = 'lora:';
+            const results = performSearch(tag);
+            expect(results.length).toEqual(2);
+
+            expect(results).toContain("<lora:my_lora1>");
+            expect(results).toContain("<lora:日本語Lora_v1>");
+        });
+
+        test('should match to lora that contain CJK characters', () => {
+            const word = 'lora: 日本語';
+            const results = performSearch(word);
+            expect(results.length).toEqual(1);
+
+            expect(results).toContain("<lora:日本語Lora_v1>");
         });
     });
 

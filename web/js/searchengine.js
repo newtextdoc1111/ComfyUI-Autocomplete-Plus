@@ -46,9 +46,9 @@ function createModelEncoder() {
         numeric: true,
         cache: true,
         prepare: function (str) {
-            return str.replace(/(lora:|embedding:)/g, "$1 ");
+            return str.replace(/^<|>$/g, '').split(/(lora:|embedding:|[^\u0000-\u007f]+)/g).filter(Boolean).join(" ").trim();
         },
-        split: /[<>_./\(\)\-\s\\]+/
+        split: /(?<=lora:.*|embedding:.*)[_./\(\)\-\s\\]+/
     });
 }
 
@@ -62,8 +62,8 @@ export function createFlexSearchDocument() {
     const cjkEncoder = createCJKEncoder();
 
     // Custom encoding function for alias field that handles mixed language content
-    const encodeAlias = function (term) {
-        return term.split(",")
+    const encodeAlias = function (word) {
+        return word.split(",")
             .flatMap(str => {
                 if (/[^\u0000-\u007f]/.test(str)) {
                     // Contains non-ASCII characters (CJK text)
@@ -104,38 +104,22 @@ export function createFlexSearchDocument() {
  */
 export function createFlexSearchDocumentForModel() {
     const modelEncoder = createModelEncoder();
-    const cjkEncoder = createCJKEncoder();
 
-    // Custom encoding function for alias field that handles mixed language content
-    const encodeAlias = function (term) {
-        return term.split(",")
-            .flatMap(str => {
-                if (/[^\u0000-\u007f]/.test(str)) {
-                    // Contains non-ASCII characters (CJK text)
-                    return cjkEncoder.encode(str);
-                } else {
-                    // ASCII characters only (English text)
-                    return modelEncoder.encode(str);
-                }
-            })
-            .filter(Boolean);
-    }
 
     // Configure the FlexSearch document with optimized indexing settings
     // Note: alias field is not indexed for lora or embedding search
     const document = new Document({
+        tokenize: "full",  // Allow partial matching from both ends
+        encoder: modelEncoder,
         document: {
             id: "id",
             index: [
                 {
                     field: "tag",
-                    tokenize: "bidirectional",  // Allow partial matching from both ends
-                    encoder: modelEncoder,
+
                 },
                 {
-                    field: "alias",             // Index the alias field for multi-language support
-                    tokenize: "full",           // Full tokenization for complete alias matching
-                    encode: encodeAlias,        // Use custom multi-language encoding function
+                    field: "alias",
                 }
             ]
         }
