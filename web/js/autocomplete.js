@@ -1,4 +1,5 @@
 import {
+    ModelTagSource,
     TagCategory,
     TagData,
     autoCompleteData,
@@ -9,6 +10,7 @@ import {
     hiraToKata,
     kataToHira,
     formatCountHumanReadable,
+    escapeHtml,
     isContainsLetterOrNumber,
     normalizeTagToInsert,
     normalizeTagToSearch,
@@ -89,7 +91,7 @@ function searchCompletionCandidates(textareaElement) {
     }
 
     // Generate Hiragana/Katakana variations if applicable
-    const queryVariations = new Set([partialTag, normalizeTagToSearch(partialTag)]);
+    const queryVariations = new Set([partialTag.toLowerCase(), normalizeTagToSearch(partialTag).toLowerCase()]);
     const kataQuery = hiraToKata(partialTag);
     if (kataQuery !== partialTag) {
         queryVariations.add(kataQuery);
@@ -128,15 +130,14 @@ function sequentialSearch(partialTag, queryVariations) {
             let matchedAlias = null;
 
             // Check primary tag against all variations for exact/partial match
-            const tagMatch = matchWord(tagData.tag, queryVariations);
+            const tagMatch = matchWord(tagData.tag.toLowerCase(), queryVariations);
             matched = tagMatch.matched;
             isExactMatch = tagMatch.isExactMatch;
 
             // If primary tag didn't match, check aliases against all variations
             if (!matched && tagData.alias && Array.isArray(tagData.alias) && tagData.alias.length > 0) {
                 for (const alias of tagData.alias) {
-                    const lowerAlias = alias.toLowerCase();
-                    const aliasMatch = matchWord(lowerAlias, queryVariations);
+                    const aliasMatch = matchWord(alias.toLowerCase(), queryVariations);
                     if (aliasMatch.matched) {
                         matched = true;
                         isExactMatch = aliasMatch.isExactMatch;
@@ -299,9 +300,9 @@ function getCurrentPartialTag(inputElement) {
  * Inserts the selected tag into the textarea, replacing the partial tag,
  * making the change undoable.
  * @param {HTMLTextAreaElement} inputElement
- * @param {string} tagToInsert The raw tag string to insert.
+ * @param {TagData} tagDataToInsert The raw tag string to insert.
  */
-function insertTagToTextArea(inputElement, tagToInsert) {
+function insertTagToTextArea(inputElement, tagDataToInsert) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
@@ -309,7 +310,13 @@ function insertTagToTextArea(inputElement, tagToInsert) {
     const replaceStart = Math.min(cursorPos, tagStart);
     let replaceEnd = cursorPos;
 
-    const normalizedTag = normalizeTagToInsert(tagToInsert);
+    let normalizedTag;
+    if(Object.values(ModelTagSource).includes(tagDataToInsert.source)){
+        // If the tag is from a model tag source, don't want to normalize it
+        normalizedTag = tagDataToInsert.tag;
+    }else{
+        normalizedTag = normalizeTagToInsert(tagDataToInsert.tag);
+    }
 
     const currentTagAfterCursor = text.substring(cursorPos, tagEnd).trimEnd();
     if (normalizedTag.lastIndexOf(currentTagAfterCursor) !== -1) {
@@ -378,7 +385,7 @@ class AutocompleteUI {
         this.tagsList.addEventListener('mousedown', (e) => {
             const row = e.target.closest('.autocomplete-plus-item');
             if (row && row.dataset.tag) {
-                this.#insertTag(row.dataset.tag);
+                this.#insertTag(row.dataset);
                 e.preventDefault(); // Prevent focus loss from input
                 e.stopPropagation();
             }
@@ -443,10 +450,12 @@ class AutocompleteUI {
         this.#highlightItem();
     }
 
-    /** Selects the currently highlighted item */
+    /** Selects the currently highlighted item
+     * @returns {TagData|null} The selected tag data.
+     */
     getSelectedTag() {
         if (this.selectedIndex >= 0 && this.selectedIndex < this.candidates.length) {
-            return this.candidates[this.selectedIndex].tag;
+            return this.candidates[this.selectedIndex];
         }
 
         return null; // No valid selection
@@ -492,9 +501,10 @@ class AutocompleteUI {
         if (settingValues.tagSourceIconPosition == 'hidden') {
             tagName.textContent = tagData.tag;
         } else {
+            const escapedTag = escapeHtml(tagData.tag);
             tagName.innerHTML = settingValues.tagSourceIconPosition == 'left'
-                ? `${tagSourceIconHtml} ${tagData.tag}`
-                : `${tagData.tag} ${tagSourceIconHtml}`;
+                ? `${tagSourceIconHtml} ${escapedTag}`
+                : `${escapedTag} ${tagSourceIconHtml}`;
         }
 
         // grayout tag name if it already exists
@@ -635,10 +645,10 @@ class AutocompleteUI {
 
     /**
      * Handles the selection of an item
-     * @param {string} selectedTag The tag to insert.
+     * @param {TagData} selectedTag The tag to insert.
      */
     #insertTag(selectedTag) {
-        if (!this.target || !selectedTag || selectedTag.length <= 0) {
+        if (!this.target || !selectedTag) {
             this.hide();
             return;
         }

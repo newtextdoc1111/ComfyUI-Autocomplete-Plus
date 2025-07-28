@@ -36,6 +36,23 @@ function createCJKEncoder() {
 }
 
 /**
+ * Creates an encoder optimized for processing Embedding or Lora notation.
+ * @returns {Encoder} FlexSearch encoder
+ */
+function createModelEncoder() {
+    return new Encoder({
+        normalize: true,
+        dedupe: false,
+        numeric: true,
+        cache: true,
+        prepare: function (str) {
+            return str.replace(/^<|>$/g, '').split(/(lora:|embedding:|[^\u0000-\u007f]+)/g).filter(Boolean).join(" ").trim();
+        },
+        split: /(?<=lora:.*|embedding:.*)[_./\(\)\-\s\\]+/
+    });
+}
+
+/**
  * Creates a FlexSearch Document instance optimized for tag searching.
  * Configures separate encoders for English tags and CJK aliases with appropriate tokenization.
  * @returns {Document} Configured FlexSearch document for tag indexing
@@ -45,8 +62,8 @@ export function createFlexSearchDocument() {
     const cjkEncoder = createCJKEncoder();
 
     // Custom encoding function for alias field that handles mixed language content
-    const encodeAlias = function (term) {
-        return term.split(",")
+    const encodeAlias = function (word) {
+        return word.split(",")
             .flatMap(str => {
                 if (/[^\u0000-\u007f]/.test(str)) {
                     // Contains non-ASCII characters (CJK text)
@@ -81,6 +98,36 @@ export function createFlexSearchDocument() {
     return document;
 }
 
+/**
+ * Creates a FlexSearch Document instance optimized for lora or embedding searching.
+ * @returns {Document} Configured FlexSearch document
+ */
+export function createFlexSearchDocumentForModel() {
+    const modelEncoder = createModelEncoder();
+
+
+    // Configure the FlexSearch document with optimized indexing settings
+    // Note: alias field is not indexed for lora or embedding search
+    const document = new Document({
+        tokenize: "full",  // Allow partial matching from both ends
+        encoder: modelEncoder,
+        document: {
+            id: "id",
+            index: [
+                {
+                    field: "tag",
+
+                },
+                {
+                    field: "alias",
+                }
+            ]
+        }
+    });
+
+    return document;
+}
+
 // Export functions for testing when in test environment
 const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
-export const __test__ = isTestEnvironment ? { createTagEncoder, createCJKEncoder } : undefined;
+export const __test__ = isTestEnvironment ? { createTagEncoder, createCJKEncoder, createModelEncoder } : undefined;

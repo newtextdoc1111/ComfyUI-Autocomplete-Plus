@@ -1,10 +1,11 @@
 
-import { 
+import {
     createFlexSearchDocument,
+    createFlexSearchDocumentForModel,
     __test__
- } from "../../web/js/searchengine.js";
+} from "../../web/js/searchengine.js";
 
-const { createTagEncoder, createCJKEncoder } = __test__;
+const { createTagEncoder, createCJKEncoder, createModelEncoder } = __test__;
 
 function parseCSVLine(line) {
     const result = [];
@@ -60,34 +61,44 @@ sanshoku_dango,0,2061,"三色団子,三色团子,花見団子,花见团子"
 year:1999,0,1999,
 d.d.,0,1999,
 copyright_(series),2,1298,"copyright,コピーライト (シリーズ),コピーライト名,コピーライト,著作"
+__wildcard__,0,0,
 `;
 
-    const ControlCSV = `
-__wildcard__,0,1000,
-<lora:my_lora1:1.0>,0,1000,
-Embedding: my_embedding,0,1000,
+    const ModelCSV = `
+<lora:my_lora1>,0,0,
+<lora:日本語Lora_v1>,0,0,
+embedding: my_embedding,0,0,
 `;
 
     const mockCSV = [
-        commonCSV, cjkAliasCSV, specialCharCSV, ControlCSV
+        commonCSV, cjkAliasCSV, specialCharCSV
     ].map(csv => csv.trim()).join('\n');
-    
-    let mockTags;
 
-    let tagEncoder, cjkEncoder;
-    let document;
+    let mockTags, mockModelTags;
+
+    let tagEncoder, cjkEncoder, modelEncoder;
+    let document, modelDocument;
 
     let performSearch = function (query, limit = 100) {
-        const results = document.search(query, {
+        const ids1 = document.search(query, {
             field: ["tag", "alias"],
-            limit: limit, 
+            limit: limit,
             suggest: false,
             merge: true,
-        });
+        }).map(r => r.id);
 
-        const ids = results.map(r => r.id);
+        const result1 = mockTags.filter(tag => ids1.includes(tag.id)).map(tag => tag.tag);
 
-        return mockTags.filter(tag => ids.includes(tag.id)).map(tag => tag.tag);
+        const ids2 = modelDocument.search(query, {
+            field: ["tag", "alias"],
+            limit: limit,
+            suggest: false,
+            merge: true,
+        }).map(r => r.id);
+
+        const result2 = mockModelTags.filter(tag => ids2.includes(tag.id)).map(tag => tag.tag);
+
+        return [...result1, ...result2];
     }
 
     beforeEach(() => {
@@ -102,6 +113,15 @@ Embedding: my_embedding,0,1000,
         document = createFlexSearchDocument();
 
         mockTags.forEach(data => document.add(data));
+
+        mockModelTags = ModelCSV.split('\n').map((line, id) => {
+            const [tag, category, count, alias] = parseCSVLine(line);
+            return { id, tag, category: parseInt(category), count: parseInt(count), alias };
+        });
+
+        modelEncoder = createModelEncoder();
+        modelDocument = createFlexSearchDocumentForModel();
+        mockModelTags.forEach(data => modelDocument.add(data));
     });
 
     describe('Encoder', () => {
@@ -133,6 +153,31 @@ Embedding: my_embedding,0,1000,
         test('should remove trailing underscores when splitting', () => {
             const encoded = tagEncoder.encode('one_two_');
             expect(encoded).toEqual(['one', 'two']);
+        });
+        test('should properly encode embedding notation', () => {
+            let encoded = modelEncoder.encode('embedding:path/to/my_embed1');
+            expect(encoded).toEqual(['embedding:', 'path', 'to', 'my', 'embed1']);
+
+            expect(
+                modelEncoder.encode('embedding:path\\to\\my-embed1')
+            ).toEqual(['embedding:', 'path', 'to', 'my', 'embed1']);
+
+            expect(
+                modelEncoder.encode('embedding:path\\to\\this is my embed. my-negative01 (v1)__by me')
+            ).toEqual(['embedding:', 'path', 'to', 'this', 'is', 'my', 'embed', 'my', 'negative01', 'v1', 'by', 'me']);
+        });
+        test('should properly encode lora notation', () => {
+            expect(
+                modelEncoder.encode('<lora:path/to/my_lora1>')
+            ).toEqual(['lora:', 'path', 'to', 'my', 'lora1']);
+
+            expect(
+                modelEncoder.encode('<lora:path\\to\\my-lora1>')
+            ).toEqual(['lora:', 'path', 'to', 'my', 'lora1']);
+
+            expect(
+                modelEncoder.encode('<lora:path\\to\\this is my lora. my-style01 (v1)__by me>')
+            ).toEqual(['lora:', 'path', 'to', 'this', 'is', 'my', 'lora', 'my', 'style01', 'v1', 'by', 'me']);
         });
     });
 
@@ -298,9 +343,27 @@ Embedding: my_embedding,0,1000,
         test('should match to lora tag', () => {
             const tag = '<lora';
             const results = performSearch(tag);
+            expect(results.length).toEqual(2);
+
+            expect(results).toContain("<lora:my_lora1>");
+            expect(results).toContain("<lora:日本語Lora_v1>");
+        });
+
+        test('should match to lora tag2', () => {
+            const tag = 'lora:';
+            const results = performSearch(tag);
+            expect(results.length).toEqual(2);
+
+            expect(results).toContain("<lora:my_lora1>");
+            expect(results).toContain("<lora:日本語Lora_v1>");
+        });
+
+        test('should match to lora that contain CJK characters', () => {
+            const word = 'lora: 日本語';
+            const results = performSearch(word);
             expect(results.length).toEqual(1);
 
-            expect(results).toContain("<lora:my_lora1:1.0>");
+            expect(results).toContain("<lora:日本語Lora_v1>");
         });
     });
 

@@ -1,12 +1,18 @@
 import { settingValues, updateMaxTagLength } from "./settings.js";
-import { createFlexSearchDocument } from "./searchengine.js";
+import { createFlexSearchDocument, createFlexSearchDocumentForModel } from "./searchengine.js";
 
 // --- Constants ---
 
-// Tag data sources
+// Tag sources for booru-like tag data.
 export const TagSource = {
     Danbooru: 'danbooru',
     E621: 'e621',
+}
+
+// Tag sources for model based tag data.
+export const ModelTagSource = {
+    Embeddings: 'embeddings',
+    Lora: 'lora'
 }
 
 export const TagCategory = {
@@ -28,6 +34,12 @@ export const TagCategory = {
         'invalid',
         'meta',
         'lore',
+    ],
+    'embeddings': [
+        'embeddings'
+    ],
+    'lora': [
+        'lora'
     ]
 }
 
@@ -40,19 +52,19 @@ export class TagData {
     /**
      * Create a tag data object
      * @param {string} tag - The tag name
-     * @param {string[]} [alias=[]] - Array of aliases for the tag
-     * @param {string} [category='general'] - Category of the tag
+     * @param {number} [category] - Category index of the tag
      * @param {number} [count=0] - Frequency count/popularity of the tag
-     * @param {string} [source=TagSources.Danbooru] - The source of the tag data
+     * @param {string[]} [alias=[]] - Array of aliases for the tag
+     * @param {string} [source=TagSource.Danbooru] - The source of the tag data
      */
-    constructor(tag, alias = [], category = 'general', count = 0, source = TagSource.Danbooru) {
+    constructor(tag, category, count = 0, alias = [], source = TagSource.Danbooru) {
         /** @type {string} */
         this.tag = tag;
 
         /** @type {string[]} */
         this.alias = alias;
 
-        /** @type {string} */
+        /** @type {number} */
         this.category = category;
 
         /** @type {number} */
@@ -98,24 +110,32 @@ export const autoCompleteData = {};
 const TAGS_CSV_HEADER = 'tag,category,count,alias';
 const TAGS_CSV_HEADER_COLUMNS = TAGS_CSV_HEADER.split(',');
 const TAG_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('tag');
-const ALIAS_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('alias');
 const CATEGORY_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('category');
 const COUNT_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('count');
+const ALIAS_INDEX = TAGS_CSV_HEADER_COLUMNS.indexOf('alias');
 
 // --- Helder Functions ---
+
 
 /**
  * Get the available tag sources in priority order based on the current settings.
  * @returns {string[]} Array of available tag sources in priority order
  */
 export function getEnabledTagSourceInPriorityOrder() {
-    return Object.values(TagSource)
+    let enabledTagSources = Object.values(TagSource)
         .filter((s) => {
             return settingValues.tagSource === s || settingValues.tagSource === 'all';
         })
         .toSorted((a, b) => {
             return a === settingValues.primaryTagSource ? -1 : 1;
         });
+
+    // Append Loras and Embeddings if enabled
+    if (settingValues.enableModels) {
+        enabledTagSources = [...enabledTagSources, ...Object.values(ModelTagSource)];
+    }
+
+    return enabledTagSources;
 }
 
 // --- Data Loading Functions ---
@@ -159,7 +179,7 @@ async function loadTags(csvUrl, siteName) {
                 const aliases = aliasStr ? aliasStr.split(',').map(a => a.trim()).filter(a => a.length > 0) : [];
 
                 // Create a TagData instance instead of a plain object
-                const tagData = new TagData(tag, aliases, category, count, siteName);
+                const tagData = new TagData(tag, category, count, aliases, siteName);
 
                 updateMaxTagLength(tag.length);
 
@@ -202,7 +222,14 @@ async function buildFlexSearchIndex(siteName) {
             return;
         }
 
-        const document = createFlexSearchDocument();
+        let document = null;
+        if (Object.values(TagSource).includes(siteName)) {
+            document = createFlexSearchDocument();
+        } else if (Object.values(ModelTagSource).includes(siteName)) {
+            document = createFlexSearchDocumentForModel();
+        } else {
+            throw new Error(`[Autocomplete-Plus] Invalid site name: ${siteName}`);
+        }
 
         let startIdx = 0;
         const startTime = performance.now();
@@ -341,7 +368,11 @@ function parseCSVLine(line) {
     return result;
 }
 
-export async function fetchCsvList() {
+/**
+ * Fetch the list of CSV files from the API endpoint
+ * @returns {Promise<void>}
+ */
+async function fetchCsvList() {
     try {
         const response = await fetch('/autocomplete-plus/csv');
         if (!response.ok) {
@@ -357,9 +388,8 @@ export async function fetchCsvList() {
 
 /**
  * Initializes the autocomplete data by fetching the list of CSV files and loading them.
- * This function is called when the extension is initialized.
  */
-export async function initializeData(csvListData, source) {
+async function initializeDataFromCSV(csvListData, source) {
     if (autoCompleteData.hasOwnProperty(source) === false) {
         autoCompleteData[source] = new AutocompleteData();
     }
@@ -443,4 +473,89 @@ export async function initializeData(csvListData, source) {
     } finally {
         autoCompleteData[source].isInitializing = false;
     }
+}
+
+/**
+ * Load Embeddings data from the API endpoint
+ * @returns {Promise<void>}
+ */
+async function loadEmbeddings() {
+    try {
+        const response = await fetch('/autocomplete-plus/embeddings', { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const embeddings = await response.json();
+        const source = ModelTagSource.Embeddings;
+
+        if (autoCompleteData.hasOwnProperty(source) === false) {
+            autoCompleteData[source] = new AutocompleteData();
+        }
+
+        embeddings.forEach(embedding => {
+            if (!autoCompleteData[source].tagMap.has(embedding)) {
+                const tagData = new TagData(`embedding:${embedding}`, 0, 0, [], source);
+                autoCompleteData[source].sortedTags.push(tagData);
+                autoCompleteData[source].tagMap.set(embedding, tagData);
+
+                updateMaxTagLength(embedding.length);
+            }
+        });
+
+        await buildFlexSearchIndex(ModelTagSource.Embeddings);
+
+        console.log(`[Autocomplete-Plus] Loaded ${embeddings.length} Embeddings`);
+    } catch (error) {
+        console.error(`[Autocomplete-Plus] Failed to fetch Embeddings data:`, error);
+    }
+}
+
+/**
+ * Load LoRA data from the API endpoint
+ * @returns {Promise<void>}
+ */
+async function loadLoras() {
+    try {
+        const response = await fetch('/autocomplete-plus/loras', { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const loraNames = await response.json();
+        const source = ModelTagSource.Lora;
+
+        if (autoCompleteData.hasOwnProperty(source) === false) {
+            autoCompleteData[source] = new AutocompleteData();
+        }
+
+        loraNames.forEach(loraName => {
+            if (!autoCompleteData[source].tagMap.has(loraName)) {
+                const tagData = new TagData(`<lora:${loraName}>`, 0, 0, [], source);
+                autoCompleteData[source].sortedTags.push(tagData);
+                autoCompleteData[source].tagMap.set(loraName, tagData);
+
+                updateMaxTagLength(loraName.length);
+            }
+        });
+
+        await buildFlexSearchIndex(ModelTagSource.Lora);
+
+        console.log(`[Autocomplete-Plus] Loaded ${loraNames.length} LoRA models`);
+    } catch (error) {
+        console.error(`[Autocomplete-Plus] Failed to fetch LoRA data:`, error);
+    }
+}
+
+/**
+ * Load all data sources asynchronously.
+ */
+export async function loadDataAsync() {
+    return Promise.all([
+        fetchCsvList().then((csvList) => {
+            Object.values(TagSource).forEach((source) => {
+                initializeDataFromCSV(csvList, source);
+            });
+        }),
+        loadEmbeddings(),
+        loadLoras(),
+    ]);
 }

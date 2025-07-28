@@ -7,6 +7,7 @@ export const settingValues = {
     // Autocomplete feature settings
     enabled: true,
     maxSuggestions: 10,
+    enableModels: true, // Enable Lora and Embedding suggestions
     useFastSearch: false,
 
     // Related tags feature settings

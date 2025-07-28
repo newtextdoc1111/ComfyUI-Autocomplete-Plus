@@ -1,7 +1,10 @@
-import os
 import json
+import os
+
+import folder_paths
 import server
 from aiohttp import web
+
 from . import downloader as dl
 
 # Get the absolute path to the 'data' directory
@@ -227,3 +230,21 @@ async def get_last_check_time(_request):
     except (IOError, json.JSONDecodeError) as e:
         print(f"[Autocomplete-Plus] Error reading csv_meta.json: {e}")
         return web.json_response({"last_check_time": None, "error": str(e)}, status=500)
+
+
+@server.PromptServer.instance.routes.get("/autocomplete-plus/embeddings")
+async def get_embeddings(request):
+    """
+    Returns a list of embedding files.
+    """
+    embeddings = folder_paths.get_filename_list("embeddings")
+    return web.json_response(list(map(lambda a: os.path.splitext(a)[0], embeddings)))
+
+
+@server.PromptServer.instance.routes.get("/autocomplete-plus/loras")
+async def get_loras(request):
+    """
+    Returns a list of lora files.
+    """
+    loras = folder_paths.get_filename_list("loras")
+    return web.json_response(list(map(lambda a: os.path.splitext(a)[0], loras)))

@@ -41,6 +41,7 @@ When you type in a text input area, tags that partially match the text are displ
 - Tags are color-coded by category. The color-coding rules are the same as Danbooru.
 - Tags that have already been entered are displayed grayed out.
 - You can display Danbooru and e621 tags at the same time. You can also change the priority from the settings.
+- Supports autocomplete for Lora and Embedding inputs. You can enable/disable this feature in the settings.
 
 ## Related Tags
 
@@ -132,6 +133,7 @@ When the browser is reloaded, you can check the list of loaded CSV files in the 
 
 - **Enable Autocomplete**: Enable/disable the autocomplete feature.
 - **Max suggestions**: Maximum number of autocomplete suggestions to display.
+- **Enable Loras and Embeddings**: Display Lora and Embedding in the suggestions.
 - **Use Fast Search**: Switch autocomplete suggestions search to fast processing (see [About Fast Search for Autocomplete](#about-fast-search-for-autocomplete) for details).
 
 ### Related Tags
