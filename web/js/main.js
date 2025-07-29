@@ -240,7 +240,7 @@ app.registerExtension({
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
-        await loadDataAsync();
+        loadDataAsync();
     },
 
     // One the Settings Screen, displays reverse order in same category

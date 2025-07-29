@@ -154,7 +154,6 @@ async function loadTags(csvUrl, siteName) {
         }
         const csvText = await response.text();
         const lines = csvText.split('\n').filter(line => line.trim().length > 0);
-        const totalLines = lines.length;
 
         const startIndex = lines[0].toLowerCase().startsWith(TAGS_CSV_HEADER) ? 1 : 0;
 
@@ -184,18 +183,8 @@ async function loadTags(csvUrl, siteName) {
                 updateMaxTagLength(tag.length);
 
                 autoCompleteData[siteName].sortedTags.push(tagData);
-            } else {
-                console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}. Expected ${TAGS_CSV_HEADER_COLUMNS.length} columns, but got ${columns.length}.`);
-                continue;
-            }
-        }
 
-        // Sort by count in descending order
-        autoCompleteData[siteName].sortedTags.sort((a, b) => b.count - a.count);
-
-        // Build maps as before, but ensure not to overwrite if already processed from extra files
-        autoCompleteData[siteName].sortedTags.forEach(tagData => {
-            if (!autoCompleteData[siteName].tagMap.has(tagData.tag)) {
+                // Set the tag and its alias in the maps
                 autoCompleteData[siteName].tagMap.set(tagData.tag, tagData);
                 if (tagData.alias && Array.isArray(tagData.alias)) {
                     tagData.alias.forEach(alias => {
@@ -204,8 +193,11 @@ async function loadTags(csvUrl, siteName) {
                         }
                     });
                 }
+            } else {
+                console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}. Expected ${TAGS_CSV_HEADER_COLUMNS.length} columns, but got ${columns.length}.`);
+                continue;
             }
-        });
+        }
 
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${csvUrl}:`, error);
@@ -276,17 +268,17 @@ async function loadCooccurrence(csvUrl, siteName) {
 
         const startIndex = lines[0].startsWith('tag_a,tag_b,count') ? 1 : 0;
 
-        await processInChunks(lines, startIndex, autoCompleteData[siteName].cooccurrenceMap, csvUrl, siteName);
+        await processCooccurrenceInChunks(lines, startIndex, autoCompleteData[siteName].cooccurrenceMap, csvUrl, siteName);
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process cooccurrence data from ${csvUrl}:`, error);
     }
 }
 
 /**
- * Process CSV data in chunks to avoid blocking the UI.
+ * Process Co-Occurrence CSV data in chunks to avoid blocking the UI.
  * Modifies the targetMap directly.
  */
-function processInChunks(lines, startIndex, targetMap, csvUrl, siteName) {
+function processCooccurrenceInChunks(lines, startIndex, targetMap, csvUrl, siteName) {
     return new Promise((resolve) => {
         const CHUNK_SIZE = 10000;
         let i = startIndex;
@@ -297,7 +289,7 @@ function processInChunks(lines, startIndex, targetMap, csvUrl, siteName) {
 
             for (; i < endIndex; i++) {
                 const line = lines[i];
-                const columns = parseCSVLine(line);
+                const columns = line.split(",");
 
                 if (columns.length >= 3) {
                     const tagA = columns[0].trim();
@@ -307,17 +299,19 @@ function processInChunks(lines, startIndex, targetMap, csvUrl, siteName) {
                     if (!tagA || !tagB || isNaN(count)) continue;
 
                     // Add tagA -> tagB relationship
-                    if (!targetMap.has(tagA)) {
-                        targetMap.set(tagA, new Map());
+                    let subMapA = targetMap.get(tagA);
+                    if (!subMapA) {
+                        subMapA = new Map();
+                        targetMap.set(tagA, subMapA);
                     }
-                    targetMap.get(tagA).set(tagB, count);
+                    subMapA.set(tagB, count);
 
-
-                    // Add tagB -> tagA relationship (bidirectional)
-                    if (!targetMap.has(tagB)) {
-                        targetMap.set(tagB, new Map());
+                    let subMapB = targetMap.get(tagB);
+                    if (!subMapB) {
+                        subMapB = new Map();
+                        targetMap.set(tagB, subMapB);
                     }
-                    targetMap.get(tagB).set(tagA, count);
+                    subMapB.set(tagA, count);
 
                     pairCount++;
                 }
@@ -450,6 +444,9 @@ async function initializeDataFromCSV(csvListData, source) {
         await Promise.all([
             Promise.all(tagsLoadPromiseFactories.map(factory => factory()))
                 .then(() => {
+                    // Sort by count in descending order
+                    autoCompleteData[source].sortedTags.sort((a, b) => b.count - a.count);
+
                     // Build FlexSearch index after tags are loaded
                     return buildFlexSearchIndex(source);
                 })
@@ -546,7 +543,7 @@ async function loadLoras() {
 }
 
 /**
- * Load all data sources asynchronously.
+ * Load all data sources in parallel.
  */
 export async function loadDataAsync() {
     return Promise.all([
