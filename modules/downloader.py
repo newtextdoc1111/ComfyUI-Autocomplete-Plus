@@ -235,16 +235,7 @@ class Downloader:
 
     def _check_new_csv_from_hf_dataset(self, dataset_meta: dict, now_utc: datetime, force_check: bool = False):
         """Checks HuggingFace for file updates and updates metadata."""
-        perform_hf_check = True
-        if not force_check and dataset_meta.get("last_remote_check_timestamp"):
-            try:
-                last_check_dt = datetime.fromisoformat(dataset_meta["last_remote_check_timestamp"])
-                if now_utc - last_check_dt < timedelta(days=7):
-                    perform_hf_check = False
-            except (ValueError, KeyError, TypeError):
-                print(
-                    "[Autocomplete-Plus] Invalid or missing timestamp for last_remote_check_timestamp. Will perform remote check."
-                )
+        perform_hf_check = force_check
 
         if perform_hf_check:
             huggingface_dataset_id = dataset_meta["hf_dataset_id"]
