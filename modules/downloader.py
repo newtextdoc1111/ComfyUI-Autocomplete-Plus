@@ -294,15 +294,16 @@ class Downloader:
             return f"File {file_name} is missing or empty locally."
 
         # Check if the last modified date on HuggingFace is newer than the last download date
-        try:
-            last_download_dt = datetime.fromisoformat(file_meta_entry["last_download"])
-            hf_modified_dt = datetime.fromisoformat(file_meta_entry["last_modified_on_hf"])
-            if hf_modified_dt > last_download_dt:
-                return f"Remote file {file_name} is newer (HF: {last_download_dt}, Local Download: {hf_modified_dt})."
-        except (ValueError, TypeError):
-            file_meta_entry["last_download"] = None
-            file_meta_entry["last_modified_on_hf"] = None
-            return f"Invalid timestamp format for {file_name}. Forcing download to ensure integrity."
+        # Temporarily comment out until changes to remote files can be detected
+        # try:
+        #     last_download_dt = datetime.fromisoformat(file_meta_entry["last_download"])
+        #     hf_modified_dt = datetime.fromisoformat(file_meta_entry["last_modified_on_hf"])
+        #     if hf_modified_dt > last_download_dt:
+        #         return f"Remote file {file_name} is newer (HF: {hf_modified_dt}, Local Download: {last_download_dt})."
+        # except (ValueError, TypeError):
+        #     file_meta_entry["last_download"] = None
+        #     file_meta_entry["last_modified_on_hf"] = None
+        #     return f"Invalid timestamp format for {file_name}. Forcing download to ensure integrity."
 
         # If the file is missing or empty, but the last download timestamp exists, we need to retry.
         if not check_file_valid(local_file_path) and file_meta_entry.get("last_download") is not None:
