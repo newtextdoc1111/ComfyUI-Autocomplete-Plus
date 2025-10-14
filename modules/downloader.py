@@ -235,16 +235,7 @@ class Downloader:
 
     def _check_new_csv_from_hf_dataset(self, dataset_meta: dict, now_utc: datetime, force_check: bool = False):
         """Checks HuggingFace for file updates and updates metadata."""
-        perform_hf_check = True
-        if not force_check and dataset_meta.get("last_remote_check_timestamp"):
-            try:
-                last_check_dt = datetime.fromisoformat(dataset_meta["last_remote_check_timestamp"])
-                if now_utc - last_check_dt < timedelta(days=7):
-                    perform_hf_check = False
-            except (ValueError, KeyError, TypeError):
-                print(
-                    "[Autocomplete-Plus] Invalid or missing timestamp for last_remote_check_timestamp. Will perform remote check."
-                )
+        perform_hf_check = force_check
 
         if perform_hf_check:
             huggingface_dataset_id = dataset_meta["hf_dataset_id"]
@@ -303,15 +294,16 @@ class Downloader:
             return f"File {file_name} is missing or empty locally."
 
         # Check if the last modified date on HuggingFace is newer than the last download date
-        try:
-            last_download_dt = datetime.fromisoformat(file_meta_entry["last_download"])
-            hf_modified_dt = datetime.fromisoformat(file_meta_entry["last_modified_on_hf"])
-            if hf_modified_dt > last_download_dt:
-                return f"Remote file {file_name} is newer (HF: {last_download_dt}, Local Download: {hf_modified_dt})."
-        except (ValueError, TypeError):
-            file_meta_entry["last_download"] = None
-            file_meta_entry["last_modified_on_hf"] = None
-            return f"Invalid timestamp format for {file_name}. Forcing download to ensure integrity."
+        # Temporarily comment out until changes to remote files can be detected
+        # try:
+        #     last_download_dt = datetime.fromisoformat(file_meta_entry["last_download"])
+        #     hf_modified_dt = datetime.fromisoformat(file_meta_entry["last_modified_on_hf"])
+        #     if hf_modified_dt > last_download_dt:
+        #         return f"Remote file {file_name} is newer (HF: {hf_modified_dt}, Local Download: {last_download_dt})."
+        # except (ValueError, TypeError):
+        #     file_meta_entry["last_download"] = None
+        #     file_meta_entry["last_modified_on_hf"] = None
+        #     return f"Invalid timestamp format for {file_name}. Forcing download to ensure integrity."
 
         # If the file is missing or empty, but the last download timestamp exists, we need to retry.
         if not check_file_valid(local_file_path) and file_meta_entry.get("last_download") is not None:

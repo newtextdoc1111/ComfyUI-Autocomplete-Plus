@@ -190,40 +190,41 @@ async function addExtraSettings() {
     }
 
     // Add extra setting for checking new CSV updates
-    app.ui.settings.addSetting({
-        id: id + ".check_new_csv",
-        defaultValue: null,
-        name: "Check CSV updates",
-        category: [name, "Misc", "Check new CSV"],
-        type: () => {
-            const lastCheckSpan = $el("span", {
-                textContent: lastCheckTimeText,
-                className: "text-sm text-gray-500",
-                style: {
-                    marginRight: "16px"
-                }
-            });
+    // Note: Temporarily comment out until changes to remote files can be detected
+    // app.ui.settings.addSetting({
+    //     id: id + ".check_new_csv",
+    //     defaultValue: null,
+    //     name: "Check CSV updates",
+    //     category: [name, "Misc", "Check new CSV"],
+    //     type: () => {
+    //         const lastCheckSpan = $el("span", {
+    //             textContent: lastCheckTimeText,
+    //             className: "text-sm text-gray-500",
+    //             style: {
+    //                 marginRight: "16px"
+    //             }
+    //         });
 
-            const checkButton = $el("button", {
-                textContent: "Check now",
-                className: "p-button p-component p-button-primary",
-                onclick: async () => {
-                    await performUpdateCheck(checkButton, lastCheckSpan);
-                }
-            });
+    //         const checkButton = $el("button", {
+    //             textContent: "Check now",
+    //             className: "p-button p-component p-button-primary",
+    //             onclick: async () => {
+    //                 await performUpdateCheck(checkButton, lastCheckSpan);
+    //             }
+    //         });
 
-            return $el("div", {
-                className: "flex-row items-center gap-2",
-            }, [
-                $el("div", {
-                    className: "p-component",
-                }, [
-                    lastCheckSpan,
-                    checkButton,
-                ]),
-            ]);
-        }
-    });
+    //         return $el("div", {
+    //             className: "flex-row items-center gap-2",
+    //         }, [
+    //             $el("div", {
+    //                 className: "p-component",
+    //             }, [
+    //                 lastCheckSpan,
+    //                 checkButton,
+    //             ]),
+    //         ]);
+    //     }
+    // });
 }
 
 /**
