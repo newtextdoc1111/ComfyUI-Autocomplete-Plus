@@ -141,9 +141,9 @@ worst_quality,5,9999999,
 - **Default Display Position**: ComfyUI起動時のデフォルト表示位置
 - **Related Tags Trigger Mode** : 関連タグを表示する際、どの操作をトリガーとするか（クリックのみ、Ctrl+クリック）
 
-### その他
+### 表示
 
-- **Check CSV updates**: 「Check Now」ボタンを押すと新しい CSV ファイルがHuggingFaceにあるか確認し、必要に応じてダウンロードを行います
+- **Hide Alias**: オートコンプリートと関連タグで表示されるエイリアス列の非表示/表示を切り替え（デフォルトは表示です）
 
 ## 上級者向け設定
 

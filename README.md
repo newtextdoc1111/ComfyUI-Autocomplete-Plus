@@ -143,9 +143,9 @@ When the browser is reloaded, you can check the list of loaded CSV files in the 
 - **Default Display Position**: Default display position when ComfyUI starts.
 - **Related Tags Trigger Mode**: Which action will trigger displaying related tags (click only, Ctrl+click)
 
-### Miscellaneous
+### Display
 
-- **Check CSV updates**: Click the "Check Now" button to check if new CSV files are available in HuggingFace and download them if necessary.
+- **Hide Alias**: Hide/show the Alias ​​column in autocomplete and related tags (default is show)
 
 ## Advanced Settings
 
