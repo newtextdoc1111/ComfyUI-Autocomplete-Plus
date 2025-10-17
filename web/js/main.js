@@ -383,6 +383,19 @@ app.registerExtension({
             onChange: (newVal, oldVal) => {
                 settingValues.enableRelatedTags = newVal;
             }
+        },
+
+        // --- Display settings ---
+        {
+            id: id + ".display_hide_alias",
+            name: "Hide Alias",
+            tooltip: "Hide alias in the autocomplete and related tags display",
+            type: "boolean",
+            defaultValue: false,
+            category: [name, "Display", "Hide Alias"],
+            onChange: (newVal, oldVal) => {
+                settingValues.hideAlias = newVal;
+            }
         }
     ]
 });

@@ -16,6 +16,9 @@ export const settingValues = {
     relatedTagsDisplayPosition: 'horizontal', // 'horizontal' or 'vertical'
     relatedTagsTriggerMode: 'click', // Options: 'click', 'ctrl+Click'
 
+    // Display settings
+    hideAlias: false, // Hide alias in the autocomplete and related tags display
+
 
     // Internal logic settings
     _useFallbackAttachmentForEventListener: false, // Fallback to attach event listener when somthing goes wrong
