@@ -97,8 +97,12 @@ body.dark-theme {
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
-  grid-template-columns: max-content 1fr auto auto;
+  grid-template-columns: max-content 1fr auto;
   overflow-y: auto;
+}
+
+#autocomplete-plus-list.no-alias {
+  grid-template-columns: max-content auto;
 }
 
 .autocomplete-plus-item {
@@ -292,8 +296,12 @@ body.dark-theme {
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
-  grid-template-columns: max-content 1fr auto auto;
+  grid-template-columns: max-content 1fr auto;
   overflow-y: auto;
+}
+
+#related-tags-list.no-alias {
+  grid-template-columns: max-content auto;
 }
 
 .related-tag-item {

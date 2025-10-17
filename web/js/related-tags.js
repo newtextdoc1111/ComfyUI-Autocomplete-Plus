@@ -4,6 +4,7 @@ import {
     extractTagsFromTextArea,
     findAllTagPositions,
     getCurrentTagRange,
+    getScrollbarWidth,
     getViewportMargin,
     isLongText,
     isValidTag,
@@ -259,7 +260,7 @@ class RelatedTagsUI {
         this.headerControls.appendChild(this.pinBtn);
 
         this.header.appendChild(this.headerControls);
-        
+
         this.root.appendChild(this.header);
 
         // Create a tbody for the tags
@@ -419,8 +420,8 @@ class RelatedTagsUI {
             });
         }
 
-        const tagText = this.currentTag;
-        const categoryText = TagCategory[tagData.source][tagData.category];
+        const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
+        const aliasText = tagData.alias.join(', ');
 
         // Update header text with current tag
         this.headerText.innerHTML = ''; // Clear previous content
@@ -428,15 +429,15 @@ class RelatedTagsUI {
 
         const tagName = document.createElement('span');
         tagName.classList.add('related-tags-header-tag-name', tagData.source);
-        tagName.title = `Count: ${tagData.count}\nCategory: ${categoryText}`;
+        tagName.title = `Count: ${tagData.count}\nCategory: ${categoryText}\nAlias: ${aliasText}`;
         tagName.dataset.tagCategory = categoryText;
         if (tagData.source && ['left', 'right'].includes(settingValues.tagSourceIconPosition)) {
             const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
             tagName.innerHTML = settingValues.tagSourceIconPosition == 'left'
-                ? `${tagSourceIconHtml} ${tagText}`
-                : `${tagText} ${tagSourceIconHtml}`;
+                ? `${tagSourceIconHtml} ${tagData.tag}`
+                : `${tagData.tag} ${tagSourceIconHtml}`;
         } else {
-            tagName.textContent += tagText;
+            tagName.textContent += tagData.tag;
         }
 
 
@@ -447,8 +448,8 @@ class RelatedTagsUI {
         this.headerAlias.innerHTML = '';
 
         // Add alias if available
-        if (tagData.alias?.length > 0) {
-            this.headerAlias.textContent = tagData.alias.join(', ');
+        if (aliasText.length > 0 && !settingValues.hideAlias) {
+            this.headerAlias.textContent = aliasText;
             this.headerAlias.style.display = 'block';
         }
 
@@ -485,6 +486,9 @@ class RelatedTagsUI {
             return;
         }
 
+        // Toggle column class based on settings
+        this.tagsContainer.classList.toggle('no-alias', settingValues.hideAlias);
+
         const existingTags = extractTagsFromTextArea(this.target);
 
         // Create tag rows
@@ -503,6 +507,7 @@ class RelatedTagsUI {
      */
     #createTagElement(tagData, isExisting) {
         const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
+        const aliasText = tagData.alias.join(', ');
 
         const tagRow = document.createElement('div');
         tagRow.classList.add('related-tag-item', tagData.source);
@@ -524,16 +529,10 @@ class RelatedTagsUI {
         alias.className = 'related-tag-alias';
 
         // Display alias if available
-        if (tagData.alias && tagData.alias.length > 0) {
-            let aliasText = tagData.alias.join(', ');
+        if (aliasText.length > 0) {
             alias.textContent = `${aliasText}`;
-            alias.title = tagData.alias.join(', '); // Full alias on hover
+            alias.title = aliasText; // Full alias on hover
         }
-
-        // Category
-        const category = document.createElement('span');
-        category.className = `related-tag-category`;
-        category.textContent = `${categoryText.substring(0, 2)}`;
 
         // Similarity
         const similarity = document.createElement('span');
@@ -541,16 +540,19 @@ class RelatedTagsUI {
         similarity.textContent = `${(tagData.similarity * 100).toFixed(2)}%`;
 
         // Create tooltip with more info
-        let tooltipText = `Tag: ${tagData.tag}\nSimilarity: ${(tagData.similarity * 100).toFixed(2)}%\nCount: ${tagData.count}`;
-        if (tagData.alias && tagData.alias.length > 0) {
-            tooltipText += `\nAlias: ${tagData.alias.join(', ')}`;
+        let tooltipText = `Similarity: ${(tagData.similarity * 100).toFixed(2)}%\nCount: ${tagData.count}\nCategory: ${categoryText}`;
+        if (aliasText.length > 0) {
+            tooltipText += `\nAlias: ${aliasText}`;
         }
         tagRow.title = tooltipText;
 
         // Add cells to row
         tagRow.appendChild(tagName);
-        tagRow.appendChild(alias);
-        tagRow.appendChild(category);
+
+        if (!settingValues.hideAlias) {
+            tagRow.appendChild(alias);
+        }
+
         tagRow.appendChild(similarity);
 
         return tagRow;
@@ -580,7 +582,7 @@ class RelatedTagsUI {
 
         const newHeaderRect = this.header.getBoundingClientRect();
 
-        if(this.relatedTags.length > 0){
+        if (this.relatedTags.length > 0) {
             this.tagsContainer.style.maxHeight = `${placementArea.height - newHeaderRect.height}px`;
         }
 
@@ -669,6 +671,10 @@ class RelatedTagsUI {
                 area.y = targetRect.bottom;
             }
 
+            // Calculate width considering scrollbar width if vertical scrolling is needed
+            const scrollbarWidth = area.height < elemHeight ? getScrollbarWidth() : 0;
+            area.width = Math.min(elemWidth + scrollbarWidth, maxWidth);
+
             // Adjust x position to avoid overflow
             area.x = Math.min(area.x, viewportWidth - area.width - margin.right);
         } else {
@@ -684,6 +690,10 @@ class RelatedTagsUI {
                 area.width = Math.min(area.width, rightSpace);
                 area.x = targetRect.right;
             }
+
+            // Calculate width considering scrollbar width if vertical scrolling is needed
+            const scrollbarWidth = area.height < elemHeight ? getScrollbarWidth() : 0;
+            area.width = Math.min(area.width + scrollbarWidth, viewportWidth - margin.left - margin.right);
 
             // Adjust y position to avoid overflow
             area.y = Math.min(area.y, viewportHeight - area.height - margin.bottom);

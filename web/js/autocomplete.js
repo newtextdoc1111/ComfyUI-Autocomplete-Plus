@@ -17,6 +17,7 @@ import {
     extractTagsFromTextArea,
     getCurrentTagRange,
     getViewportMargin,
+    getScrollbarWidth,
     IconSvgHtmlString
 } from './utils.js';
 import { settingValues } from './settings.js';
@@ -311,10 +312,10 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     let replaceEnd = cursorPos;
 
     let normalizedTag;
-    if(Object.values(ModelTagSource).includes(tagDataToInsert.source)){
+    if (Object.values(ModelTagSource).includes(tagDataToInsert.source)) {
         // If the tag is from a model tag source, don't want to normalize it
         normalizedTag = tagDataToInsert.tag;
-    }else{
+    } else {
         normalizedTag = normalizeTagToInsert(tagDataToInsert.tag);
     }
 
@@ -471,6 +472,8 @@ class AutocompleteUI {
             return;
         }
 
+        this.tagsList.classList.toggle('no-alias', settingValues.hideAlias);
+
         const existingTags = extractTagsFromTextArea(this.target);
         const currentTag = getCurrentPartialTag(this.target);
 
@@ -488,6 +491,7 @@ class AutocompleteUI {
      */
     #createTagElement(tagData, isExisting) {
         const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
+        const aliasText = tagData.alias.join(', ');
 
         const tagRow = document.createElement('div');
         tagRow.classList.add('autocomplete-plus-item', tagData.source);
@@ -517,26 +521,29 @@ class AutocompleteUI {
         alias.className = 'autocomplete-plus-alias';
 
         // Display alias if available
-        if (tagData.alias && tagData.alias.length > 0) {
-            let aliasText = tagData.alias.join(', ');
+        if (aliasText.length > 0) {
             alias.textContent = `${aliasText}`;
-            alias.title = tagData.alias.join(', '); // Full alias on hover
+            alias.title = aliasText; // Full alias on hover
         }
-
-        // Category
-        const category = document.createElement('span');
-        category.className = `autocomplete-plus-category`;
-        category.textContent = `${categoryText.substring(0, 2)}`;
-        category.title = categoryText; // Full category on hover
 
         // Count
         const tagCount = document.createElement('span');
         tagCount.className = `autocomplete-plus-tag-count`;
         tagCount.textContent = formatCountHumanReadable(tagData.count);
 
+         // Create tooltip with more info
+        let tooltipText = `Count: ${tagData.count}\nCategory: ${categoryText}`;
+        if (aliasText.length > 0) {
+            tooltipText += `\nAlias: ${aliasText}`;
+        }
+        tagRow.title = tooltipText;
+
         tagRow.appendChild(tagName);
-        tagRow.appendChild(alias);
-        tagRow.appendChild(category);
+
+        if (!settingValues.hideAlias) {
+            tagRow.appendChild(alias);
+        }
+
         tagRow.appendChild(tagCount);
         this.tagsList.appendChild(tagRow);
     }
@@ -574,21 +581,14 @@ class AutocompleteUI {
         let topPosition = targetElmOffset.top + ((caretTop - targetElmOffset.top) + caretLineHeight) * scale;
         let leftPosition = targetElmOffset.left + (caretLeft - targetElmOffset.left) * scale;;
 
-        const maxWidth = Math.min(rootRect.width, viewportWidth / 2);
         const naturalHeight = rootRect.height;
-
-        //Horizontal Collision Detection and Adjustment
-        if (leftPosition + maxWidth > viewportWidth - margin.right) {
-            leftPosition = viewportWidth - maxWidth - margin.right;
-        }
-        if (leftPosition < margin.left) {
-            leftPosition = margin.left;
-        }
 
         // Vertical Collision Detection and Adjustment
         const availableSpaceBelow = viewportHeight - topPosition - margin.bottom;
         const availableSpaceAbove = caretTop - margin.top;
 
+        let needsVerticalScroll = false;
+        let maxHeight = rootRect.height;
 
         if (naturalHeight <= availableSpaceBelow) {
             // Fits perfectly below the caret
@@ -600,14 +600,15 @@ class AutocompleteUI {
                 topPosition = caretTop - naturalHeight - margin.top;
             } else {
                 // Doesn't fit perfectly either below or above, needs scrolling.
+                needsVerticalScroll = true;
                 // Choose the position (above or below) that offers more space.
                 if (availableSpaceBelow >= availableSpaceAbove) {
                     // Scroll below: topPosition remains as initially calculated
-                    this.tagsList.style.maxHeight = `${availableSpaceBelow}px`;
+                    maxHeight = availableSpaceBelow;
                 } else {
                     // Scroll above: Position near the top edge and set max-height
                     topPosition = margin.top;
-                    this.tagsList.style.maxHeight = `${availableSpaceAbove}px`;
+                    maxHeight = availableSpaceAbove;
                 }
             }
         }
@@ -616,16 +617,30 @@ class AutocompleteUI {
         if (topPosition < margin.top) {
             topPosition = margin.top;
             // If pushed down, recalculate max-height if it was set based on top alignment
-            if (this.tagsList.style.maxHeight && availableSpaceBelow < availableSpaceAbove) {
+            if (availableSpaceBelow < availableSpaceAbove) {
                 // Recalculate max-height based on space from the top margin
-                this.tagsList.style.maxHeight = `${viewportHeight - margin.top - margin.bottom}px`;
+                maxHeight = viewportHeight - margin.top - margin.bottom;
+                needsVerticalScroll = true;
             }
+        }
+
+        // Calculate maxWidth considering scrollbar width if vertical scrolling is needed
+        const scrollbarWidth = needsVerticalScroll ? getScrollbarWidth() : 0;
+        const maxWidth = Math.min(rootRect.width + scrollbarWidth, viewportWidth / 2);
+
+        // Horizontal Collision Detection and Adjustment
+        if (leftPosition + maxWidth > viewportWidth - margin.right) {
+            leftPosition = viewportWidth - maxWidth - margin.right;
+        }
+        if (leftPosition < margin.left) {
+            leftPosition = margin.left;
         }
 
         // Apply the calculated position and display the element
         this.root.style.left = `${leftPosition}px`;
         this.root.style.top = `${topPosition}px`;
         this.root.style.maxWidth = `${maxWidth}px`;
+        this.tagsList.style.maxHeight = `${maxHeight}px`;
     }
 
     /** Highlights the item (row) at the given index */

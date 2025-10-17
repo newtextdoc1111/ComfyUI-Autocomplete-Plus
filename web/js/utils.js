@@ -584,3 +584,38 @@ export function getViewportMargin() {
         right: rightBarRect.width,
     };
 }
+
+// Cache for scrollbar width measurement
+let _cachedScrollbarWidth;
+
+/**
+ * Measures and returns the scrollbar width for the current browser.
+ * Creates a temporary element to measure the scrollbar width accurately.
+ * @returns {number} The scrollbar width in pixels
+ */
+export function getScrollbarWidth() {
+    // Return cached value if available
+    if (_cachedScrollbarWidth !== undefined) {
+        return _cachedScrollbarWidth;
+    }
+
+    // Create a temporary div with scrollbar
+    const outer = document.createElement('div');
+    outer.style.visibility = 'hidden';
+    outer.style.position = 'absolute';
+    outer.style.overflow = 'scroll';
+    outer.style.top = '-9999px';
+    outer.style.width = '100px';
+    document.body.appendChild(outer);
+
+    const inner = document.createElement('div');
+    inner.style.width = '100%';
+    outer.appendChild(inner);
+
+    // Cache the result
+    _cachedScrollbarWidth = outer.offsetWidth - inner.offsetWidth;
+
+    document.body.removeChild(outer);
+    
+    return _cachedScrollbarWidth;
+}
