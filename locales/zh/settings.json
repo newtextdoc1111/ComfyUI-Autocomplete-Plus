@@ -1,0 +1,66 @@
+{
+    "AutocompletePlus_TagSource_IconPosition": {
+        "name": "标签来源图标位置",
+        "options": {
+            "left": "左",
+            "right": "右",
+            "hidden": "隐藏"
+        }
+    },
+    "AutocompletePlus_TagSource_PrimaryTagSource": {
+        "name": "'全部'选择时的主要来源",
+        "tooltip": "当自动完成标签来源为\"全部\"时，此设置决定哪个来源的标签优先显示在建议中。",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621"
+        }
+    },
+    "AutocompletePlus_TagSource": {
+        "name": "自动完成标签来源",
+        "tooltip": "选择自动完成建议的标签来源。选择\"全部\"将包含所有已加载来源的标签。",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621",
+            "all": "全部"
+        }
+    },
+    "AutocompletePlus_Autocompletion_UseFastSearch": {
+        "name": "启用快速搜索",
+        "tooltip": "标签搜索处理更快，提高文本输入时的响应速度"
+    },
+    "AutocompletePlus_Autocompletion_EnableModels": {
+        "name": "显示Lora和Embedding"
+    },
+    "AutocompletePlus_Autocompletion_MaxSuggestions": {
+        "name": "最大提示数"
+    },
+    "AutocompletePlus_Autocompletion_Enable": {
+        "name": "启用自动完成"
+    },
+    "AutocompletePlus_RelatedTags_RelatedTagsTriggerMode": {
+        "name": "显示相关标签的操作",
+        "tooltip": "指定触发显示已输入标签的相关标签的操作（仅点击、Ctrl+点击）",
+        "options": {
+            "click": "点击",
+            "ctrl+Click": "Ctrl+点击"
+        }
+    },
+    "AutocompletePlus_RelatedTags_DisplayPosition": {
+        "name": "默认显示位置",
+        "tooltip": "相对于文本区域的显示位置",
+        "options": {
+            "horizontal": "水平",
+            "vertical": "垂直"
+        }
+    },
+    "AutocompletePlus_RelatedTags_MaxRelatedTags": {
+        "name": "最大相关标签数"
+    },
+    "AutocompletePlus_RelatedTags_Enable": {
+        "name": "启用相关标签"
+    },
+    "AutocompletePlus_Display_HideAlias": {
+        "name": "隐藏别名",
+        "tooltip": "隐藏自动完成和相关标签显示中的别名列"
+    }
+}

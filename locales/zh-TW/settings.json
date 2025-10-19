@@ -1,0 +1,66 @@
+{
+    "AutocompletePlus_TagSource_IconPosition": {
+        "name": "標籤來源圖示位置",
+        "options": {
+            "left": "左",
+            "right": "右",
+            "hidden": "隱藏"
+        }
+    },
+    "AutocompletePlus_TagSource_PrimaryTagSource": {
+        "name": "「全部」選擇時的主要來源",
+        "tooltip": "當自動完成標籤來源為「全部」時，此設定決定哪個來源的標籤優先顯示在建議中。",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621"
+        }
+    },
+    "AutocompletePlus_TagSource": {
+        "name": "自動完成標籤來源",
+        "tooltip": "選擇自動完成建議的標籤來源。選擇「全部」將包含所有已載入來源的標籤。",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621",
+            "all": "全部"
+        }
+    },
+    "AutocompletePlus_Autocompletion_UseFastSearch": {
+        "name": "啟用快速搜尋",
+        "tooltip": "標籤搜尋處理更快，提高文字輸入時的回應速度"
+    },
+    "AutocompletePlus_Autocompletion_EnableModels": {
+        "name": "顯示Lora和Embedding"
+    },
+    "AutocompletePlus_Autocompletion_MaxSuggestions": {
+        "name": "最大提示數"
+    },
+    "AutocompletePlus_Autocompletion_Enable": {
+        "name": "啟用自動完成"
+    },
+    "AutocompletePlus_RelatedTags_RelatedTagsTriggerMode": {
+        "name": "顯示相關標籤的操作",
+        "tooltip": "指定觸發顯示已輸入標籤的相關標籤的操作（僅點擊、Ctrl+點擊）",
+        "options": {
+            "click": "點擊",
+            "ctrl+Click": "Ctrl+點擊"
+        }
+    },
+    "AutocompletePlus_RelatedTags_DisplayPosition": {
+        "name": "預設顯示位置",
+        "tooltip": "相對於文字區域的顯示位置",
+        "options": {
+            "horizontal": "水平",
+            "vertical": "垂直"
+        }
+    },
+    "AutocompletePlus_RelatedTags_MaxRelatedTags": {
+        "name": "最大相關標籤數"
+    },
+    "AutocompletePlus_RelatedTags_Enable": {
+        "name": "啟用相關標籤"
+    },
+    "AutocompletePlus_Display_HideAlias": {
+        "name": "隱藏別名",
+        "tooltip": "隱藏自動完成和相關標籤顯示中的別名欄"
+    }
+}
