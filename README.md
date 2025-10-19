@@ -159,7 +159,7 @@ For example, by preparing the following CSV, you can quickly insert correspondin
 - **Enable Related Tags**: Enable/disable the related tags feature.
 - **Max related tags**: Maximum number of related tags to display.
 - **Default Display Position**: Default display position when ComfyUI starts.
-- **Related Tags Trigger Mode**: Which action will trigger displaying related tags (click only, Ctrl+click)
+- **Related Tags Trigger Mode**: Which action will trigger displaying related tags for the entered tag (click only, Ctrl+click)
 
 ### Display
 

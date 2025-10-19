@@ -1,0 +1,66 @@
+{
+    "AutocompletePlus_TagSource_IconPosition": {
+        "name": "タグソースのアイコン位置",
+        "options": {
+            "left": "左",
+            "right": "右",
+            "hidden": "非表示"
+        }
+    },
+    "AutocompletePlus_TagSource_PrimaryTagSource": {
+        "name": "優先して表示するタグソース",
+        "tooltip": "オートコンプリートのタグソースが「全て」のとき、ここで指定したタグソースが優先して表示されます",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621"
+        }
+    },
+    "AutocompletePlus_TagSource": {
+        "name": "オートコンプリートのタグソース",
+        "tooltip": "オートコンプリート候補に表示するタグソース。\n「全て」を選択するとロード済みの全てのタグソースを表示します",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621",
+            "all": "全て"
+        }
+    },
+    "AutocompletePlus_Autocompletion_UseFastSearch": {
+        "name": "高速検索の有効化",
+        "tooltip": "候補の検索を高速な処理に切り替えます。\n入力時の遅延が改善される場合があります"
+    },
+    "AutocompletePlus_Autocompletion_EnableModels": {
+        "name": "LoraとEmbeddingを候補に表示する"
+    },
+    "AutocompletePlus_Autocompletion_MaxSuggestions": {
+        "name": "候補の最大表示件数"
+    },
+    "AutocompletePlus_Autocompletion_Enable": {
+        "name": "オートコンプリート機能の有効化"
+    },
+    "AutocompletePlus_RelatedTags_RelatedTagsTriggerMode": {
+        "name": "関連タグを表示する操作",
+        "tooltip": "入力済みのタグの関連タグを表示する際、どの操作をトリガーとするか（クリックのみ、Ctrl+クリック）",
+        "options": {
+            "click": "クリック",
+            "ctrl+Click": "Ctrl+クリック"
+        }
+    },
+    "AutocompletePlus_RelatedTags_DisplayPosition": {
+        "name": "デフォルト表示位置",
+        "tooltip": "入力中のテキストエリアを基準に、どの位置に表示するか",
+        "options": {
+            "horizontal": "水平",
+            "vertical": "垂直"
+        }
+    },
+    "AutocompletePlus_RelatedTags_MaxRelatedTags": {
+        "name": "関連タグの最大表示件数"
+    },
+    "AutocompletePlus_RelatedTags_Enable": {
+        "name": "関連タグ機能の有効化"
+    },
+    "AutocompletePlus_Display_HideAlias": {
+        "name": "エイリアスを非表示",
+        "tooltip": "オートコンプリートと関連タグで表示されるエイリアス列を非表示にします"
+    }
+}
