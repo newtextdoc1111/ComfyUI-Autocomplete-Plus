@@ -1044,3 +1044,16 @@ export class AutocompleteEventHandler {
     handleClick(event) {
     }
 }
+
+// Export functions for testing
+const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+export const __test__ = isTestEnvironment
+    ? {
+        searchCompletionCandidates,
+        sequentialSearch,
+        searchWithFlexSearch,
+        matchWord,
+        getCurrentPartialTag,
+        insertTagToTextArea
+    }
+    : undefined;
