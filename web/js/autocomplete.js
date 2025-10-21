@@ -259,6 +259,10 @@ function searchWithFlexSearch(partialTag, queryVariations) {
  * @returns {string} The current partial tag.
  */
 function getCurrentPartialTag(inputElement) {
+    if (!inputElement) {
+        return "";
+    }
+    
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
@@ -304,10 +308,25 @@ function getCurrentPartialTag(inputElement) {
  * @param {TagData} tagDataToInsert The raw tag string to insert.
  */
 function insertTagToTextArea(inputElement, tagDataToInsert) {
+    if (!inputElement || !tagDataToInsert) {
+        return;
+    }
+    
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    const { start: tagStart, end: tagEnd, tag: currentTag } = getCurrentTagRange(text, cursorPos);
+    const tagRange = getCurrentTagRange(text, cursorPos);
+    let tagStart, tagEnd, currentTag;
+    
+    if (!tagRange) {
+        // Fallback: insert at cursor position
+        tagStart = cursorPos;
+        tagEnd = cursorPos;
+        currentTag = '';
+    } else {
+        ({ start: tagStart, end: tagEnd, tag: currentTag } = tagRange);
+    }
+    
     const replaceStart = Math.min(cursorPos, tagStart);
     let replaceEnd = cursorPos;
 
