@@ -14,7 +14,7 @@ function createTagEncoder() {
         cache: true,
         // filter: new Set(['and', 'to', 'be', 'on']),
         replacer: [/(?<=[a-zA-Z\)])_$/, ''],  // Remove trailing underscores after letters/parentheses
-        split: /(?<=[a-zA-Z\)])_(?=[a-zA-Z\(])|\((?=[a-zA-Z])|(?<=[a-zA-Z\)])\)|[ \n]/  // Split on underscores between words, parentheses, spaces, and newlines
+        split: /(?<=[a-zA-Z\)])_(?=[a-zA-Z\(])|\((?=[a-zA-Z])|(?<=[a-zA-Z\)])\)|[ \-\n]/  // Split on underscores between words, parentheses, spaces, hyphens, and newlines
     });
 }
 
