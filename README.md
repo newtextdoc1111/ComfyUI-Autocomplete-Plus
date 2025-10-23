@@ -133,6 +133,7 @@ When the browser is reloaded, you can check the list of loaded CSV files in the 
 
 - **Enable Autocomplete**: Enable/disable the autocomplete feature.
 - **Max suggestions**: Maximum number of autocomplete suggestions to display.
+- **Replace '_' with 'Space'**: Replaces underscores with spaces when inserting tags. This setting also affects related tag display.
 - **Enable Loras and Embeddings**: Display Lora and Embedding in the suggestions.
 - **Use Fast Search**: Switch autocomplete suggestions search to fast processing (see [About Fast Search for Autocomplete](#about-fast-search-for-autocomplete) for details).
 

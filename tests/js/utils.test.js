@@ -1,3 +1,4 @@
+import { settingValues } from '../../web/js/settings.js';
 import {
     extractTagsFromTextArea,
     normalizeTagToSearch,
@@ -135,6 +136,11 @@ describe('normalizeTagToSearch', () => {
 });
 
 describe('normalizeTagToInsert', () => {
+    const originalValue = settingValues.replaceUnderscoreWithSpace;
+    afterEach(() => {
+        settingValues.replaceUnderscoreWithSpace = originalValue;
+    });
+
     test('should return null or empty string for invalid inputs', () => {
         expect(normalizeTagToInsert(null)).toBeNull();
         expect(normalizeTagToInsert(undefined)).toBeUndefined();
@@ -166,6 +172,58 @@ describe('normalizeTagToInsert', () => {
         expect(normalizeTagToInsert('blue_hair(style)')).toBe('blue hair\\(style\\)');
         expect(normalizeTagToInsert('year:2000')).toBe('year:2000');
         expect(normalizeTagToInsert('foo:bar')).toBe('foo:bar');
+    });
+
+    test('should respect replaceUnderscoreWithSpace setting when true', () => {
+        settingValues.replaceUnderscoreWithSpace = true;
+
+        expect(normalizeTagToInsert('blue_hair')).toBe('blue hair');
+        expect(normalizeTagToInsert('red_eyes')).toBe('red eyes');
+        expect(normalizeTagToInsert('long_curly_hair')).toBe('long curly hair');
+    });
+
+    test('should respect replaceUnderscoreWithSpace setting when false', () => {
+        settingValues.replaceUnderscoreWithSpace = false;
+
+        expect(normalizeTagToInsert('blue_hair')).toBe('blue_hair');
+        expect(normalizeTagToInsert('red_eyes')).toBe('red_eyes');
+        expect(normalizeTagToInsert('long_curly_hair')).toBe('long_curly_hair');
+    });
+
+    test('should respect replaceUnderscoreWithSpace setting with parentheses', () => {
+        settingValues.replaceUnderscoreWithSpace = true;
+        expect(normalizeTagToInsert('blue_hair(style)')).toBe('blue hair\\(style\\)');
+
+        settingValues.replaceUnderscoreWithSpace = false;
+        expect(normalizeTagToInsert('blue_hair(style)')).toBe('blue_hair\\(style\\)');
+
+        settingValues.replaceUnderscoreWithSpace = originalValue;
+    });
+
+    test('should not replace underscores in wildcard syntax regardless of setting', () => {
+        const originalValue = settingValues.replaceUnderscoreWithSpace;
+
+        // Wildcard syntax should preserve underscores regardless of setting
+        settingValues.replaceUnderscoreWithSpace = true;
+        expect(normalizeTagToInsert('__wildcard__')).toBe('__wildcard__');
+
+        settingValues.replaceUnderscoreWithSpace = false;
+        expect(normalizeTagToInsert('__wildcard__')).toBe('__wildcard__');
+
+        settingValues.replaceUnderscoreWithSpace = originalValue;
+    });
+
+    test('should not replace underscores in symbol-only tags regardless of setting', () => {
+        const originalValue = settingValues.replaceUnderscoreWithSpace;
+
+        // Symbol-only tags should not be affected by the setting
+        settingValues.replaceUnderscoreWithSpace = true;
+        expect(normalizeTagToInsert('^_^')).toBe('^_^');
+
+        settingValues.replaceUnderscoreWithSpace = false;
+        expect(normalizeTagToInsert('^_^')).toBe('^_^');
+
+        settingValues.replaceUnderscoreWithSpace = originalValue;
     });
 });
 

@@ -282,6 +282,7 @@ app.registerExtension({
                 settingValues.tagSource = newVal;
             }
         },
+
         // --- Autocomplete Settings ---
         {
             id: id + ".use_fast_search",
@@ -303,6 +304,17 @@ app.registerExtension({
             category: [name, "Autocompletion", "Enable Loras and Embeddings"],
             onChange: (newVal, oldVal) => {
                 settingValues.enableModels = newVal;
+            }
+        },
+        {
+            id: id + ".replace_underscore_with_space",
+            name: "Replace '_' with 'Space'",
+            tooltip: "This setting also affects related tags display.",
+            type: "boolean",
+            defaultValue: true,
+            category: [name, "Autocompletion", "Replace Underscore with Space"],
+            onChange: (newVal, oldVal) => {
+                settingValues.replaceUnderscoreWithSpace = newVal;
             }
         },
         {
