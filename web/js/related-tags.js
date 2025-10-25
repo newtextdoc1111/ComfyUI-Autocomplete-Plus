@@ -411,13 +411,8 @@ class RelatedTagsUI {
             .find((tagData) => tagData !== undefined);
 
         if (!tagData) {
-            tagData = new TagData({
-                tag: this.currentTag,
-                source: TagSource.Danbooru,
-                category: 'unknown',
-                count: 0,
-                alias: [],
-            });
+            // Create a dummy TagData if not found
+            tagData = new TagData(this.currentTag, null, 0, [], TagSource.Danbooru);
         }
 
         const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";

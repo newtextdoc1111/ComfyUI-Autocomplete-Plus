@@ -184,18 +184,8 @@ async function loadTags(csvUrl, siteName) {
                 updateMaxTagLength(tag.length);
 
                 autoCompleteData[siteName].sortedTags.push(tagData);
-            } else {
-                console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}. Expected ${TAGS_CSV_HEADER_COLUMNS.length} columns, but got ${columns.length}.`);
-                continue;
-            }
-        }
 
-        // Sort by count in descending order
-        autoCompleteData[siteName].sortedTags.sort((a, b) => b.count - a.count);
-
-        // Build maps as before, but ensure not to overwrite if already processed from extra files
-        autoCompleteData[siteName].sortedTags.forEach(tagData => {
-            if (!autoCompleteData[siteName].tagMap.has(tagData.tag)) {
+                // Set the tag and its alias in the maps
                 autoCompleteData[siteName].tagMap.set(tagData.tag, tagData);
                 if (tagData.alias && Array.isArray(tagData.alias)) {
                     tagData.alias.forEach(alias => {
@@ -204,8 +194,11 @@ async function loadTags(csvUrl, siteName) {
                         }
                     });
                 }
+            } else {
+                console.warn(`[Autocomplete-Plus] Invalid CSV format in line ${i + 1} of ${csvUrl}: ${line}. Expected ${TAGS_CSV_HEADER_COLUMNS.length} columns, but got ${columns.length}.`);
+                continue;
             }
-        });
+        }
 
     } catch (error) {
         console.error(`[Autocomplete-Plus] Failed to fetch or process tags from ${csvUrl}:`, error);
@@ -450,6 +443,9 @@ async function initializeDataFromCSV(csvListData, source) {
         await Promise.all([
             Promise.all(tagsLoadPromiseFactories.map(factory => factory()))
                 .then(() => {
+                    // Sort by count in descending order
+                    autoCompleteData[source].sortedTags.sort((a, b) => b.count - a.count);
+
                     // Build FlexSearch index after tags are loaded
                     return buildFlexSearchIndex(source);
                 })

@@ -232,8 +232,8 @@ export function normalizeTagToInsert(str) {
     if (isContainsLetterOrNumber(str)) {
         const isWildcardCall = str.startsWith('__') && str.endsWith('__') && str.length > 4;
 
-        if (!isWildcardCall) {
-            // If doesn't wildcard call, replace underscores with spaces
+        if (!isWildcardCall && settingValues.replaceUnderscoreWithSpace) {
+            // If doesn't wildcard call and setting is enabled, replace underscores with spaces
             return escapeParentheses(str.replace(/_/g, " "));
         }
     }

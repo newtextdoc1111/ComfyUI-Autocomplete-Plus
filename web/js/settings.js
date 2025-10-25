@@ -9,6 +9,7 @@ export const settingValues = {
     maxSuggestions: 10,
     enableModels: true, // Enable Lora and Embedding suggestions
     useFastSearch: false,
+    replaceUnderscoreWithSpace: true, // Replace underscores with spaces in tag insertion
 
     // Related tags feature settings
     enableRelatedTags: true,
