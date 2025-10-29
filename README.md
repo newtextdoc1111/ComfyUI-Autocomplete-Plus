@@ -118,11 +118,28 @@ When the browser is reloaded, you can check the list of loaded CSV files in the 
 >[!NOTE]
 > If there are multiple user CSV files, they are loaded in alphabetical order. If the same tag exists in multiple files, the one loaded first is retained. The basic CSV is loaded last.
 
+### Bulk Tag Insertion (Pseudo "Chants")
+
+By enclosing multiple tags with `""` (double quotation marks), you can insert frequently used tags in bulk.
+This is similar to the **Chants** feature in [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete?tab=readme-ov-file#chants).
+
+For example, by preparing the following CSV, you can quickly insert corresponding tags by typing `<c:Basic-HighQuality>` or `<c:Basic-Negative>`.
+
+**`danbooru_tags_chants.csv`:**
+```
+"masterpiece, best quality, high quality, highres, ultra-detailed",5,9999999,<c:Basic-HighQuality>
+"(worst quality, low quality:1.4), normal quality",5,9999999,<c:Basic-Negative>
+```
+
+>[!TIP]
+> * Text enclosed in `""` does not escape `()` (parentheses). Tags that originally contain parentheses should be written in the CSV with escaped parentheses. Example: `copyright_(series)` -> `copyright_\(series\)`
+> * The alias column also supports `""`, allowing you to assign multiple aliases
+
 ## Settings
 
 ### Tag Source
 
-> [!TIP]
+> [!NOTE]
 > The source of tag data such as Danbooru or e621 is called the "tag source".
 
 - **Autocomplete Tag Source**: The tag source to display in the autocomplete suggestions. Select "all" to display all loaded tag sources.

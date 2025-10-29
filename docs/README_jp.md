@@ -116,11 +116,28 @@ worst_quality,5,9999999,
 >[!NOTE]
 > ユーザー CSV が複数ある場合アルファベット順に読み込まれます。同じタグが複数のファイルに存在する場合は先に読み込まれた方が保持されます。基本 CSV は最後にロードされます。
 
+### 複数タグの一括挿入機能（疑似 Chants）
+
+`""` （ダブルクォーテーション）で複数タグを囲むことで、よく使うタグを一括で挿入できます。
+これは [DominikDoom/a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete?tab=readme-ov-file#chants) で **Chants** と呼ばれる機能に似ています。
+
+例として以下のCSVを用意することで、`<c:Basic-HighQuality>` や `<c:Basic-Negative>` と入力して対応したタグを素早く挿入出来ます。
+
+**`danbooru_tags_chants.csv`:**
+```
+"masterpiece, best quality, high quality, highres, ultra-detailed",5,9999999,<c:Basic-HighQuality>
+"(worst quality, low quality:1.4), normal quality",5,9999999,<c:Basic-Negative>
+```
+
+>[!TIP]
+> * `""` で囲まれたテキストは `()` （括弧）がエスケープされません。元々括弧が含まれるタグはエスケープした状態でCSVに記述してください。 例： `copyright_(series)` -> `copyright_\(series\)`
+> * エイリアス列も `""` に対応しているので、複数のエイリアスを付けられます
+
 ## 設定
 
 ### タグソース
 
-> [!TIP]
+> [!NOTE]
 > Danbooruやe621等のタグデータの提供元を「タグソース」と呼びます
 
 - **Autocomplete Tag Source**: オートコンプリート候補に表示するタグソース。「all」を選択するとロード済みの全てのタグソースを表示します
