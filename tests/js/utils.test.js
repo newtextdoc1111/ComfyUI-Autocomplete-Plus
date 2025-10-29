@@ -196,34 +196,49 @@ describe('normalizeTagToInsert', () => {
 
         settingValues.replaceUnderscoreWithSpace = false;
         expect(normalizeTagToInsert('blue_hair(style)')).toBe('blue_hair\\(style\\)');
-
-        settingValues.replaceUnderscoreWithSpace = originalValue;
     });
 
     test('should not replace underscores in wildcard syntax regardless of setting', () => {
-        const originalValue = settingValues.replaceUnderscoreWithSpace;
-
         // Wildcard syntax should preserve underscores regardless of setting
         settingValues.replaceUnderscoreWithSpace = true;
         expect(normalizeTagToInsert('__wildcard__')).toBe('__wildcard__');
 
         settingValues.replaceUnderscoreWithSpace = false;
         expect(normalizeTagToInsert('__wildcard__')).toBe('__wildcard__');
-
-        settingValues.replaceUnderscoreWithSpace = originalValue;
     });
 
     test('should not replace underscores in symbol-only tags regardless of setting', () => {
-        const originalValue = settingValues.replaceUnderscoreWithSpace;
-
         // Symbol-only tags should not be affected by the setting
         settingValues.replaceUnderscoreWithSpace = true;
         expect(normalizeTagToInsert('^_^')).toBe('^_^');
 
         settingValues.replaceUnderscoreWithSpace = false;
         expect(normalizeTagToInsert('^_^')).toBe('^_^');
+    });
 
-        settingValues.replaceUnderscoreWithSpace = originalValue;
+    test('should not escape parentheses when tag contains commas (multi-tags)', () => {
+        const multiTag = 'masterpiece, best quality, (high quality), ultra-detailed';
+        expect(normalizeTagToInsert(multiTag)).toBe('masterpiece, best quality, (high quality), ultra-detailed');
+    });
+
+    test('should not escape parentheses in multi-tag strings with parentheses', () => {
+        const multiTag = '(worst quality, low quality, normal quality), bad anatomy';
+        expect(normalizeTagToInsert(multiTag)).toBe('(worst quality, low quality, normal quality), bad anatomy');
+    });
+
+    test('should handle multi-tags with both underscores and parentheses correctly', () => {
+        settingValues.replaceUnderscoreWithSpace = true;
+        const multiTag = 'best_quality, (high_quality:1.2), ultra_detailed';
+        expect(normalizeTagToInsert(multiTag)).toBe('best quality, (high quality:1.2), ultra detailed');
+
+        settingValues.replaceUnderscoreWithSpace = false;
+        expect(normalizeTagToInsert(multiTag)).toBe('best_quality, (high_quality:1.2), ultra_detailed');
+    });
+
+    test('should still escape parentheses for single tags without commas', () => {
+        // Single tags (not multi-tags) should still have parentheses escaped
+        expect(normalizeTagToInsert('blue(hair)')).toBe('blue\\(hair\\)');
+        expect(normalizeTagToInsert('(tag)')).toBe('\\(tag\\)');
     });
 });
 

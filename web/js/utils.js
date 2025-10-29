@@ -223,23 +223,31 @@ export function normalizeTagToSearch(str) {
  * Converts underscores to spaces only if the tag contains at least one letter or number,
  * and is not a wildcard call (e.g., "__wildcard__").
  * Keeps underscores for tags that are only symbols (e.g. "^_^") or wildcard calls.
- * @param {string} str 
+ * For multi-tags (multiple tags with commas), parentheses are not escaped to preserve prompt weight syntax.
+ * @param {string} str
  * @returns {string}
  */
 export function normalizeTagToInsert(str) {
     if (!str) return str;
 
+    // Check if multi-tag string
+    const isMultiTag = str.includes(',');
+
+    // Check if the string contains at least one letter or number
     if (isContainsLetterOrNumber(str)) {
         const isWildcardCall = str.startsWith('__') && str.endsWith('__') && str.length > 4;
 
         if (!isWildcardCall && settingValues.replaceUnderscoreWithSpace) {
             // If doesn't wildcard call and setting is enabled, replace underscores with spaces
-            return escapeParentheses(str.replace(/_/g, " "));
+            const result = str.replace(/_/g, " ");
+            // Only escape parentheses for single tags, not multi-tags
+            return isMultiTag ? result : escapeParentheses(result);
         }
     }
 
     // Otherwise, keep it as is (e.g., ""^_^", "__wildcard__")
-    return escapeParentheses(str);
+    // Only escape parentheses for single tags, not multi-tags
+    return isMultiTag ? str : escapeParentheses(str);
 }
 
 /**
