@@ -77,6 +77,40 @@ function matchWord(target, queries) {
 }
 
 /**
+ * Make query variations for searching.
+ * In natural language mode, adds space/underscore variants.
+ * In tag mode, adds CJK character variants.
+ * @param {string} partialTag - The partial tag/text to generate variations for
+ * @returns {Set<string>} Set of query variations
+ */
+function makeQueryVariations(partialTag) {
+    const variations = new Set([
+        partialTag.toLowerCase(),
+        normalizeTagToSearch(partialTag).toLowerCase()
+    ]);
+
+    if (settingValues.naturalLanguageMode) {
+        // Natural language mode: add underscore/space variants
+        // "long hair" → add "long_hair"
+        variations.add(partialTag.replace(/\s+/g, '_').toLowerCase());
+        // "long_hair" → add "long hair"
+        variations.add(partialTag.replace(/_+/g, ' ').toLowerCase());
+    }
+
+    // CJK support (existing functionality for both modes)
+    const kataQuery = hiraToKata(partialTag);
+    if (kataQuery !== partialTag) {
+        variations.add(kataQuery);
+    }
+    const hiraQuery = kataToHira(partialTag);
+    if (hiraQuery !== partialTag) {
+        variations.add(hiraQuery);
+    }
+
+    return variations;
+}
+
+/**
  * Search tag completion candidates based on the current input and cursor position in the textarea.
  * @param {HTMLTextAreaElement} textareaElement The partial tag input.
  * @returns {Array<TagData>} The list of matching candidates.
@@ -91,16 +125,7 @@ function searchCompletionCandidates(textareaElement) {
         return []; // No valid input for autocomplete
     }
 
-    // Generate Hiragana/Katakana variations if applicable
-    const queryVariations = new Set([partialTag.toLowerCase(), normalizeTagToSearch(partialTag).toLowerCase()]);
-    const kataQuery = hiraToKata(partialTag);
-    if (kataQuery !== partialTag) {
-        queryVariations.add(kataQuery);
-    }
-    const hiraQuery = kataToHira(partialTag);
-    if (hiraQuery !== partialTag) {
-        queryVariations.add(hiraQuery);
-    }
+    const queryVariations = makeQueryVariations(partialTag);
 
     if (settingValues.useFastSearch) {
         return searchWithFlexSearch(partialTag, queryVariations);
@@ -199,49 +224,63 @@ function sequentialSearch(partialTag, queryVariations) {
 function searchWithFlexSearch(partialTag, queryVariations) {
     const startTime = performance.now();
 
+    const createSubstrings = (input) => {
+        const words = input.split(' ');
+        return words.map((_, i) => words.slice(i).join(' '));
+    };
+
     let mergedResult = [];
     let totalSearchCount = 0;
 
     const sources = getEnabledTagSourceInPriorityOrder();
     for (const source of sources) {
         if (!autoCompleteData[source].flexSearchDocument) continue;
-        if (mergedResult.length >= settingValues.maxSuggestions) break;
 
-        // Use the FlexSearch Document to search
-        // NOTE: The limit param is reflected separately for "tag" and "alias".
-        let searchResult = autoCompleteData[source].flexSearchDocument.search(partialTag, {
-            field: ["tag", "alias"],
-            limit: Math.min(settingValues.maxSuggestions * 10, 500),
-            merge: true,
-            suggest: false,
-            cache: true,
-        });
+        const substrings = settingValues.naturalLanguageMode ? createSubstrings(partialTag) : [partialTag];
 
-        if (!searchResult || searchResult.length <= 0) continue;
+        // Search for each substring and merge results
+        for (const element of substrings) {
+            if (mergedResult.length >= settingValues.maxSuggestions) break;
+            if (element.length <= 1) break;
 
-        // Sort results based on exact matches and counts
-        searchResult = searchResult
-            .map(r => autoCompleteData[source].sortedTags[r.id])
-            .sort((aTag, bTag) => {
-                if (matchWord(bTag.tag, queryVariations).isExactMatch) {
-                    return 999999999999;
-                }
-                if (matchWord(aTag.tag, queryVariations).isExactMatch) {
-                    return -999999999999;
-                }
-                if (bTag.alias && bTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
-                    return 999999999999;
-                }
-                if (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
-                    return -999999999999;
-                }
-                return bTag.count - aTag.count;
+            // Use the FlexSearch Document to search
+            // NOTE: The limit param is reflected separately for "tag" and "alias".
+            let searchResult = autoCompleteData[source].flexSearchDocument.search(element, {
+                field: ["tag", "alias"],
+                limit: Math.min(settingValues.maxSuggestions * 10, 500) / substrings.length,
+                merge: true,
+                suggest: false,
+                cache: true,
             });
 
-        // Merge results into the final array
-        mergedResult = mergedResult.concat(searchResult.slice(0, settingValues.maxSuggestions - mergedResult.length));
+            console.debug(`[Autocomplete-Plus] Fast Search for "${element}" in substrings, Found ${searchResult.length}.`);
 
-        totalSearchCount += searchResult.length;
+            if (!searchResult || searchResult.length <= 0) continue;
+
+            // Sort results based on exact matches and counts
+            searchResult = searchResult
+                .map(r => autoCompleteData[source].sortedTags[r.id])
+                .sort((aTag, bTag) => {
+                    if (matchWord(bTag.tag, queryVariations).isExactMatch) {
+                        return 999999999999;
+                    }
+                    if (matchWord(aTag.tag, queryVariations).isExactMatch) {
+                        return -999999999999;
+                    }
+                    if (bTag.alias && bTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
+                        return 999999999999;
+                    }
+                    if (aTag.alias && aTag.alias.some(alias => matchWord(alias, queryVariations).isExactMatch)) {
+                        return -999999999999;
+                    }
+                    return bTag.count - aTag.count;
+                });
+
+            // Merge results into the final array
+            mergedResult = mergedResult.concat(searchResult.slice(0, settingValues.maxSuggestions - mergedResult.length));
+
+            totalSearchCount += searchResult.length;
+        }
     }
 
     if (settingValues._logprocessingTime) {
@@ -255,14 +294,10 @@ function searchWithFlexSearch(partialTag, queryVariations) {
 
 /**
  * Extracts the current tag being typed before the cursor.
- * @param {HTMLTextAreaElement} inputElement
- * @returns {string} The current partial tag.
+ * @param {HTMLTextAreaElement} inputElement 
+ * @returns 
  */
-function getCurrentPartialTag(inputElement) {
-    if (!inputElement) {
-        return "";
-    }
-    
+function extractTagSegment(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
@@ -302,6 +337,63 @@ function getCurrentPartialTag(inputElement) {
 }
 
 /**
+ * Extracts natural language context from the input for autocomplete.
+ * In natural language mode, returns the last partial phrase for tag matching.
+ * @param {HTMLTextAreaElement} inputElement - The textarea element
+ * @param {number} extact maximum number of words to extract (default 10)
+ * @returns {string} The partial phrase for matching
+ */
+function extractNaturalLanguageContext(inputElement, extract = 10) {
+    if (!inputElement) {
+        return "";
+    }
+
+    const text = inputElement.value;
+    const cursorPos = inputElement.selectionStart;
+
+    // Step 1: Find segment boundary (comma or newline before cursor)
+    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
+    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+    const segmentStart = Math.max(lastNewLine, lastComma) + 1;
+
+    // Step 2: Extract segment text from boundary to cursor
+    const segment = text.substring(segmentStart, cursorPos).trimStart();
+
+    // Step 3: Split into words
+    const words = segment.split(/\s+/).filter(Boolean);
+
+    if (words.length === 0) {
+        return "";
+    } else if (words.length === 1) {
+        // Single word
+        return words[0];
+    } else {
+        // Multiple words: check if last 2 words could be a multi-word tag
+        // For "a girl with long h", extract "long h"
+        // For "blue hai", extract "blue hai"
+        const lastTwoWords = words.slice(-extract).join(' ');
+        return lastTwoWords;
+    }
+}
+
+/**
+ * 
+ * @param {HTMLTextAreaElement} inputElement
+ * @returns {string} The current partial tag or natural language context.
+ */
+function getCurrentPartialTag(inputElement, wordLimitForNL) {
+    if (!inputElement) {
+        return "";
+    }
+
+    if (settingValues.naturalLanguageMode) {
+        return extractNaturalLanguageContext(inputElement, wordLimitForNL);
+    } else {
+        return extractTagSegment(inputElement);
+    }
+}
+
+/**
  * Inserts the selected tag into the textarea, replacing the partial tag,
  * making the change undoable.
  * @param {HTMLTextAreaElement} inputElement
@@ -311,13 +403,13 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     if (!inputElement || !tagDataToInsert) {
         return;
     }
-    
+
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
     const tagRange = getCurrentTagRange(text, cursorPos);
     let tagStart, tagEnd, currentTag;
-    
+
     if (!tagRange) {
         // Fallback: insert at cursor position
         tagStart = cursorPos;
@@ -326,7 +418,7 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     } else {
         ({ start: tagStart, end: tagEnd, tag: currentTag } = tagRange);
     }
-    
+
     const replaceStart = Math.min(cursorPos, tagStart);
     let replaceEnd = cursorPos;
 
@@ -550,7 +642,7 @@ class AutocompleteUI {
         tagCount.className = `autocomplete-plus-tag-count`;
         tagCount.textContent = formatCountHumanReadable(tagData.count);
 
-         // Create tooltip with more info
+        // Create tooltip with more info
         let tooltipText = `Count: ${tagData.count}\nCategory: ${categoryText}`;
         if (aliasText.length > 0) {
             tooltipText += `\nAlias: ${aliasText}`;

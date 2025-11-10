@@ -8,6 +8,9 @@ import {
     autoCompleteData
 } from "../../web/js/data.js";
 import {
+    settingValues
+} from "../../web/js/settings.js";
+import {
     createFlexSearchDocument,
     createFlexSearchDocumentForModel
 } from "../../web/js/searchengine.js"
@@ -24,13 +27,16 @@ const {
 
 // Helper function to create mock textarea element
 function createMockTextarea(value, selectionStart, selectionEnd = -1) {
-    return {
+    let mock = {
         value: value,
         selectionStart: selectionStart,
         selectionEnd: selectionEnd > selectionStart ? selectionEnd : selectionStart,
         nodeName: 'TEXTAREA',
         focus() { document.setFocus(this); },
-        setSelectionRange: () => { },
+        setSelectionRange: (start, end) => {
+            mock.selectionStart = start;
+            mock.selectionEnd = end;
+        },
         getBoundingClientRect: () => ({
             top: 0,
             left: 0,
@@ -45,6 +51,7 @@ function createMockTextarea(value, selectionStart, selectionEnd = -1) {
         },
         dispatchEvent: () => { }
     };
+    return mock;
 }
 
 // Test data setup function
@@ -75,6 +82,7 @@ function setupTestData() {
         new TagData('1girl', 0, 1000000, ['one_girl'], TagSource.Danbooru),
         new TagData('blue_hair', 0, 500000, ['blue hair'], TagSource.Danbooru),
         new TagData('long_hair', 0, 800000, [], TagSource.Danbooru),
+        new TagData('smile', 0, 700000, [], TagSource.Danbooru),
         new TagData('__wildcard__', 0, 100, [], TagSource.Danbooru),
         new TagData(':d', 0, 50000, [], TagSource.Danbooru),
         new TagData('test_tag', 0, 1000, ['test'], TagSource.E621),
@@ -101,62 +109,85 @@ function setupTestData() {
         autoCompleteData[source].sortedTags.sort((a, b) => b.count - a.count);
 
         const isModelSrc = Object.values(ModelTagSource).includes(source);
-        const doc = isModelSrc ? createFlexSearchDocumentForModel() : createFlexSearchDocument();
+        let doc;
+        if (isModelSrc) {
+            doc = createFlexSearchDocumentForModel();
+        } else {
+            doc = createFlexSearchDocument();
+        }
         autoCompleteData[source].sortedTags.forEach((tagData, i) => {
-            doc.add(i, tagData);
+            doc.add({
+                id: i,
+                tag: tagData.tag,
+                alias: tagData.alias.join(',')
+            });
         });
 
         autoCompleteData[source].flexSearchDocument = doc;
     });
+
+
+    // Mock global document
+    global.document = {
+        focusedElement: null,
+        setFocus: function (element) {
+            this.focusedElement = element;
+        },
+        execCommand: (commandId, showUI, value) => {
+            switch (commandId) {
+                case "insertText":
+                    if (document.focusedElement) {
+                        const el = document.focusedElement;
+                        const start = el.selectionStart;
+                        const end = el.selectionEnd;
+                        el.value = el.value.substring(0, start) + value + el.value.substring(end);
+                        el.selectionStart = el.selectionEnd = start + value.length;
+                    }
+                    return true;
+                default:
+                    throw new Error('Not implemented!');
+            }
+        },
+        createElement: () => ({
+            id: '',
+            style: {},
+            innerHTML: '',
+            appendChild: () => { },
+            getBoundingClientRect: () => ({
+                top: 0,
+                left: 0,
+                width: 300,
+                height: 100
+            })
+        }),
+        setFocus: (element) => {
+            document.focusedElement = element;
+        },
+        body: {
+            appendChild: () => { },
+            removeChild: () => { }
+        },
+        focusedElement: null
+    };
+
+    // Mock global window
+    global.window = {
+        getComputedStyle: () => ({
+            lineHeight: '20px',
+            fontSize: '14px',
+            fontFamily: 'Arial'
+        })
+    };
 }
 
 describe('Autocomplete Functions', () => {
     beforeEach(() => {
+        // Set tag mode as default
+        settingValues.useFastSearch = false;
+        settingValues.naturalLanguageMode = false;
+        settingValues.replaceUnderscoreWithSpace = true;
+
         setupTestData();
-
-        // Mock global document
-        global.document = {
-            execCommand: (commandId, showUI, value) => {
-                switch (commandId) {
-                    case "insertText":
-                        if (document.focusedElement) {
-                            document.focusedElement.value += value;
-                        }
-                        break;
-                    default:
-                        throw new Error('Not implemented!');
-                }
-            },
-            createElement: () => ({
-                id: '',
-                style: {},
-                innerHTML: '',
-                appendChild: () => { },
-                getBoundingClientRect: () => ({
-                    top: 0,
-                    left: 0,
-                    width: 300,
-                    height: 100
-                })
-            }),
-            setFocus: (element) => {
-                document.focusedElement = element;
-            },
-            body: {
-                appendChild: () => { },
-                removeChild: () => { }
-            },
-            focusedElement: null
-        };
-
-        // Mock global window
-        global.window = {
-            getComputedStyle: () => ({
-                lineHeight: '20px',
-                fontSize: '14px',
-                fontFamily: 'Arial'
-            })
-        };
     });
 
     describe('matchWord', () => {
@@ -374,5 +405,100 @@ describe('Autocomplete Functions', () => {
             expect(textarea.value).toBe(':d, ');
         });
 
+    });
+});
+
+describe('Natural Language Mode', () => {
+    beforeEach(() => {
+        // Enable NL mode for these tests
+        settingValues.useFastSearch = true;
+        settingValues.naturalLanguageMode = true;
+        settingValues.replaceUnderscoreWithSpace = false; // Explicitly set for NL tests
+        // Re-setup data with NL mode enabled
+        setupTestData();
+    });
+
+    afterEach(() => {
+        // Disable NL mode after tests
+        settingValues.useFastSearch = true;
+        settingValues.naturalLanguageMode = false;
+        settingValues.replaceUnderscoreWithSpace = true; // Reset to default
+    });
+
+    describe('getCurrentPartialTag (NL Mode)', () => {
+        test('should extract multi-word phrase for tag matching', () => {
+            const textarea = createMockTextarea('a beautiful girl with long ha', 29);
+            const result = getCurrentPartialTag(textarea);
+            expect(result).toBe('a beautiful girl with long ha');
+        });
+
+        test('should extract context from the start of the segment', () => {
+            const textarea = createMockTextarea('1girl, a girl smil', 18);
+            const result = getCurrentPartialTag(textarea);
+            expect(result).toBe('a girl smil');
+        });
+
+        test('should handle single partial word', () => {
+            const textarea = createMockTextarea('smil', 4);
+            const result = getCurrentPartialTag(textarea);
+            expect(result).toBe('smil');
+        });
+
+        test('should handle two-word phrase', () => {
+            const textarea = createMockTextarea('long ha', 7);
+            const result = getCurrentPartialTag(textarea);
+            expect(result).toBe('long ha');
+        });
+    });
+
+    describe('matchWord (NL Mode)', () => {
+        test('should treat space and underscore as equivalent for matching', () => {
+            const queries = new Set(['long hair']);
+            const result = matchWord('long_hair', queries);
+            expect(result.matched).toBe(true);
+        });
+
+        test('should perform partial match with space/underscore normalization', () => {
+            const queries = new Set(['long h']);
+            const result = matchWord('long_hair', queries);
+            expect(result.matched).toBe(true);
+            expect(result.isExactMatch).toBe(false);
+        });
+    });
+
+    describe('searchCompletionCandidates (NL Mode)', () => {
+        test('should find tags when typing with spaces', () => {
+            const textarea = createMockTextarea('a girl with long ha', 19);
+            const results = searchCompletionCandidates(textarea);
+            expect(results.map(t => t.tag)).toContain('long_hair');
+        });
+
+        test('should find tags with underscores when typing with spaces', () => {
+            const textarea = createMockTextarea('blue hai', 8);
+            const results = searchCompletionCandidates(textarea);
+            expect(results.map(t => t.tag)).toContain('blue_hair');
+        });
+    });
+
+    describe('insertTagToTextArea (NL Mode)', () => {
+        test('should insert tag with spaces instead of underscores', () => {
+            const textarea = createMockTextarea('a girl with smil', 16);
+            console.log('[DEBUG] original:', textarea.value);
+            textarea.focus();
+            textarea.setSelectionRange(16, 16);
+            const tagData = { tag: 'smile', source: 'danbooru' };
+            insertTagToTextArea(textarea, tagData);
+            console.log('[DEBUG] result:', textarea.value);
+            expect(textarea.value).toBe('a girl with smile ');
+        });
+
+        test('should insert tag with a single space suffix', () => {
+            const textarea = createMockTextarea('blue hai', 8);
+            textarea.focus();
+            textarea.setSelectionRange(8, 8);
+            const tagData = { tag: 'blue_hair', source: 'danbooru' };
+            insertTagToTextArea(textarea, tagData);
+            expect(textarea.value).toBe('blue hair ');
+        });
     });
 });

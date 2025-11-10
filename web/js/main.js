@@ -285,6 +285,17 @@ app.registerExtension({
 
         // --- Autocomplete Settings ---
         {
+            id: id + ".natural_language_mode",
+            name: "Natural Language Mode",
+            type: "boolean",
+            defaultValue: false,
+            tooltip: "Enable autocomplete for natural language prompts. Tags will be suggested as space-separated words. ⚠️ Requires browser reload to apply.",
+            category: [name, "Autocompletion", "Natural Language"],
+            onChange: (value) => {
+                settingValues.naturalLanguageMode = value;
+            }
+        },
+        {
             id: id + ".use_fast_search",
             name: "Use Fast Search",
             tooltip: "Tag search processing during text input operates faster, improving responsiveness",
