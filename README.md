@@ -150,6 +150,7 @@ For example, by preparing the following CSV, you can quickly insert correspondin
 
 - **Enable Autocomplete**: Enable/disable the autocomplete feature.
 - **Max suggestions**: Maximum number of autocomplete suggestions to display.
+- **Auto-Insert Comma**: Automatically insert a comma after tags when inserting from autocomplete.
 - **Replace '_' with 'Space'**: Replaces underscores with spaces when inserting tags. This setting also affects related tag display.
 - **Enable Loras and Embeddings**: Display Lora and Embedding in the suggestions.
 - **Use Fast Search**: Switch autocomplete suggestions search to fast processing (see [About Fast Search for Autocomplete](#about-fast-search-for-autocomplete) for details).

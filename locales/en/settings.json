@@ -36,7 +36,7 @@
         "tooltip": "This setting also affects related tags display."
     },
     "AutocompletePlus_Autocompletion_AutoInsertComma": {
-        "name": "Auto Insert Comma",
+        "name": "Auto-Insert Comma",
         "tooltip": "Automatically insert a comma after tags when inserting from autocomplete."
     },
     "AutocompletePlus_Autocompletion_MaxSuggestions": {

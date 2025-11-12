@@ -148,6 +148,7 @@ worst_quality,5,9999999,
 
 - **Enable Autocomplete**: オートコンプリート機能の有効化/無効化
 - **Max Suggestions**: オートコンプリート候補の最大表示件数
+- **Auto-Insert Comma**: タグの挿入時、末尾にカンマを追加する
 - **Replace '_' with 'Space'**: タグ挿入時にアンダースコアをスペースに置き換えます。この設定は関連タグ表示にも影響します
 - **Enable Loras and Embeddings**: LoraとEmbeddingを候補に表示する
 - **Use Fast Search**: オートコンプリート候補の検索を高速な処理に切り替える（詳細は [オートコンプリートの高速検索について](#オートコンプリートの高速検索について) を確認してください)
