@@ -18,7 +18,8 @@ import {
     getCurrentTagRange,
     getViewportMargin,
     getScrollbarWidth,
-    IconSvgHtmlString
+    IconSvgHtmlString,
+    addWeightToLora
 } from './utils.js';
 import { settingValues } from './settings.js';
 
@@ -331,8 +332,11 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     let replaceEnd = cursorPos;
 
     let normalizedTag;
-    if (Object.values(ModelTagSource).includes(tagDataToInsert.source)) {
-        // If the tag is from a model tag source, don't want to normalize it
+    if (tagDataToInsert.source === ModelTagSource.Lora) {
+        // If the tag is from a LoRA source, add weight to it
+        normalizedTag = addWeightToLora(tagDataToInsert.tag);
+    } else if (Object.values(ModelTagSource).includes(tagDataToInsert.source)) {
+        // If the tag is from other model tag sources (e.g., Embeddings), don't normalize it
         normalizedTag = tagDataToInsert.tag;
     } else {
         normalizedTag = normalizeTagToInsert(tagDataToInsert.tag);

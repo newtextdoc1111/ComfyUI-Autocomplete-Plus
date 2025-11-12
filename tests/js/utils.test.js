@@ -4,7 +4,8 @@ import {
     normalizeTagToSearch,
     normalizeTagToInsert,
     getCurrentTagRange,
-    findAllTagPositions
+    findAllTagPositions,
+    addWeightToLora
 } from '../../web/js/utils.js';
 
 // filepath: web/js/utils.test.js
@@ -438,5 +439,103 @@ describe('findAllTagPositions', () => {
         expect(positions[3].tag).toBe('choice');
         expect(positions[4].tag).toBe('simple');
         expect(positions[5].tag).toBe('last');
+    });
+});
+
+describe('addWeightToModel', () => {
+    test('should return null or empty string for invalid inputs', () => {
+        expect(addWeightToLora(null)).toBeNull();
+        expect(addWeightToLora(undefined)).toBeUndefined();
+        expect(addWeightToLora('')).toBe('');
+    });
+
+    // LoRA format tests
+    test('should add default weight to LoRA without weight', () => {
+        expect(addWeightToLora('<lora:my_style01>')).toBe('<lora:my_style01:1.0>');
+        expect(addWeightToLora('<lora:anime_style>')).toBe('<lora:anime_style:1.0>');
+        expect(addWeightToLora('<lora:character_lora>')).toBe('<lora:character_lora:1.0>');
+    });
+
+    test('should preserve existing weight in LoRA', () => {
+        expect(addWeightToLora('<lora:my_style01:0.8>')).toBe('<lora:my_style01:0.8>');
+        expect(addWeightToLora('<lora:anime_style:1.2>')).toBe('<lora:anime_style:1.2>');
+        expect(addWeightToLora('<lora:character_lora:0.5>')).toBe('<lora:character_lora:0.5>');
+    });
+
+    test('should handle LoRA with path separators', () => {
+        expect(addWeightToLora('<lora:folder/my_style01>')).toBe('<lora:folder/my_style01:1.0>');
+        expect(addWeightToLora('<lora:folder/subfolder/style>')).toBe('<lora:folder/subfolder/style:1.0>');
+        expect(addWeightToLora('<lora:folder/my_style01:0.7>')).toBe('<lora:folder/my_style01:0.7>');
+    });
+
+    test('should handle LoRA with symbols', () => {
+        expect(addWeightToLora('<lora:folder/myLora style>')).toBe('<lora:folder/myLora style:1.0>');
+        expect(addWeightToLora('<lora:folder/myLora-style>')).toBe('<lora:folder/myLora-style:1.0>');
+        expect(addWeightToLora('<lora:folder/myLora[style]>')).toBe('<lora:folder/myLora[style]:1.0>');
+        expect(addWeightToLora('<lora:folder/myLora v1.0>')).toBe('<lora:folder/myLora v1.0:1.0>');
+        expect(addWeightToLora('<lora:folder/myLora v1.0:0.75>')).toBe('<lora:folder/myLora v1.0:0.75>');
+    });
+
+    test('should handle case-insensitive LoRA tags', () => {
+        expect(addWeightToLora('<LORA:my_style01>')).toBe('<LORA:my_style01:1.0>');
+        expect(addWeightToLora('<LoRa:anime_style>')).toBe('<LoRa:anime_style:1.0>');
+        expect(addWeightToLora('<Lora:character_lora:0.9>')).toBe('<Lora:character_lora:0.9>');
+    });
+
+    // Custom default weight tests
+    test('should use custom default weight for LoRA', () => {
+        expect(addWeightToLora('<lora:my_style01>', 0.5)).toBe('<lora:my_style01:0.5>');
+        expect(addWeightToLora('<lora:anime_style>', 1.5)).toBe('<lora:anime_style:1.5>');
+        expect(addWeightToLora('<lora:character_lora>', 2.0)).toBe('<lora:character_lora:2.0>');
+    });
+
+    test('should not override existing weight even with custom default', () => {
+        expect(addWeightToLora('<lora:my_style01:0.8>', 2.0)).toBe('<lora:my_style01:0.8>');
+    });
+
+    // Non-model format tests
+    test('should return non-model tags as-is', () => {
+        expect(addWeightToLora('blue_hair')).toBe('blue_hair');
+        expect(addWeightToLora('1girl')).toBe('1girl');
+        expect(addWeightToLora('standing:1.2')).toBe('standing:1.2');
+        expect(addWeightToLora('<other:tag>')).toBe('<other:tag>');
+        expect(addWeightToLora('random:text:format')).toBe('random:text:format');
+    });
+
+    // Edge cases
+    test('should handle malformed LoRA tags', () => {
+        expect(addWeightToLora('<lora:>')).toBe('<lora:>');
+        expect(addWeightToLora('<lora>')).toBe('<lora>');
+        expect(addWeightToLora('lora:my_style01')).toBe('lora:my_style01');
+    });
+
+    test('should handle decimal weights correctly', () => {
+        expect(addWeightToLora('<lora:style:0.123>')).toBe('<lora:style:0.123>');
+        expect(addWeightToLora('<lora:style:1.999>')).toBe('<lora:style:1.999>');
+    });
+
+    test('should handle special characters in model names', () => {
+        expect(addWeightToLora('<lora:my-style_01>')).toBe('<lora:my-style_01:1.0>');
+        expect(addWeightToLora('<lora:style.v2>')).toBe('<lora:style.v2:1.0>');
+    });
+
+    // Embedding format tests - should not be modified
+    test('should not modify embedding tags without weight', () => {
+        expect(addWeightToLora('embedding:my_embedding')).toBe('embedding:my_embedding');
+        expect(addWeightToLora('embedding:character_emb')).toBe('embedding:character_emb');
+        expect(addWeightToLora('embedding:style_embedding')).toBe('embedding:style_embedding');
+    });
+
+    test('should not modify embedding tags with existing weight', () => {
+        expect(addWeightToLora('embedding:my_embedding:0.8')).toBe('embedding:my_embedding:0.8');
+        expect(addWeightToLora('embedding:character_emb:1.2')).toBe('embedding:character_emb:1.2');
+        expect(addWeightToLora('embedding:style_embedding:0.5')).toBe('embedding:style_embedding:0.5');
+    });
+
+    test('should not modify embedding tags regardless of case', () => {
+        expect(addWeightToLora('EMBEDDING:my_embedding')).toBe('EMBEDDING:my_embedding');
+        expect(addWeightToLora('Embedding:character_emb')).toBe('Embedding:character_emb');
+        expect(addWeightToLora('EmBeDdInG:style_emb')).toBe('EmBeDdInG:style_emb');
+        expect(addWeightToLora('EMBEDDING:my_embedding:0.9')).toBe('EMBEDDING:my_embedding:0.9');
     });
 });
