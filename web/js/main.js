@@ -318,6 +318,17 @@ app.registerExtension({
             }
         },
         {
+            id: id + ".auto_insert_comma",
+            name: "Auto Insert Comma",
+            tooltip: "Automatically insert a comma after tags when inserting from autocomplete or related tags",
+            type: "boolean",
+            defaultValue: true,
+            category: [name, "Autocompletion", "Auto Insert Comma"],
+            onChange: (newVal, oldVal) => {
+                settingValues.autoInsertComma = newVal;
+            }
+        },
+        {
             id: id + ".max_suggestions",
             name: "Max suggestions",
             type: "slider",
