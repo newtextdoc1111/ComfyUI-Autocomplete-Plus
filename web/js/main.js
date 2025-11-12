@@ -171,13 +171,13 @@ async function addExtraSettings() {
             checkButton.disabled = false;
         }
     }
-        
+
     // Fetch last check time from API
     let lastCheckTimeText = "Loading...";
     try {
         const response = await fetch('/autocomplete-plus/csv/last-check-time');
         const data = await response.json();
-        
+
         if (data.last_check_time) {
             const lastCheckDate = new Date(data.last_check_time);
             lastCheckTimeText = "Last checked: " + lastCheckDate.toLocaleString();
@@ -248,7 +248,7 @@ app.registerExtension({
     settings: [
         // --- Tag source Settings ---
         {
-            id: id + ".tag_source_icon_position",
+            id: id + ".TagSource.IconPosition",
             name: "Tag Source Icon Position",
             type: "combo",
             options: ["left", "right", "hidden"],
@@ -259,7 +259,7 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".primary_tag_source",
+            id: id + ".TagSource.PrimaryTagSource",
             name: "Primary source for 'all' Source",
             tooltip: "When 'Autocomplete Tag Source' is 'all', this determines which source's tags appear first in suggestions.",
             type: "combo",
@@ -271,7 +271,7 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".tag_source",
+            id: id + ".TagSource",
             name: "Autocomplete Tag Source",
             tooltip: "Select the tag source for autocomplete suggestions. 'all' includes tags from all loaded sources.",
             type: "combo",
@@ -285,9 +285,9 @@ app.registerExtension({
 
         // --- Autocomplete Settings ---
         {
-            id: id + ".use_fast_search",
+            id: id + ".Autocompletion.UseFastSearch",
             name: "Use Fast Search",
-            tooltip: "Tag search processing during text input operates faster, improving responsiveness",
+            tooltip: "Tag search processing during text input operates faster, improving responsiveness.",
             type: "boolean",
             defaultValue: false,
             category: [name, "Autocompletion", "Use Fast Search"],
@@ -296,9 +296,8 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".enable_models",
+            id: id + ".Autocompletion.EnableModels",
             name: "Enable Loras and Embeddings",
-            tooltip: "Enable Lora and Embedding suggestions",
             type: "boolean",
             defaultValue: true,
             category: [name, "Autocompletion", "Enable Loras and Embeddings"],
@@ -307,7 +306,7 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".replace_underscore_with_space",
+            id: id + ".Autocompletion.ReplaceUnderscoreWithSpace",
             name: "Replace '_' with 'Space'",
             tooltip: "This setting also affects related tags display.",
             type: "boolean",
@@ -318,7 +317,18 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".max_suggestions",
+            id: id + ".Autocompletion.AutoInsertComma",
+            name: "Auto-Insert Comma",
+            tooltip: "Automatically insert a comma after tags when inserting from autocomplete.",
+            type: "boolean",
+            defaultValue: true,
+            category: [name, "Autocompletion", "Auto-Insert Comma"],
+            onChange: (newVal, oldVal) => {
+                settingValues.autoInsertComma = newVal;
+            }
+        },
+        {
+            id: id + ".Autocompletion.MaxSuggestions",
             name: "Max suggestions",
             type: "slider",
             attrs: {
@@ -333,9 +343,8 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".boolean",
+            id: id + ".Autocompletion.Enable",
             name: "Enable Autocomplete",
-            description: "Enable or disable the autocomplete feature.",
             type: "boolean",
             defaultValue: true,
             category: [name, "Autocompletion", "Enable Autocomplete"],
@@ -346,9 +355,9 @@ app.registerExtension({
 
         // --- Related Tags Settings ---
         {
-            id: id + ".related_tags_trigger_mode",
+            id: id + ".RelatedTags.RelatedTagsTriggerMode",
             name: "Related Tags Trigger Mode",
-            description: "Trigger mode for related tags (click or ctrl+click)",
+            tooltip: "Which action will trigger displaying related tags for the entered tag (click only, Ctrl+click).",
             type: "combo",
             options: ["click", "ctrl+Click"],
             defaultValue: "click",
@@ -358,9 +367,9 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".related_tags_position",
+            id: id + ".RelatedTags.DisplayPosition",
             name: "Default Display Position",
-            description: "Display position (relative to Textarea)",
+            tooltip: "Display position (relative to Textarea).",
             type: "combo",
             options: ["horizontal", "vertical"],
             defaultValue: "horizontal",
@@ -370,9 +379,8 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".max_related_tags",
+            id: id + ".RelatedTags.MaxRelatedTags",
             name: "Max related tags",
-            description: "Maximum number of related tags to display",
             type: "slider",
             attrs: {
                 min: 5,
@@ -386,9 +394,8 @@ app.registerExtension({
             }
         },
         {
-            id: id + ".related_tags_enable",
+            id: id + ".RelatedTags.Enable",
             name: "Enable Related Tags",
-            description: "Enable or disable the related tags feature.",
             type: "boolean",
             defaultValue: true,
             category: [name, "Related Tags", "Enable Related Tags"],
@@ -399,15 +406,15 @@ app.registerExtension({
 
         // --- Display settings ---
         {
-            id: id + ".display_hide_alias",
+            id: id + ".Display.HideAlias",
             name: "Hide Alias",
-            tooltip: "Hide alias in the autocomplete and related tags display",
+            tooltip: "Hide alias column in the autocomplete and related tags display.",
             type: "boolean",
             defaultValue: false,
             category: [name, "Display", "Hide Alias"],
             onChange: (newVal, oldVal) => {
                 settingValues.hideAlias = newVal;
             }
-        }
+        },
     ]
 });

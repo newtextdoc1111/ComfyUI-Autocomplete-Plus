@@ -558,11 +558,38 @@ export function getCurrentTagRange(text, cursorPos) {
     return { start: adjustedStart, end: adjustedEnd, tag: adjustedTag };
 }
 
+/**
+ * Adds weight to a lora tag if it doesn't already have one.
+ * @param {string} loraTag The model tag string (e.g., "<lora:my_style01>"
+ * @param {number} defaultWeight The default weight to add if not present
+ * @returns {string} The model tag with weight (e.g., "<lora:my_style01:1.0>")
+ */
+export function addWeightToLora(loraTag, defaultWeight = 1.0) {
+    if (!loraTag) return loraTag;
+
+    // Match LoRA format: <lora:name> or <lora:name:weight>
+    const loraMatch = loraTag.match(/^(<lora:[^>:]+)(:[0-9.]+)?>$/i);
+    if (loraMatch) {
+        const existingWeight = loraMatch[2];
+
+        // If weight already exists, return as-is
+        if (existingWeight) {
+            return loraTag;
+        }
+
+        // Add default weight, preserving original case
+        return `${loraMatch[1]}:${defaultWeight.toFixed(1)}>`;
+    }
+
+    // If it's not a recognized model format, return as-is
+    return loraTag;
+}
+
 // --- End String Helper Functions ---
 
 /**
  * Load a CSS file dynamically.
- * @param {string} href 
+ * @param {string} href
  */
 export function loadCSS(href) {
     const link = document.createElement('link');
@@ -624,6 +651,6 @@ export function getScrollbarWidth() {
     _cachedScrollbarWidth = outer.offsetWidth - inner.offsetWidth;
 
     document.body.removeChild(outer);
-    
+
     return _cachedScrollbarWidth;
 }

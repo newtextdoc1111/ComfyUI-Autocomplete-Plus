@@ -353,7 +353,18 @@ describe('Autocomplete Functions', () => {
                 insertTagToTextArea(textarea, tagData);
             }).not.toThrow();
 
-            expect(textarea.value).toBe('<lora:my_model>, ');
+            expect(textarea.value).toBe('<lora:my_model:1.0>, ');
+        });
+
+        test('should complete embedding tag without adding weight', () => {
+            const textarea = createMockTextarea('embedding:', 10);
+            const tagData = { tag: 'embedding:my_embedding', source: 'embeddings' };
+
+            expect(() => {
+                insertTagToTextArea(textarea, tagData);
+            }).not.toThrow();
+
+            expect(textarea.value).toBe('embedding:my_embedding, ');
         });
 
         test('should handle wildcard tag insertion', () => {

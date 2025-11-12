@@ -1,0 +1,74 @@
+{
+    "AutocompletePlus_TagSource_IconPosition": {
+        "name": "Tag Source Icon Position",
+        "options": {
+            "left": "Left",
+            "right": "Right",
+            "hidden": "Hidden"
+        }
+    },
+    "AutocompletePlus_TagSource_PrimaryTagSource": {
+        "name": "Primary source for 'all' Source",
+        "tooltip": "When 'Autocomplete Tag Source' is 'all', this determines which source's tags appear first in suggestions.",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621"
+        }
+    },
+    "AutocompletePlus_TagSource": {
+        "name": "Autocomplete Tag Source",
+        "tooltip": "Select the tag source for autocomplete suggestions. 'all' includes tags from all loaded sources.",
+        "options": {
+            "danbooru": "Danbooru",
+            "e621": "e621",
+            "all": "all"
+        }
+    },
+    "AutocompletePlus_Autocompletion_UseFastSearch": {
+        "name": "Use Fast Search",
+        "tooltip": "Tag search processing during text input operates faster, improving responsiveness."
+    },
+    "AutocompletePlus_Autocompletion_EnableModels": {
+        "name": "Enable Loras and Embeddings"
+    },
+    "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
+        "name": "Replace '_' with 'Space'",
+        "tooltip": "This setting also affects related tags display."
+    },
+    "AutocompletePlus_Autocompletion_AutoInsertComma": {
+        "name": "Auto-Insert Comma",
+        "tooltip": "Automatically insert a comma after tags when inserting from autocomplete."
+    },
+    "AutocompletePlus_Autocompletion_MaxSuggestions": {
+        "name": "Max suggestions"
+    },
+    "AutocompletePlus_Autocompletion_Enable": {
+        "name": "Enable Autocomplete"
+    },
+    "AutocompletePlus_RelatedTags_RelatedTagsTriggerMode": {
+        "name": "Related Tags Trigger Mode",
+        "tooltip": "Which action will trigger displaying related tags for the entered tag (click only, Ctrl+click).",
+        "options": {
+            "click": "Click",
+            "ctrl+Click": "Ctrl+Click"
+        }
+    },
+    "AutocompletePlus_RelatedTags_DisplayPosition": {
+        "name": "Default Display Position",
+        "tooltip": "Display position (relative to Textarea).",
+        "options": {
+            "horizontal": "Horizontal",
+            "vertical": "Vertical"
+        }
+    },
+    "AutocompletePlus_RelatedTags_MaxRelatedTags": {
+        "name": "Max related tags"
+    },
+    "AutocompletePlus_RelatedTags_Enable": {
+        "name": "Enable Related Tags"
+    },
+    "AutocompletePlus_Display_HideAlias": {
+        "name": "Hide Alias",
+        "tooltip": "Hide alias column in the autocomplete and related tags display."
+    }
+}
