@@ -287,7 +287,7 @@ app.registerExtension({
         {
             id: id + ".Autocompletion.UseFastSearch",
             name: "Use Fast Search",
-            tooltip: "Tag search processing during text input operates faster, improving responsiveness",
+            tooltip: "Tag search processing during text input operates faster, improving responsiveness.",
             type: "boolean",
             defaultValue: false,
             category: [name, "Autocompletion", "Use Fast Search"],
@@ -319,7 +319,7 @@ app.registerExtension({
         {
             id: id + ".Autocompletion.AutoInsertComma",
             name: "Auto Insert Comma",
-            tooltip: "Automatically insert a comma after tags when inserting from autocomplete or related tags",
+            tooltip: "Automatically insert a comma after tags when inserting from autocomplete.",
             type: "boolean",
             defaultValue: true,
             category: [name, "Autocompletion", "Auto Insert Comma"],
@@ -357,7 +357,7 @@ app.registerExtension({
         {
             id: id + ".RelatedTags.RelatedTagsTriggerMode",
             name: "Related Tags Trigger Mode",
-            tooltip: "Choose to display the tag by clicking it or by pressing Ctrl+click.",
+            tooltip: "Which action will trigger displaying related tags for the entered tag (click only, Ctrl+click).",
             type: "combo",
             options: ["click", "ctrl+Click"],
             defaultValue: "click",
@@ -369,7 +369,7 @@ app.registerExtension({
         {
             id: id + ".RelatedTags.DisplayPosition",
             name: "Default Display Position",
-            tooltip: "Display position (relative to Textarea)",
+            tooltip: "Display position (relative to Textarea).",
             type: "combo",
             options: ["horizontal", "vertical"],
             defaultValue: "horizontal",
@@ -408,7 +408,7 @@ app.registerExtension({
         {
             id: id + ".Display.HideAlias",
             name: "Hide Alias",
-            tooltip: "Hide alias column in the autocomplete and related tags display",
+            tooltip: "Hide alias column in the autocomplete and related tags display.",
             type: "boolean",
             defaultValue: false,
             category: [name, "Display", "Hide Alias"],

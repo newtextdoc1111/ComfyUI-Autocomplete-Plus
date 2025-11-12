@@ -31,6 +31,14 @@
     "AutocompletePlus_Autocompletion_EnableModels": {
         "name": "顯示Lora和Embedding"
     },
+    "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
+        "name": "將'_'替換為'空格'",
+        "tooltip": "此設定也會影響相關標籤顯示"
+    },
+    "AutocompletePlus_Autocompletion_AutoInsertComma": {
+        "name": "自動插入逗號",
+        "tooltip": "從自動完成插入標籤時自動在標籤後添加逗號"
+    },
     "AutocompletePlus_Autocompletion_MaxSuggestions": {
         "name": "最大提示數"
     },

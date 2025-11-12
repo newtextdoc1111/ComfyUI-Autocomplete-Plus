@@ -31,6 +31,14 @@
     "AutocompletePlus_Autocompletion_EnableModels": {
         "name": "LoraとEmbeddingを候補に表示する"
     },
+    "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
+        "name": "'_' を 'スペース' に置き換える",
+        "tooltip": "この設定は関連タグ表示にも影響します"
+    },
+    "AutocompletePlus_Autocompletion_AutoInsertComma": {
+        "name": "カンマを自動で追加する",
+        "tooltip": "オートコンプリート確定時、タグの末尾に自動でカンマを追加する"
+    },
     "AutocompletePlus_Autocompletion_MaxSuggestions": {
         "name": "候補の最大表示件数"
     },

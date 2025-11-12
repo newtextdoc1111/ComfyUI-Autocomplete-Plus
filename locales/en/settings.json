@@ -26,10 +26,18 @@
     },
     "AutocompletePlus_Autocompletion_UseFastSearch": {
         "name": "Use Fast Search",
-        "tooltip": "Tag search processing during text input operates faster, improving responsiveness"
+        "tooltip": "Tag search processing during text input operates faster, improving responsiveness."
     },
     "AutocompletePlus_Autocompletion_EnableModels": {
         "name": "Enable Loras and Embeddings"
+    },
+    "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
+        "name": "Replace '_' with 'Space'",
+        "tooltip": "This setting also affects related tags display."
+    },
+    "AutocompletePlus_Autocompletion_AutoInsertComma": {
+        "name": "Auto Insert Comma",
+        "tooltip": "Automatically insert a comma after tags when inserting from autocomplete."
     },
     "AutocompletePlus_Autocompletion_MaxSuggestions": {
         "name": "Max suggestions"
@@ -39,7 +47,7 @@
     },
     "AutocompletePlus_RelatedTags_RelatedTagsTriggerMode": {
         "name": "Related Tags Trigger Mode",
-        "tooltip": "Which action will trigger displaying related tags for the entered tag (click only, Ctrl+click)",
+        "tooltip": "Which action will trigger displaying related tags for the entered tag (click only, Ctrl+click).",
         "options": {
             "click": "Click",
             "ctrl+Click": "Ctrl+Click"
@@ -47,7 +55,7 @@
     },
     "AutocompletePlus_RelatedTags_DisplayPosition": {
         "name": "Default Display Position",
-        "tooltip": "Display position (relative to Textarea)",
+        "tooltip": "Display position (relative to Textarea).",
         "options": {
             "horizontal": "Horizontal",
             "vertical": "Vertical"
@@ -61,6 +69,6 @@
     },
     "AutocompletePlus_Display_HideAlias": {
         "name": "Hide Alias",
-        "tooltip": "Hide alias column in the autocomplete and related tags display"
+        "tooltip": "Hide alias column in the autocomplete and related tags display."
     }
 }
