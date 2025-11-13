@@ -29,6 +29,9 @@ export const settingValues = {
     // Debugging settings (use internally)
     _hideWhenOutofFocus: true, // Hide UI when the input is out of focus
     _logprocessingTime: false, // Log processing time for debugging
+
+    // Auto format settings
+    enableAutoFormat: true,
 }
 
 /**

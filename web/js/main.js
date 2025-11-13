@@ -416,5 +416,18 @@ app.registerExtension({
                 settingValues.hideAlias = newVal;
             }
         },
+
+        // --- Auto format settings ---
+        {
+            id: id + '.enable_auto_format',
+            name: 'Enable Auto Format on Blur',
+            description: 'Automatically format prompts when leaving the input field (add commas and spaces, remove extra spaces)',
+            type: 'boolean',
+            defaultValue: true,
+            category: [name, 'Autocompletion', 'Enable Auto Format'],
+            onChange: (newVal, oldVal) => {
+                settingValues.enableAutoFormat = newVal;
+            },
+        },
     ]
 });
