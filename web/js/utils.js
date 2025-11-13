@@ -705,3 +705,16 @@ export function formatPromptText(text) {
   // Rejoin all lines with newline characters
   return formattedLines.join('\n');
 }
+
+/**
+ * Format the content of a textarea when it loses focus.
+ * @param {HTMLTextAreaElement} textarea - The target textarea element.
+ */
+export function formatTextareaOnBlur(textarea) {
+  const originalText = textarea.value;
+  const formattedText = formatPromptText(originalText);
+
+  if (originalText !== formattedText) {
+    textarea.setRangeText(formattedText, 0, originalText.length, 'end');
+  }
+}

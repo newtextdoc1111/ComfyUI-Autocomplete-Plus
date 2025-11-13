@@ -6,6 +6,7 @@ import { loadCSS } from "./utils.js";
 import { TagSource, loadDataAsync } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
+import { formatTextareaOnBlur } from './utils.js';
 
 // --- Constants ---
 const id = "AutocompletePlus";
@@ -105,6 +106,10 @@ function initializeEventHandlers() {
     function handleBlur(event) {
         autocompleteEventHandler.handleBlur(event);
         relatedTagsEventHandler.handleBlur(event);
+
+        if (settingValues.enableAutoFormat && event.target.tagName === 'TEXTAREA') {
+            formatTextareaOnBlur(event.target);
+        }
     }
 
     function handleKeyDown(event) {
