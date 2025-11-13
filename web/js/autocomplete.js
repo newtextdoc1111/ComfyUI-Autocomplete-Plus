@@ -523,6 +523,7 @@ class AutocompleteUI {
         const tagRow = document.createElement('div');
         tagRow.classList.add('autocomplete-plus-item', tagData.source);
         tagRow.dataset.index = tagDataIndex;
+        tagRow.dataset.tagCategory = categoryText; // Used to color by CSS
 
         // Tag icon and name
         const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
