@@ -6,7 +6,7 @@ import { loadCSS } from "./utils.js";
 import { TagSource, loadDataAsync } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
-import { formatTextareaOnBlur } from './utils.js';
+import { formatTextareaOnBlur } from "./auto-formatter.js";
 
 // --- Constants ---
 const id = "AutocompletePlus";
