@@ -58,6 +58,11 @@ export function formatTextareaOnBlur(textarea) {
   const formattedText = formatPromptText(originalText);
 
   if (originalText !== formattedText) {
-    textarea.setRangeText(formattedText, 0, originalText.length, 'end');
+    const cursorPos = textarea.selectionStart;
+    textarea.value = formattedText;
+
+    // Try to preserve cursor position
+    const newCursorPos = Math.min(cursorPos, formattedText.length);
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
   }
 }
