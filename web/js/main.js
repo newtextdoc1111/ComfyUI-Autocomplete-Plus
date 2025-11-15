@@ -425,8 +425,7 @@ app.registerExtension({
         // --- Auto format settings ---
         {
             id: id + '.AutoFormatter.EnableAutoFormat',
-            name: 'Enable Auto Format on Blur',
-            description: 'Automatically format prompts when leaving the input field (add commas and spaces, remove extra spaces)',
+            name: 'Enable Auto Format',
             type: 'boolean',
             defaultValue: true,
             category: [name, 'AutoFormatter', 'Enable Auto Format'],
