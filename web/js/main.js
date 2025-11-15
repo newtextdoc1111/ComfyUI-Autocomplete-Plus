@@ -6,6 +6,7 @@ import { loadCSS } from "./utils.js";
 import { TagSource, loadDataAsync } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
+import { formatTextareaOnBlur } from "./auto-formatter.js";
 
 // --- Constants ---
 const id = "AutocompletePlus";
@@ -105,6 +106,10 @@ function initializeEventHandlers() {
     function handleBlur(event) {
         autocompleteEventHandler.handleBlur(event);
         relatedTagsEventHandler.handleBlur(event);
+
+        if (settingValues.enableAutoFormat && event.target.tagName === 'TEXTAREA') {
+            formatTextareaOnBlur(event.target);
+        }
     }
 
     function handleKeyDown(event) {
@@ -415,6 +420,18 @@ app.registerExtension({
             onChange: (newVal, oldVal) => {
                 settingValues.hideAlias = newVal;
             }
+        },
+
+        // --- Auto format settings ---
+        {
+            id: id + '.AutoFormatter.EnableAutoFormat',
+            name: 'Enable Auto Format',
+            type: 'boolean',
+            defaultValue: true,
+            category: [name, 'AutoFormatter', 'Enable Auto Format'],
+            onChange: (newVal, oldVal) => {
+                settingValues.enableAutoFormat = newVal;
+            },
         },
     ]
 });
