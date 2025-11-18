@@ -6,6 +6,7 @@ import { loadCSS } from "./utils.js";
 import { TagSource, loadDataAsync } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
+import { AutoFormatterEventHandler } from "./auto-formatter.js";
 
 // --- Constants ---
 const id = "AutocompletePlus";
@@ -18,6 +19,7 @@ const name = "Autocomplete Plus";
 function initializeEventHandlers() {
     const autocompleteEventHandler = new AutocompleteEventHandler();
     const relatedTagsEventHandler = new RelatedTagsEventHandler();
+    const autoFormatterEventHandler = new AutoFormatterEventHandler();
     const attachedElements = new WeakSet(); // Keep track of elements that have listeners attached
 
     // Function to attach listeners
@@ -105,6 +107,7 @@ function initializeEventHandlers() {
     function handleBlur(event) {
         autocompleteEventHandler.handleBlur(event);
         relatedTagsEventHandler.handleBlur(event);
+        autoFormatterEventHandler.handleBlur(event);
     }
 
     function handleKeyDown(event) {
@@ -415,6 +418,18 @@ app.registerExtension({
             onChange: (newVal, oldVal) => {
                 settingValues.hideAlias = newVal;
             }
+        },
+
+        // --- Auto format settings ---
+        {
+            id: id + '.AutoFormatter.EnableAutoFormat',
+            name: 'Enable Auto Format',
+            type: 'boolean',
+            defaultValue: true,
+            category: [name, 'AutoFormatter', 'Enable Auto Format'],
+            onChange: (newVal, oldVal) => {
+                settingValues.enableAutoFormat = newVal;
+            },
         },
     ]
 });

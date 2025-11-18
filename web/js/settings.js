@@ -21,6 +21,9 @@ export const settingValues = {
     // Display settings
     hideAlias: false, // Hide alias in the autocomplete and related tags display
 
+    // Auto format settings
+    enableAutoFormat: true,
+
 
     // Internal logic settings
     _useFallbackAttachmentForEventListener: false, // Fallback to attach event listener when somthing goes wrong
