@@ -306,7 +306,7 @@ function getCurrentPartialTag(inputElement) {
  * Inserts the selected tag into the textarea, replacing the partial tag,
  * making the change undoable.
  * @param {HTMLTextAreaElement} inputElement
- * @param {TagData} tagDataToInsert The raw tag string to insert.
+ * @param {TagData} tagDataToInsert
  */
 function insertTagToTextArea(inputElement, tagDataToInsert) {
     if (!inputElement || !tagDataToInsert) {
@@ -408,8 +408,11 @@ class AutocompleteUI {
         // Add event listener for clicks on items
         this.tagsList.addEventListener('mousedown', (e) => {
             const row = e.target.closest('.autocomplete-plus-item');
-            if (row && row.dataset.tag) {
-                this.#insertTag(row.dataset);
+            if (row && row.dataset.index !== undefined) {
+                const tagData = this.candidates[parseInt(row.dataset.index, 10)];
+                if (tagData) {
+                    this.#insertTag(tagData);
+                }
                 e.preventDefault(); // Prevent focus loss from input
                 e.stopPropagation();
             }
@@ -500,26 +503,27 @@ class AutocompleteUI {
         const existingTags = extractTagsFromTextArea(this.target);
         const currentTag = getCurrentPartialTag(this.target);
 
-        this.candidates.forEach((tagData) => {
+        this.candidates.forEach((tagData, index) => {
             const isExactMatch = tagData.tag === currentTag && (existingTags.filter(item => item === currentTag).length == 1);
             const isExistingTag = !isExactMatch && existingTags.includes(tagData.tag);
-            this.#createTagElement(tagData, isExistingTag);
+            this.#createTagElement(tagData, index, isExistingTag);
         });
     }
 
     /**
      * Creates a tag element for the autocomplete list.
      * @param {TagData} tagData
+     * @param {number} tagDataIndex
      * @param {boolean} isExisting
      */
-    #createTagElement(tagData, isExisting) {
+    #createTagElement(tagData, tagDataIndex, isExisting) {
         const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
         const aliasText = tagData.alias.join(', ');
 
         const tagRow = document.createElement('div');
         tagRow.classList.add('autocomplete-plus-item', tagData.source);
-        tagRow.dataset.tag = tagData.tag;
-        tagRow.dataset.tagCategory = categoryText;
+        tagRow.dataset.index = tagDataIndex;
+        tagRow.dataset.tagCategory = categoryText; // Used to color by CSS
 
         // Tag icon and name
         const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
