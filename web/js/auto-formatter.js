@@ -1,4 +1,59 @@
 import { settingValues } from './settings.js';
+import { NodeInfo } from './node-info.js';
+
+
+/**
+ * Determines if the text content should be auto-formatted.
+ *
+ * Format conditions:
+ * 1. Skip formatting if node is in blocklist
+ * 2. Skip formatting if text contains only numbers, hyphens, commas, dots, and spaces
+ * 3. Format if text contains "word + comma" pattern at least twice
+ * 4. Otherwise, don't format
+ *
+ * @param {NodeInfo} nodeInfo - The node information.
+ * @returns {boolean} - True if the text should be formatted, false otherwise.
+ */
+function shouldAutoFormat(text, nodeInfo) {
+    if (!text || text.trim().length === 0) return false;
+
+    // 1. Check if the node name is in the blocklist
+    const blocklist = [
+        ["Power Puter (rgthree)", "code"],
+        ["LoraLoaderBlockWeight //Inspire", "block_vector"]
+    ];
+
+    const isBlocklisted = blocklist.some(([type, input]) =>
+        type === nodeInfo.nodeType && input === nodeInfo.inputName
+    );
+
+    if (isBlocklisted) {
+        // console.debug(`[Autocomplete-Plus] auto-formatter on blur => nodeType: ${nodeInfo.nodeType}, inputName: ${nodeInfo.inputName} => blocklisted`);
+        return false;
+    } else {
+        // console.debug(`[Autocomplete-Plus] auto-formatter on blur => nodeType: ${nodeInfo.nodeType}, inputName: ${nodeInfo.inputName}`);
+    }
+
+
+    const trimmedText = text.trim();
+
+    // 2. Check if the text is purely numeric data with hyphens and commas
+    // (e.g., "0,0,0,1,1,1" or "0.5, -1.2, 0.8" for LoRA Block Weight)
+    const numericPattern = /^[\d.,\s-]+$/;
+    if (numericPattern.test(trimmedText)) {
+        return false; // Don't format numeric data
+    }
+
+    // 3. Check if the text contains the pattern "word + comma"
+    const wordCommaPattern = /\w+\s*,/g;
+    const matches = trimmedText.match(wordCommaPattern);
+
+    if (matches == null) {
+        return false;
+    }
+
+    return true; // Text should be formatted
+}
 
 /**
  * Format the prompt text: add a comma and space after each tag, and remove extra spaces.
@@ -79,12 +134,18 @@ export class AutoFormatterEventHandler {
      * Handle blur event to trigger auto-formatting
      * @param {Event} event - The blur event
      */
-    handleBlur(event) {
+    handleBlur(event, nodeInfo) {
         if (
             settingValues.enableAutoFormat &&
             event.target.tagName === 'TEXTAREA'
         ) {
-            formatTextareaOnBlur(event.target);
+            const textarea = event.target;
+            const text = textarea.value;
+
+            // Check if the content should be auto-formatted
+            if (shouldAutoFormat(text, nodeInfo)) {
+                formatTextareaOnBlur(textarea);
+            }
         }
     }
 

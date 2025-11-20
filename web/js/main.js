@@ -7,6 +7,7 @@ import { TagSource, loadDataAsync } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 import { AutoFormatterEventHandler } from "./auto-formatter.js";
+import { NodeInfo } from "./node-info.js";
 
 // --- Constants ---
 const id = "AutocompletePlus";
@@ -20,11 +21,11 @@ function initializeEventHandlers() {
     const autocompleteEventHandler = new AutocompleteEventHandler();
     const relatedTagsEventHandler = new RelatedTagsEventHandler();
     const autoFormatterEventHandler = new AutoFormatterEventHandler();
-    const attachedElements = new WeakSet(); // Keep track of elements that have listeners attached
+    const attachedElementNodeInfoMap = new WeakMap(); // Map to track attached elements and their node info
 
     // Function to attach listeners
-    function attachListeners(element) {
-        if (attachedElements.has(element)) return; // Prevent double attachment
+    function attachListeners(element, nodeInfo) {
+        if (attachedElementNodeInfoMap.has(element)) return; // Prevent double attachment
 
         element.addEventListener('input', handleInput);
         element.addEventListener('focus', handleFocus);
@@ -37,7 +38,7 @@ function initializeEventHandlers() {
         element.addEventListener('mousemove', handleMouseMove);
         element.addEventListener('click', handleClick);
 
-        attachedElements.add(element); // Mark as attached
+        attachedElementNodeInfoMap.set(element, nodeInfo); // Mark as attached and store node info
     }
 
     // Attempt Widget Override as the primary method
@@ -50,12 +51,14 @@ function initializeEventHandlers() {
 
             // Check if the widget has an inputEl and if it's a TEXTAREA
             // This is to ensure we are targeting multiline text inputs, related to '.comfy-multiline-input'
-            if (result && result.widget && result.widget.inputEl && result.widget.inputEl.tagName === 'TEXTAREA') {
+            if (result && result.widget
+                && result.widget.inputEl && result.widget.inputEl.tagName === 'TEXTAREA' && !result.widget.inputEl.readOnly) {
                 const widgetConfig = inputData && inputData[1] ? inputData[1] : {};
                 // Future: Add checks for Autocomplete Plus specific configurations if needed
                 // e.g., if (widgetConfig["AutocompletePlus.enabled"] === false) return result;
 
-                attachListeners(result.widget.inputEl);
+                const nodeInfo = new NodeInfo(node.comfyClass || node.constructor.name, inputName);
+                attachListeners(result.widget.inputEl, nodeInfo);
             }
             return result;
         };
@@ -75,9 +78,11 @@ function initializeEventHandlers() {
                         targetSelectors.forEach(selector => {
                             // Check if the added node itself matches or contains matching elements
                             if (node.matches(selector)) {
-                                attachListeners(node);
+                                attachListeners(node, new NodeInfo('Fallback', 'unknown'));
                             } else {
-                                node.querySelectorAll(selector).forEach(attachListeners);
+                                node.querySelectorAll(selector).forEach(el => {
+                                    attachListeners(el, new NodeInfo('Fallback', 'unknown'));
+                                });
                             }
                         });
                     }
@@ -87,7 +92,9 @@ function initializeEventHandlers() {
 
         // Initial scan for existing elements
         targetSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(attachListeners);
+            document.querySelectorAll(selector).forEach(el => {
+                attachListeners(el, new NodeInfo('Fallback', 'unknown'));
+            });
         });
 
         // Start observing the document body for changes
@@ -95,41 +102,89 @@ function initializeEventHandlers() {
     }
 
     function handleInput(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in handleInput:', event.target);
+            return;
+        }
+
         autocompleteEventHandler.handleInput(event);
         relatedTagsEventHandler.handleInput(event);
+        autoFormatterEventHandler.handleInput(event);
     }
 
     function handleFocus(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in handleFocus:', event.target);
+            return;
+        }
+
         autocompleteEventHandler.handleFocus(event);
         relatedTagsEventHandler.handleFocus(event);
+        autoFormatterEventHandler.handleFocus(event);
     }
 
     function handleBlur(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in handleBlur:', event.target);
+            return;
+        }
+
         autocompleteEventHandler.handleBlur(event);
         relatedTagsEventHandler.handleBlur(event);
-        autoFormatterEventHandler.handleBlur(event);
+        autoFormatterEventHandler.handleBlur(event, nodeInfo);
     }
 
     function handleKeyDown(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in handleKeyDown:', event.target);
+            return;
+        }
+
         autocompleteEventHandler.handleKeyDown(event);
         relatedTagsEventHandler.handleKeyDown(event);
+        autoFormatterEventHandler.handleKeyDown(event);
     }
 
     function handleKeyUp(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in handleKeyUp:', event.target);
+            return;
+        }
+
         autocompleteEventHandler.handleKeyUp(event);
         relatedTagsEventHandler.handleKeyUp(event);
+        autoFormatterEventHandler.handleKeyUp(event);
     }
 
     // New event handler for mousemove to show related tags on hover
     function handleMouseMove(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in handleMouseMove:', event.target);
+            return;
+        }
+
         autocompleteEventHandler.handleMouseMove(event);
         relatedTagsEventHandler.handleMouseMove(event);
+        autoFormatterEventHandler.handleMouseMove(event);
     }
 
     // New event handler for click to show related tags
     function handleClick(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in handleClick:', event.target);
+            return;
+        }
+
         autocompleteEventHandler.handleClick(event);
         relatedTagsEventHandler.handleClick(event);
+        autoFormatterEventHandler.handleClick(event);
     }
 }
 
