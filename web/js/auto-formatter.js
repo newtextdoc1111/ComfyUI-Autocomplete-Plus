@@ -1,34 +1,6 @@
 import { settingValues } from './settings.js';
 
 /**
- * Event handler for auto-formatting functionality
- */
-export class AutoFormatterEventHandler {
-    constructor() {}
-
-    /**
-     * Handle blur event to trigger auto-formatting
-     * @param {Event} event - The blur event
-     */
-    handleBlur(event) {
-        if (
-            settingValues.enableAutoFormat &&
-            event.target.tagName === 'TEXTAREA'
-        ) {
-            formatTextareaOnBlur(event.target);
-        }
-    }
-
-    // Placeholder methods to maintain consistency with other event handlers
-    handleInput(event) {}
-    handleFocus(event) {}
-    handleKeyDown(event) {}
-    handleKeyUp(event) {}
-    handleMouseMove(event) {}
-    handleClick(event) {}
-}
-
-/**
  * Format the prompt text: add a comma and space after each tag, and remove extra spaces.
  * Preserve special syntax such as weights (tag:1.2), parentheses, and wildcards.
  * @param {string} text - The original text.
@@ -95,4 +67,32 @@ export function formatTextareaOnBlur(textarea) {
         const newCursorPos = Math.min(cursorPos, formattedText.length);
         textarea.setSelectionRange(newCursorPos, newCursorPos);
     }
+}
+
+/**
+ * Event handler for auto-formatting functionality
+ */
+export class AutoFormatterEventHandler {
+    constructor() { }
+
+    /**
+     * Handle blur event to trigger auto-formatting
+     * @param {Event} event - The blur event
+     */
+    handleBlur(event) {
+        if (
+            settingValues.enableAutoFormat &&
+            event.target.tagName === 'TEXTAREA'
+        ) {
+            formatTextareaOnBlur(event.target);
+        }
+    }
+
+    // Placeholder methods to maintain consistency with other event handlers
+    handleInput(event) { }
+    handleFocus(event) { }
+    handleKeyDown(event) { }
+    handleKeyUp(event) { }
+    handleMouseMove(event) { }
+    handleClick(event) { }
 }
