@@ -70,5 +70,8 @@
     "AutocompletePlus_Display_HideAlias": {
         "name": "Hide Alias",
         "tooltip": "Hide alias column in the autocomplete and related tags display."
+    },
+    "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
+        "name": "Enable Auto Format"
     }
 }

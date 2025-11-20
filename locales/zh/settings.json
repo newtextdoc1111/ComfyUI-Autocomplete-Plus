@@ -70,5 +70,8 @@
     "AutocompletePlus_Display_HideAlias": {
         "name": "隐藏别名",
         "tooltip": "隐藏自动完成和相关标签显示中的别名列"
+    },
+    "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
+        "name": "启用自动格式化"
     }
 }
