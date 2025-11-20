@@ -13,6 +13,7 @@
 - **:zap:No setup required**: Automatically downloads CSV data optimized for Danbooru tags.
 - **:mag:Autocomplete**: Displays tag suggestions in real-time based on your input as you type.
 - **:file_cabinet:Related Tags Display**: Shows a list of tags highly related to the selected tag.
+- **:triangular_ruler:Auto Formatter**: Automatically formats prompt text when the textarea loses focus, cleaning up extra spaces and commas.
 - **:earth_asia:Multilingual Support**: Supports input completion in Japanese, Chinese, and Korean.
 - **:computer_mouse:Intuitive Operation**:
     - Supports both mouse and keyboard operations.
@@ -54,6 +55,15 @@ When you select any tag in a text input area, a list of highly related tags is d
 - You can toggle the pinned state of the displayed related tags using the "📌|🎯" button in the header. To close the UI when pinned, press the Esc key.
 - Tags that have already been entered are displayed grayed out. If you try to insert a grayed-out tag, the already entered tag will instead be selected.
 - You can display related tags for the cursor position by pressing `Ctrl+Shift+Space`.
+
+## Auto Formatter
+
+When a text input area loses focus (e.g., by clicking outside or pressing Tab), the prompt text is automatically formatted. This feature improves readability when editing large amounts of text.
+
+Detailed behavior is as follows:
+- Automatically adds a comma and space after each tag for proper separation
+- Removes extra commas and spaces between tags
+- You can enable/disable this feature in the settings
 
 ## CSV Data
 
@@ -165,6 +175,10 @@ For example, by preparing the following CSV, you can quickly insert correspondin
 ### Display
 
 - **Hide Alias**: Hide/show the Alias ​​column in autocomplete and related tags (default is show)
+
+### Auto Formatter
+
+- **Enable Auto Format**: Enable/disable the automatically format prompt text when the textarea loses focus.
 
 ## Advanced Settings
 
