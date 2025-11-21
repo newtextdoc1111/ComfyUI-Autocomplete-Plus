@@ -23,6 +23,7 @@ export const settingValues = {
 
     // Auto format settings
     enableAutoFormat: true,
+    autoFormatTrigger: 'auto', // Options: 'auto' (format on blur + shortcut), 'manual' (shortcut only)
 
 
     // Internal logic settings

@@ -137,6 +137,7 @@ export class AutoFormatterEventHandler {
     handleBlur(event, nodeInfo) {
         if (
             settingValues.enableAutoFormat &&
+            settingValues.autoFormatTrigger === 'auto' &&
             event.target.tagName === 'TEXTAREA'
         ) {
             const textarea = event.target;
@@ -156,4 +157,29 @@ export class AutoFormatterEventHandler {
     handleKeyUp(event) { }
     handleMouseMove(event) { }
     handleClick(event) { }
+
+    /**
+     * Format textarea content via manual trigger (e.g., keyboard shortcut)
+     * @param {HTMLTextAreaElement} textarea - The textarea element to format
+     * @param {NodeInfo} nodeInfo - The node information
+     * @returns {boolean} - True if formatting was performed, false otherwise
+     */
+    applyFormatTextarea(textarea, nodeInfo) {
+        if (!textarea || textarea.tagName !== 'TEXTAREA') {
+            return false;
+        }
+
+        if (!settingValues.enableAutoFormat) {
+            return false;
+        }
+
+        const text = textarea.value;
+
+        if (shouldAutoFormat(text, nodeInfo)) {
+            formatTextareaOnBlur(textarea);
+            return true;
+        }
+
+        return false;
+    }
 }

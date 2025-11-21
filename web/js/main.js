@@ -13,16 +13,17 @@ import { NodeInfo } from "./node-info.js";
 const id = "AutocompletePlus";
 const name = "Autocomplete Plus";
 
+// --- Module-level variables ---
+const autocompleteEventHandler = new AutocompleteEventHandler();
+const relatedTagsEventHandler = new RelatedTagsEventHandler();
+const autoFormatterEventHandler = new AutoFormatterEventHandler();
+const attachedElementNodeInfoMap = new WeakMap(); // Map to track attached elements and their node info
+
 // --- Functions ---
 /**
  * Initialize event handlers for the autocomplete and related tags features.
  */
 function initializeEventHandlers() {
-    const autocompleteEventHandler = new AutocompleteEventHandler();
-    const relatedTagsEventHandler = new RelatedTagsEventHandler();
-    const autoFormatterEventHandler = new AutoFormatterEventHandler();
-    const attachedElementNodeInfoMap = new WeakMap(); // Map to track attached elements and their node info
-
     // Function to attach listeners
     function attachListeners(element, nodeInfo) {
         if (attachedElementNodeInfoMap.has(element)) return; // Prevent double attachment
@@ -302,6 +303,46 @@ app.registerExtension({
         await loadDataAsync();
     },
 
+    // --- Commands ---
+    commands: [
+        {
+            id: id + ".formatPrompt",
+            label: name + ": Format Prompt",
+            function: () => {
+                const activeEl = document.activeElement;
+
+                if (!activeEl || activeEl.tagName !== 'TEXTAREA') {
+                    console.debug('[Autocomplete-Plus] Format command: No textarea is currently focused');
+                    return;
+                }
+
+                const nodeInfo = attachedElementNodeInfoMap.get(activeEl);
+                if (!nodeInfo) {
+                    console.warn('[Autocomplete-Plus] Format command: Node info not found for focused textarea');
+                    // Use fallback NodeInfo
+                    const fallbackNodeInfo = new NodeInfo('Unknown', 'unknown');
+                    autoFormatterEventHandler.applyFormatTextarea(activeEl, fallbackNodeInfo);
+                    return;
+                }
+
+                const formatted = autoFormatterEventHandler.applyFormatTextarea(activeEl, nodeInfo);
+                if (formatted) {
+                    console.debug('[Autocomplete-Plus] Format command: Formatting applied');
+                } else {
+                    console.debug('[Autocomplete-Plus] Format command: Formatting skipped (blocklisted or not applicable)');
+                }
+            }
+        }
+    ],
+
+    // --- Keybindings ---
+    keybindings: [
+        {
+            combo: { key: "f", alt: true, shift: true },
+            commandId: id + ".formatPrompt"
+        }
+    ],
+
     // One the Settings Screen, displays reverse order in same category
     settings: [
         // --- Tag source Settings ---
@@ -476,6 +517,18 @@ app.registerExtension({
         },
 
         // --- Auto format settings ---
+        {
+            id: id + '.AutoFormatter.Trigger',
+            name: 'Auto Format Trigger',
+            tooltip: 'Auto: Format automatically when leaving text field.\nManual: Format only via keyboard shortcut. default keybind: (Alt+Shift+F)',
+            type: 'combo',
+            options: ['auto', 'manual'],
+            defaultValue: 'auto',
+            category: [name, 'AutoFormatter', 'Auto Format Trigger'],
+            onChange: (newVal, oldVal) => {
+                settingValues.autoFormatTrigger = newVal;
+            },
+        },
         {
             id: id + '.AutoFormatter.EnableAutoFormat',
             name: 'Enable Auto Format',
