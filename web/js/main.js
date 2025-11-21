@@ -102,36 +102,35 @@ function initializeEventHandlers() {
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    function handleInput(event) {
+    /**
+     * Get NodeInfo for the event target element
+     * @param {Event} event - The DOM event
+     * @returns {Object|null} NodeInfo object or undefined if not found
+     */
+    function getNodeInfo(event) {
         const nodeInfo = attachedElementNodeInfoMap.get(event.target);
         if (!nodeInfo) {
-            console.warn('[Autocomplete-Plus] Node info not found for element in handleInput:', event.target);
-            return;
+            console.warn('[Autocomplete-Plus] Node info not found for element in ', event.target);
+            return null;
         }
 
+        return nodeInfo;
+    }
+
+    function handleInput(event) {
         autocompleteEventHandler.handleInput(event);
         relatedTagsEventHandler.handleInput(event);
         autoFormatterEventHandler.handleInput(event);
     }
 
     function handleFocus(event) {
-        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
-        if (!nodeInfo) {
-            console.warn('[Autocomplete-Plus] Node info not found for element in handleFocus:', event.target);
-            return;
-        }
-
         autocompleteEventHandler.handleFocus(event);
         relatedTagsEventHandler.handleFocus(event);
         autoFormatterEventHandler.handleFocus(event);
     }
 
     function handleBlur(event) {
-        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
-        if (!nodeInfo) {
-            console.warn('[Autocomplete-Plus] Node info not found for element in handleBlur:', event.target);
-            return;
-        }
+        const nodeInfo = getNodeInfo(event); // Get node info to pass to auto formatter
 
         autocompleteEventHandler.handleBlur(event);
         relatedTagsEventHandler.handleBlur(event);
@@ -139,50 +138,24 @@ function initializeEventHandlers() {
     }
 
     function handleKeyDown(event) {
-        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
-        if (!nodeInfo) {
-            console.warn('[Autocomplete-Plus] Node info not found for element in handleKeyDown:', event.target);
-            return;
-        }
-
         autocompleteEventHandler.handleKeyDown(event);
         relatedTagsEventHandler.handleKeyDown(event);
         autoFormatterEventHandler.handleKeyDown(event);
     }
 
     function handleKeyUp(event) {
-        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
-        if (!nodeInfo) {
-            console.warn('[Autocomplete-Plus] Node info not found for element in handleKeyUp:', event.target);
-            return;
-        }
-
         autocompleteEventHandler.handleKeyUp(event);
         relatedTagsEventHandler.handleKeyUp(event);
         autoFormatterEventHandler.handleKeyUp(event);
     }
 
-    // New event handler for mousemove to show related tags on hover
     function handleMouseMove(event) {
-        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
-        if (!nodeInfo) {
-            console.warn('[Autocomplete-Plus] Node info not found for element in handleMouseMove:', event.target);
-            return;
-        }
-
         autocompleteEventHandler.handleMouseMove(event);
         relatedTagsEventHandler.handleMouseMove(event);
         autoFormatterEventHandler.handleMouseMove(event);
     }
 
-    // New event handler for click to show related tags
     function handleClick(event) {
-        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
-        if (!nodeInfo) {
-            console.warn('[Autocomplete-Plus] Node info not found for element in handleClick:', event.target);
-            return;
-        }
-
         autocompleteEventHandler.handleClick(event);
         relatedTagsEventHandler.handleClick(event);
         autoFormatterEventHandler.handleClick(event);
