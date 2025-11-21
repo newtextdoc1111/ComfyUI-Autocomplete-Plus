@@ -37,11 +37,17 @@ function shouldAutoFormat(text, nodeInfo) {
 
     const trimmedText = text.trim();
 
-    // 2. Check if the text is purely numeric data with hyphens and commas
-    // (e.g., "0,0,0,1,1,1" or "0.5, -1.2, 0.8" for LoRA Block Weight)
-    const numericPattern = /^[\d.,\s-]+$/;
-    if (numericPattern.test(trimmedText)) {
-        return false; // Don't format numeric data
+    // 2. Check if the text is purely numeric data or single-letter placeholders with commas
+    // (e.g., "0,0,0,1,1,1" or "0.5, -1.2, 0.8" or "A,B,R" for LoRA Block Weight)
+    const elements = trimmedText.split(',').map(el => el.trim());
+    const isSingleLetterOrNumeric = elements.every(el => {
+        if (/^[A-Za-z]$/.test(el)) return true;
+        if (/^-?\d+(\.\d+)?$/.test(el)) return true;
+        return false;
+    });
+
+    if (isSingleLetterOrNumeric && elements.length > 0) {
+        return false; // Don't format numeric data or single-letter template patterns
     }
 
     // 3. Check if the text contains the pattern "word + comma"
@@ -183,3 +189,11 @@ export class AutoFormatterEventHandler {
         return false;
     }
 }
+
+// Export functions for testing
+const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+export const __test__ = isTestEnvironment
+    ? {
+        shouldAutoFormat
+    }
+    : undefined;
