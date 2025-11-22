@@ -63,7 +63,12 @@ When a text input area loses focus (e.g., by clicking outside or pressing Tab), 
 Detailed behavior is as follows:
 - Automatically adds a comma and space after each tag for proper separation
 - Removes extra commas and spaces between tags
+- You can manually trigger formatting using the keyboard shortcut `Alt+Shift+F` (keybinding can be customized in ComfyUI settings)
 - You can enable/disable this feature in the settings
+
+> [!NOTE]
+> Auto-formatting is disabled for certain nodes to prevent errors.
+> Example: "Power Puter (rgthree)" `code` field, "LoraLoaderBlockWeight (Inspire)" `block_vector` field
 
 ## CSV Data
 
@@ -179,6 +184,9 @@ For example, by preparing the following CSV, you can quickly insert correspondin
 ### Auto Formatter
 
 - **Enable Auto Format**: Enable/disable the automatically format prompt text when the textarea loses focus.
+- **Auto Format Trigger**: Choose when formatting is applied.
+  - **Auto**: Format automatically when leaving text field
+  - **Manual**: Format only via keyboard shortcut (default: `Alt+Shift+F`)
 
 ## Advanced Settings
 
