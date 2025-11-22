@@ -7,7 +7,7 @@ import { NodeInfo } from './node-info.js';
  *
  * Format conditions:
  * 1. Skip formatting if node is in blocklist
- * 2. Skip formatting if text contains only numbers, hyphens, commas, dots, and spaces
+ * 2. Skip formatting if text contains only numbers or single letters (separated by commas)
  * 3. Format if text contains "word + comma" pattern at least twice
  * 4. Otherwise, don't format
  *
