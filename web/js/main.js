@@ -7,24 +7,26 @@ import { TagSource, loadDataAsync } from "./data.js";
 import { AutocompleteEventHandler } from "./autocomplete.js";
 import { RelatedTagsEventHandler } from "./related-tags.js";
 import { AutoFormatterEventHandler } from "./auto-formatter.js";
+import { NodeInfo } from "./node-info.js";
 
 // --- Constants ---
 const id = "AutocompletePlus";
 const name = "Autocomplete Plus";
+
+// --- Module-level variables ---
+const autocompleteEventHandler = new AutocompleteEventHandler();
+const relatedTagsEventHandler = new RelatedTagsEventHandler();
+const autoFormatterEventHandler = new AutoFormatterEventHandler();
+const attachedElementNodeInfoMap = new WeakMap(); // Map to track attached elements and their node info
 
 // --- Functions ---
 /**
  * Initialize event handlers for the autocomplete and related tags features.
  */
 function initializeEventHandlers() {
-    const autocompleteEventHandler = new AutocompleteEventHandler();
-    const relatedTagsEventHandler = new RelatedTagsEventHandler();
-    const autoFormatterEventHandler = new AutoFormatterEventHandler();
-    const attachedElements = new WeakSet(); // Keep track of elements that have listeners attached
-
     // Function to attach listeners
-    function attachListeners(element) {
-        if (attachedElements.has(element)) return; // Prevent double attachment
+    function attachListeners(element, nodeInfo) {
+        if (attachedElementNodeInfoMap.has(element)) return; // Prevent double attachment
 
         element.addEventListener('input', handleInput);
         element.addEventListener('focus', handleFocus);
@@ -37,7 +39,7 @@ function initializeEventHandlers() {
         element.addEventListener('mousemove', handleMouseMove);
         element.addEventListener('click', handleClick);
 
-        attachedElements.add(element); // Mark as attached
+        attachedElementNodeInfoMap.set(element, nodeInfo); // Mark as attached and store node info
     }
 
     // Attempt Widget Override as the primary method
@@ -50,12 +52,14 @@ function initializeEventHandlers() {
 
             // Check if the widget has an inputEl and if it's a TEXTAREA
             // This is to ensure we are targeting multiline text inputs, related to '.comfy-multiline-input'
-            if (result && result.widget && result.widget.inputEl && result.widget.inputEl.tagName === 'TEXTAREA') {
+            if (result && result.widget
+                && result.widget.inputEl && result.widget.inputEl.tagName === 'TEXTAREA' && !result.widget.inputEl.readOnly) {
                 const widgetConfig = inputData && inputData[1] ? inputData[1] : {};
                 // Future: Add checks for Autocomplete Plus specific configurations if needed
                 // e.g., if (widgetConfig["AutocompletePlus.enabled"] === false) return result;
 
-                attachListeners(result.widget.inputEl);
+                const nodeInfo = new NodeInfo(node.comfyClass || node.constructor.name, inputName);
+                attachListeners(result.widget.inputEl, nodeInfo);
             }
             return result;
         };
@@ -75,9 +79,11 @@ function initializeEventHandlers() {
                         targetSelectors.forEach(selector => {
                             // Check if the added node itself matches or contains matching elements
                             if (node.matches(selector)) {
-                                attachListeners(node);
+                                attachListeners(node, new NodeInfo('Fallback', 'unknown'));
                             } else {
-                                node.querySelectorAll(selector).forEach(attachListeners);
+                                node.querySelectorAll(selector).forEach(el => {
+                                    attachListeners(el, new NodeInfo('Fallback', 'unknown'));
+                                });
                             }
                         });
                     }
@@ -87,49 +93,72 @@ function initializeEventHandlers() {
 
         // Initial scan for existing elements
         targetSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(attachListeners);
+            document.querySelectorAll(selector).forEach(el => {
+                attachListeners(el, new NodeInfo('Fallback', 'unknown'));
+            });
         });
 
         // Start observing the document body for changes
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
+    /**
+     * Get NodeInfo for the event target element
+     * @param {Event} event - The DOM event
+     * @returns {Object|null} NodeInfo object or undefined if not found
+     */
+    function getNodeInfo(event) {
+        const nodeInfo = attachedElementNodeInfoMap.get(event.target);
+        if (!nodeInfo) {
+            console.warn('[Autocomplete-Plus] Node info not found for element in ', event.target);
+            return null;
+        }
+
+        return nodeInfo;
+    }
+
     function handleInput(event) {
         autocompleteEventHandler.handleInput(event);
         relatedTagsEventHandler.handleInput(event);
+        autoFormatterEventHandler.handleInput(event);
     }
 
     function handleFocus(event) {
         autocompleteEventHandler.handleFocus(event);
         relatedTagsEventHandler.handleFocus(event);
+        autoFormatterEventHandler.handleFocus(event);
     }
 
     function handleBlur(event) {
+        const nodeInfo = getNodeInfo(event); // Get node info to pass to auto formatter
+
         autocompleteEventHandler.handleBlur(event);
         relatedTagsEventHandler.handleBlur(event);
-        autoFormatterEventHandler.handleBlur(event);
+        autoFormatterEventHandler.handleBlur(event, nodeInfo);
     }
 
     function handleKeyDown(event) {
         autocompleteEventHandler.handleKeyDown(event);
         relatedTagsEventHandler.handleKeyDown(event);
+        autoFormatterEventHandler.handleKeyDown(event);
     }
 
     function handleKeyUp(event) {
         autocompleteEventHandler.handleKeyUp(event);
         relatedTagsEventHandler.handleKeyUp(event);
+        autoFormatterEventHandler.handleKeyUp(event);
     }
 
-    // New event handler for mousemove to show related tags on hover
     function handleMouseMove(event) {
         autocompleteEventHandler.handleMouseMove(event);
         relatedTagsEventHandler.handleMouseMove(event);
+        autoFormatterEventHandler.handleMouseMove(event);
     }
 
-    // New event handler for click to show related tags
     function handleClick(event) {
         autocompleteEventHandler.handleClick(event);
         relatedTagsEventHandler.handleClick(event);
+        autoFormatterEventHandler.handleClick(event);
     }
 }
 
@@ -246,6 +275,46 @@ app.registerExtension({
 
         await loadDataAsync();
     },
+
+    // --- Commands ---
+    commands: [
+        {
+            id: id + ".formatPrompt",
+            label: name + ": Format Prompt",
+            function: () => {
+                const activeEl = document.activeElement;
+
+                if (!activeEl || activeEl.tagName !== 'TEXTAREA') {
+                    // console.debug('[Autocomplete-Plus] Format command: No textarea is currently focused');
+                    return;
+                }
+
+                const nodeInfo = attachedElementNodeInfoMap.get(activeEl);
+                if (!nodeInfo) {
+                    console.warn('[Autocomplete-Plus] Format command: Node info not found for focused textarea');
+                    // Use fallback NodeInfo
+                    const fallbackNodeInfo = new NodeInfo('Unknown', 'unknown');
+                    autoFormatterEventHandler.applyFormatTextarea(activeEl, fallbackNodeInfo);
+                    return;
+                }
+
+                const formatted = autoFormatterEventHandler.applyFormatTextarea(activeEl, nodeInfo);
+                if (formatted) {
+                    // console.debug('[Autocomplete-Plus] Format command: Formatting applied');
+                } else {
+                    // console.debug('[Autocomplete-Plus] Format command: Formatting skipped (blocklisted or not applicable)');
+                }
+            }
+        }
+    ],
+
+    // --- Keybindings ---
+    keybindings: [
+        {
+            combo: { key: "f", alt: true, shift: true },
+            commandId: id + ".formatPrompt"
+        }
+    ],
 
     // One the Settings Screen, displays reverse order in same category
     settings: [
@@ -421,6 +490,18 @@ app.registerExtension({
         },
 
         // --- Auto format settings ---
+        {
+            id: id + '.AutoFormatter.Trigger',
+            name: 'Auto Format Trigger',
+            tooltip: 'Auto: Format automatically when leaving text field.\nManual: Format only via keyboard shortcut. default keybind: (Alt+Shift+F)',
+            type: 'combo',
+            options: ['auto', 'manual'],
+            defaultValue: 'auto',
+            category: [name, 'AutoFormatter', 'Auto Format Trigger'],
+            onChange: (newVal, oldVal) => {
+                settingValues.autoFormatTrigger = newVal;
+            },
+        },
         {
             id: id + '.AutoFormatter.EnableAutoFormat',
             name: 'Enable Auto Format',
