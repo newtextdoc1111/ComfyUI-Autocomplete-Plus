@@ -70,5 +70,16 @@
     "AutocompletePlus_Display_HideAlias": {
         "name": "隐藏别名",
         "tooltip": "隐藏自动完成和相关标签显示中的别名列"
+    },
+    "AutocompletePlus_AutoFormatter_Trigger": {
+        "name": "自动格式化触发方式",
+        "tooltip": "自动: 离开文本框时自动格式化\n手动: 仅通过键盘快捷键格式化。默认快捷键: (Alt+Shift+F)",
+        "options": {
+            "auto": "自动",
+            "manual": "手动"
+        }
+    },
+    "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
+        "name": "启用自动格式化"
     }
 }

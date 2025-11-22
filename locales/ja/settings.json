@@ -70,5 +70,16 @@
     "AutocompletePlus_Display_HideAlias": {
         "name": "エイリアスを非表示",
         "tooltip": "オートコンプリートと関連タグで表示されるエイリアス列を非表示にします"
+    },
+    "AutocompletePlus_AutoFormatter_Trigger": {
+        "name": "自動フォーマットのトリガー",
+        "tooltip": "自動: テキスト欄からフォーカスが外れた際に自動でフォーマットします\n手動: キーボードショートカットでのみフォーマットします。デフォルトのキーバインド: (Alt+Shift+F)",
+        "options": {
+            "auto": "自動",
+            "manual": "手動"
+        }
+    },
+    "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
+        "name": "自動フォーマット機能の有効化"
     }
 }
