@@ -71,6 +71,14 @@
         "name": "隱藏別名",
         "tooltip": "隱藏自動完成和相關標籤顯示中的別名欄"
     },
+    "AutocompletePlus_AutoFormatter_Trigger": {
+        "name": "自動格式化觸發方式",
+        "tooltip": "自動: 離開文字方塊時自動格式化\n手動: 僅透過鍵盤快速鍵格式化。預設快速鍵: (Alt+Shift+F)",
+        "options": {
+            "auto": "自動",
+            "manual": "手動"
+        }
+    },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "啟用自動格式化"
     }

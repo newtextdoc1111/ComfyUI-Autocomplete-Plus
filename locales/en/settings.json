@@ -71,6 +71,14 @@
         "name": "Hide Alias",
         "tooltip": "Hide alias column in the autocomplete and related tags display."
     },
+    "AutocompletePlus_AutoFormatter_Trigger": {
+        "name": "Auto Format Trigger",
+        "tooltip": "Auto: Format automatically when leaving text field.\nManual: Format only via keyboard shortcut. default keybind: (Alt+Shift+F)",
+        "options": {
+            "auto": "Auto",
+            "manual": "Manual"
+        }
+    },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "Enable Auto Format"
     }
