@@ -65,8 +65,8 @@
 - 設定から機能の有効化/無効化を切り替えられます
 
 > [!NOTE]
-> 一部のノードはエラーに繋がるため、自動フォーマットは実行されません。
-> 例：「Power Puter (rgthree)」の `code` フィールド、「LoraLoaderBlockWeight (Inspire)」の `block_vector` フィールド
+> 一部のノードはエラーに繋がるため、自動フォーマットは実行されません。  
+> 例： [Power Puter (rgthree)](https://github.com/rgthree/rgthree-comfy/wiki/Node:-Power-Puter) の `code` フィールド、 [LoraLoaderBlockWeight (Inspire)](https://github.com/ltdrdata/ComfyUI-Inspire-Pack) の `block_vector` フィールド
 
 ## CSV データ
 

@@ -67,8 +67,8 @@ Detailed behavior is as follows:
 - You can enable/disable this feature in the settings
 
 > [!NOTE]
-> Auto-formatting is disabled for certain nodes to prevent errors.
-> Example: "Power Puter (rgthree)" `code` field, "LoraLoaderBlockWeight (Inspire)" `block_vector` field
+> Auto-formatting is disabled for certain nodes to prevent errors.  
+> Example: [Power Puter (rgthree)](https://github.com/rgthree/rgthree-comfy/wiki/Node:-Power-Puter) `code` field, [LoraLoaderBlockWeight (Inspire)](https://github.com/ltdrdata/ComfyUI-Inspire-Pack) `block_vector` field
 
 ## CSV Data
 
