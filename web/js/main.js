@@ -285,7 +285,7 @@ app.registerExtension({
                 const activeEl = document.activeElement;
 
                 if (!activeEl || activeEl.tagName !== 'TEXTAREA') {
-                    console.debug('[Autocomplete-Plus] Format command: No textarea is currently focused');
+                    // console.debug('[Autocomplete-Plus] Format command: No textarea is currently focused');
                     return;
                 }
 
@@ -300,9 +300,9 @@ app.registerExtension({
 
                 const formatted = autoFormatterEventHandler.applyFormatTextarea(activeEl, nodeInfo);
                 if (formatted) {
-                    console.debug('[Autocomplete-Plus] Format command: Formatting applied');
+                    // console.debug('[Autocomplete-Plus] Format command: Formatting applied');
                 } else {
-                    console.debug('[Autocomplete-Plus] Format command: Formatting skipped (blocklisted or not applicable)');
+                    // console.debug('[Autocomplete-Plus] Format command: Formatting skipped (blocklisted or not applicable)');
                 }
             }
         }
