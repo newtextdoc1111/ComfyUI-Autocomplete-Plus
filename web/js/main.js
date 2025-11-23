@@ -512,5 +512,16 @@ app.registerExtension({
                 settingValues.enableAutoFormat = newVal;
             },
         },
+        {
+            id: id + '.AutoFormatter.AddTrailingComma',
+            name: 'Add Trailing Comma',
+            tooltip: 'Add a comma at the end of each line when auto-formatting',
+            type: 'boolean',
+            defaultValue: false,
+            category: [name, 'AutoFormatter', 'Add Trailing Comma'],
+            onChange: (newVal, oldVal) => {
+                settingValues.addTrailingComma = newVal;
+            },
+        },
     ]
 });

@@ -24,6 +24,7 @@ export const settingValues = {
     // Auto format settings
     enableAutoFormat: true,
     autoFormatTrigger: 'auto', // Options: 'auto' (format on blur + shortcut), 'manual' (shortcut only)
+    addTrailingComma: false, // Whether to add comma at the end of each line
 
 
     // Internal logic settings

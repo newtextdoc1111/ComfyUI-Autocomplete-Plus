@@ -100,8 +100,8 @@ export function formatPromptText(text) {
         // Rejoin cleaned tags with ", "
         let formattedLine = cleanedTags.join(', ');
 
-        // Add a trailing comma and space if the line contains valid tags
-        if (formattedLine.length > 0) {
+        // Add a trailing comma and space if the setting is enabled and line contains valid tags
+        if (formattedLine.length > 0 && settingValues.addTrailingComma) {
             formattedLine += ', ';
         }
 
