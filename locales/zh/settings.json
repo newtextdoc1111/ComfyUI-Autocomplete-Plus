@@ -79,6 +79,10 @@
             "manual": "手动"
         }
     },
+    "AutocompletePlus_AutoFormatter_AddTrailingComma": {
+        "name": "在行末添加逗号",
+        "tooltip": "自动格式化时在每行末尾添加逗号"
+    },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "启用自动格式化"
     }

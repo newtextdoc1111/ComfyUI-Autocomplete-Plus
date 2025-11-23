@@ -79,6 +79,10 @@
             "manual": "Manual"
         }
     },
+    "AutocompletePlus_AutoFormatter_AddTrailingComma": {
+        "name": "Add Trailing Comma",
+        "tooltip": "Add a comma at the end of each line when auto-formatting"
+    },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "Enable Auto Format"
     }
