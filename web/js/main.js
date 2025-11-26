@@ -491,6 +491,17 @@ app.registerExtension({
 
         // --- Auto format settings ---
         {
+            id: id + '.AutoFormatter.UseTrailingComma',
+            name: 'Use Trailing Comma',
+            tooltip: 'When enabled, ensures all lines end with a trailing comma.\nWhen disabled, removes trailing commas.',
+            type: 'boolean',
+            defaultValue: false,
+            category: [name, 'AutoFormatter', 'Use Trailing Comma'],
+            onChange: (newVal, oldVal) => {
+                settingValues.useTrailingComma = newVal;
+            },
+        },
+        {
             id: id + '.AutoFormatter.Trigger',
             name: 'Auto Format Trigger',
             tooltip: 'Auto: Format automatically when leaving text field.\nManual: Format only via keyboard shortcut. default keybind: (Alt+Shift+F)',
@@ -510,17 +521,6 @@ app.registerExtension({
             category: [name, 'AutoFormatter', 'Enable Auto Format'],
             onChange: (newVal, oldVal) => {
                 settingValues.enableAutoFormat = newVal;
-            },
-        },
-        {
-            id: id + '.AutoFormatter.AddTrailingComma',
-            name: 'Add Trailing Comma',
-            tooltip: 'Add a comma at the end of each line when auto-formatting',
-            type: 'boolean',
-            defaultValue: false,
-            category: [name, 'AutoFormatter', 'Add Trailing Comma'],
-            onChange: (newVal, oldVal) => {
-                settingValues.addTrailingComma = newVal;
             },
         },
     ]
