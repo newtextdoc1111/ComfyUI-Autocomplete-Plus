@@ -79,6 +79,10 @@
             "manual": "手動"
         }
     },
+    "AutocompletePlus_AutoFormatter_UseTrailingComma": {
+        "name": "在行末添加逗號",
+        "tooltip": "啟用時，確保所有行都以逗號結尾。\n停用時，移除結尾逗號。"
+    },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "啟用自動格式化"
     }
