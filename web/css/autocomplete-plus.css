@@ -1,15 +1,17 @@
 /* Light Theme */
  body {
-  --autocomplete-plus-text-color-cat-blue: var(--p-blue-600);
+  --autocomplete-plus-text-color-cat-blue: var(--p-blue-700);
   --autocomplete-plus-text-color-cat-red: var(--p-red-600);
   --autocomplete-plus-text-color-cat-purple: var(--p-purple-600);
-  --autocomplete-plus-text-color-cat-green: var(--p-green-600);
+  --autocomplete-plus-text-color-cat-green: var(--p-green-700);
   --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-600);
   --autocomplete-plus-text-color-cat-gray: var(--p-gray-600);
-  --autocomplete-plus-text-color-cat-sky: var(--p-sky-500);
+  --autocomplete-plus-text-color-cat-sky: var(--p-sky-600);
   --autocomplete-plus-text-color-cat-orange: var(--p-orange-600);
   --autocomplete-plus-text-color-cat-white: var(--p-neutral-700);
   --autocomplete-plus-text-color-disabled: var(--p-gray-400);
+  --autocomplete-plus-list-color-even: var(--p-neutral-300);
+  --autocomplete-plus-list-color-odd: var(--p-neutral-400)
 }
 
 /* Dark Theme */
@@ -24,6 +26,9 @@ body.dark-theme {
   --autocomplete-plus-text-color-cat-orange: var(--p-orange-400);
   --autocomplete-plus-text-color-cat-white: var(--p-neutral-200);
   --autocomplete-plus-text-color-disabled: var(--p-gray-500);
+  --autocomplete-plus-list-color-even: var(--p-neutral-800);
+  --autocomplete-plus-list-color-odd: var(--p-neutral-900)
+
 }
 
 #autocomplete-plus-root {
@@ -120,11 +125,11 @@ body.dark-theme {
 
 /* Alternating row colors */
 .autocomplete-plus-item:nth-child(even) span {
-  background-color: var(--comfy-menu-bg);
+  background-color: var(--autocomplete-plus-list-color-even);
 }
 
 .autocomplete-plus-item:nth-child(odd) span {
-  background-color: var(--comfy-menu-secondary-bg);
+  background-color: var(--autocomplete-plus-list-color-odd);
 }
 
 .autocomplete-plus-item.selected span {
@@ -236,7 +241,7 @@ body.dark-theme {
   align-items: center;
   padding: 8px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--comfy-menu-bg);
+  background-color: var(--autocomplete-plus-list-color-even);
   color: var(--descrip-text);
   gap: 8px;
 }
@@ -319,11 +324,11 @@ body.dark-theme {
 }
 
 .related-tag-item:nth-child(even) span {
-  background-color: var(--comfy-menu-bg);
+  background-color: var(--autocomplete-plus-list-color-even);
 }
 
 .related-tag-item:nth-child(odd) span {
-  background-color: var(--comfy-menu-secondary-bg);
+  background-color: var(---autocomplete-plus-list-color-odd);
 }
 
 .related-tag-item:hover span {
