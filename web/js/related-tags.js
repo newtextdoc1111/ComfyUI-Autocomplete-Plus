@@ -10,6 +10,7 @@ import {
     isValidTag,
     normalizeTagToInsert,
     normalizeTagToSearch,
+    openTagWikiUrl
 } from './utils.js';
 
 // --- RelatedTags Logic ---
@@ -95,6 +96,8 @@ function searchRelatedTags(tag) {
             category: tagData.category,
             source: tagData.source,
             count: tagData.count,
+            categoryText: tagData.categoryText,
+            hasWikiPage: tagData.hasWikiPage
         });
     });
 
@@ -278,11 +281,31 @@ class RelatedTagsUI {
         // Timer ID for auto-refresh
         this.autoRefreshTimerId = null;
 
+        // Add click handler for wiki link in header tag name
+        this.headerText.addEventListener('mousedown', (e) => {
+            const tagNameEl = e.target.closest('.related-tags-header-tag-name');
+            if (tagNameEl && !tagNameEl.classList.contains('disabled')) {
+                openTagWikiUrl(tagNameEl.dataset.tagSource, tagNameEl.dataset.tagName);
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+        });
+
         // Add click handler for tag selection
         this.tagsContainer.addEventListener('mousedown', (e) => {
+            // Check if wiki icon was clicked first
+            const wikiIcon = e.target.closest('.related-tag-wiki-icon');
+            if (wikiIcon && !wikiIcon.classList.contains('disabled')) {
+                openTagWikiUrl(wikiIcon.dataset.tagSource, wikiIcon.dataset.tagName);
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             const row = e.target.closest('.related-tag-item');
-            if (row && row.dataset.tag) {
-                this.#insertTag(row.dataset.tag);
+            if (row && row.dataset.tagName) {
+                this.#insertTag(row.dataset.tagName);
                 e.preventDefault();
                 e.stopPropagation();
             }
@@ -382,7 +405,7 @@ class RelatedTagsUI {
     /** Selects the currently highlighted item */
     getSelectedTag() {
         if (this.selectedIndex >= 0 && this.selectedIndex < this.relatedTags.length) {
-            return this.relatedTags[this.selectedIndex].tag;
+            return this.relatedTags[this.selectedIndex];
         }
 
         return null; // No valid selection
@@ -426,6 +449,8 @@ class RelatedTagsUI {
         tagName.classList.add('related-tags-header-tag-name', tagData.source);
         tagName.title = `Count: ${tagData.count}\nCategory: ${categoryText}\nAlias: ${aliasText}`;
         tagName.dataset.tagCategory = categoryText;
+        tagName.dataset.tagSource = tagData.source;
+        tagName.dataset.tagName = tagData.tag;
         if (tagData.source && ['left', 'right'].includes(settingValues.tagSourceIconPosition)) {
             const tagSourceIconHtml = `<svg class="autocomplete-plus-tag-icon-svg"><use xlink:href="#autocomplete-plus-icon-${tagData.source}"></use></svg>`;
             tagName.innerHTML = settingValues.tagSourceIconPosition == 'left'
@@ -435,6 +460,9 @@ class RelatedTagsUI {
             tagName.textContent += tagData.tag;
         }
 
+        if (!tagData.hasWikiPage) {
+            tagName.classList.add('disabled');
+        }
 
         this.headerText.appendChild(tagName);
 
@@ -501,12 +529,12 @@ class RelatedTagsUI {
      * @returns {HTMLTableRowElement} The tag row element
      */
     #createTagElement(tagData, isExisting) {
-        const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
+        const categoryText = tagData.categoryText;
         const aliasText = tagData.alias.join(', ');
 
         const tagRow = document.createElement('div');
         tagRow.classList.add('related-tag-item', tagData.source);
-        tagRow.dataset.tag = tagData.tag;
+        tagRow.dataset.tagName = tagData.tag;
         tagRow.dataset.tagCategory = categoryText;
 
         // Tag name
@@ -517,6 +545,18 @@ class RelatedTagsUI {
         // grayout tag name if it already exists
         if (isExisting) {
             tagName.classList.add('related-tag-already-exists');
+        }
+
+        // Wiki icon
+        const wikiIcon = document.createElement('span');
+        wikiIcon.className = 'related-tag-wiki-icon';
+        if (tagData.hasWikiPage) {
+            wikiIcon.dataset.tagName = tagData.tag;
+            wikiIcon.dataset.tagSource = tagData.source;
+            wikiIcon.textContent = '📖'
+            wikiIcon.title = 'Open wiki page';
+        } else {
+            wikiIcon.classList.add('disabled');
         }
 
         // Alias
@@ -543,6 +583,7 @@ class RelatedTagsUI {
 
         // Add cells to row
         tagRow.appendChild(tagName);
+        tagRow.appendChild(wikiIcon);
 
         if (!settingValues.hideAlias) {
             tagRow.appendChild(alias);
@@ -623,7 +664,7 @@ class RelatedTagsUI {
     insertSelectedTag() {
         const selectedTag = this.getSelectedTag();
         if (selectedTag) {
-            this.#insertTag(selectedTag);
+            this.#insertTag(selectedTag.tag);
         }
     }
 
@@ -774,6 +815,13 @@ export class RelatedTagsEventHandler {
                         this.relatedTagsUI.insertSelectedTag();
                     } else if (!this.relatedTagsUI.isPinned) { // If nothing selected and not pinned, hide the panel
                         this.relatedTagsUI.hide();
+                    }
+                    break;
+                case 'F1':
+                    event.preventDefault();
+                    const tagData = this.relatedTagsUI.getSelectedTag();
+                    if (tagData && tagData.hasWikiPage) {
+                        openTagWikiUrl(tagData.source, tagData.tag);
                     }
                     break;
                 case 'Escape':

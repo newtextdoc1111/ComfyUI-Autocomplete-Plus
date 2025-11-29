@@ -72,6 +72,23 @@ export class TagData {
 
         this.source = source;
     }
+
+    /**
+     * Get the category text
+     * @returns {string}
+     */
+    get categoryText() {
+        return TagCategory[this.source][this.category] || "unknown";
+    }
+
+    /**
+     * Check if the tag has a wiki page
+     * @returns {boolean}
+     */
+    get hasWikiPage() {
+        return Object.values(TagSource).includes(this.source)
+            && ['general', 'artist', 'copyright', 'character', 'species', 'lore'].includes(this.categoryText);
+    }
 }
 
 class AutocompleteData {
