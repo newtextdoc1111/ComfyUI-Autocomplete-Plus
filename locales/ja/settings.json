@@ -79,6 +79,10 @@
             "manual": "手動"
         }
     },
+    "AutocompletePlus_AutoFormatter_UseTrailingComma": {
+        "name": "行末にカンマを使用",
+        "tooltip": "有効にすると、すべての行末がカンマで終わるようになります。\n無効にすると行末のカンマが削除されます。"
+    },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "自動フォーマット機能の有効化"
     }
