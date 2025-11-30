@@ -1,6 +1,6 @@
 # ComfyUI-Autocomplete-Plus
 
-![ss01](https://github.com/user-attachments/assets/bb139951-ad78-4d87-b290-97aafa1221d7)
+![ss01](https://github.com/user-attachments/assets/45dd0598-4c04-49ab-85f7-33fc9026921c)
 
 ## 概要
 
