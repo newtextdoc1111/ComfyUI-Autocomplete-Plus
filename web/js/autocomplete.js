@@ -490,7 +490,7 @@ class AutocompleteUI {
     /** Selects the currently highlighted item
      * @returns {TagData|null} The selected tag data.
      */
-    getSelectedTag() {
+    getSelectedTagData() {
         if (this.selectedIndex >= 0 && this.selectedIndex < this.candidates.length) {
             return this.candidates[this.selectedIndex];
         }
@@ -695,7 +695,7 @@ class AutocompleteUI {
 
     /** Highlights the item (row) at the given index */
     #highlightItem() {
-        if (!this.getSelectedTag()) return; // No valid selection
+        if (!this.getSelectedTagData()) return; // No valid selection
 
         const items = this.tagsList.children; // Get rows from tbody
         for (let i = 0; i < items.length; i++) {
@@ -996,15 +996,15 @@ export class AutocompleteEventHandler {
                 case 'Enter':
                 case 'Tab':
                     const modifierKeyPressed = event.shiftKey || event.ctrlKey || event.altKey || event.metaKey;
-                    if (!modifierKeyPressed && this.autocompleteUI.getSelectedTag() !== null) {
+                    if (!modifierKeyPressed && this.autocompleteUI.getSelectedTagData() !== null) {
                         event.preventDefault();
-                        insertTagToTextArea(event.target, this.autocompleteUI.getSelectedTag());
+                        insertTagToTextArea(event.target, this.autocompleteUI.getSelectedTagData());
                     }
                     this.autocompleteUI.hide();
                     break;
                 case 'F1':
                     event.preventDefault();
-                    const tagData = this.autocompleteUI.getSelectedTag();
+                    const tagData = this.autocompleteUI.getSelectedTagData();
                     if (tagData && tagData.hasWikiPage) {
                         openTagWikiUrl(tagData.source, tagData.tag);
                     }

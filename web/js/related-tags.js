@@ -1,4 +1,4 @@
-import { TagCategory, TagData, TagSource, autoCompleteData } from './data.js';
+import { TagCategory, TagData, TagSource, autoCompleteData, getEnabledTagSourceInPriorityOrder } from './data.js';
 import { settingValues } from './settings.js';
 import {
     extractTagsFromTextArea,
@@ -345,9 +345,6 @@ class RelatedTagsUI {
         this.target = textareaElement;
 
         this.relatedTags = searchRelatedTags(this.currentTag);
-        if (this.selectedIndex == -1) {
-            this.selectedIndex = 0; // Reset selection to the first item
-        }
 
         this.#updateHeader();
         this.#updateContent();
@@ -389,10 +386,18 @@ class RelatedTagsUI {
         }
     }
 
-    /** Moves the selection up or down */
+    /** Moves the selection up or down
+     * @param {direction} 1 for down, -1 for up
+     */
     navigate(direction) {
         if (this.relatedTags.length === 0) return;
-        this.selectedIndex += direction;
+
+        if (this.selectedIndex == -1) {
+            // Initialize selection based on navigation direction
+            this.selectedIndex = direction == 1 ? 0 : this.relatedTags.length - 1;
+        } else {
+            this.selectedIndex += direction;
+        }
 
         if (this.selectedIndex < 0) {
             this.selectedIndex = this.relatedTags.length - 1; // Wrap around to bottom
@@ -402,8 +407,25 @@ class RelatedTagsUI {
         this.#highlightItem();
     }
 
-    /** Selects the currently highlighted item */
-    getSelectedTag() {
+    /**
+     * Get TagData of the current tag
+     * @returns {TagData|null}
+     */
+    getCurrentTagData() {
+        for (const source of getEnabledTagSourceInPriorityOrder()) {
+            if (source in autoCompleteData && autoCompleteData[source].tagMap.has(this.currentTag)) {
+                return autoCompleteData[source].tagMap.get(this.currentTag);
+            }
+        }
+
+        return null;
+    }
+
+    /** 
+     * Selects the currently highlighted item
+     * @return {TagData|null}
+     */
+    getSelectedTagData() {
         if (this.selectedIndex >= 0 && this.selectedIndex < this.relatedTags.length) {
             return this.relatedTags[this.selectedIndex];
         }
@@ -424,14 +446,7 @@ class RelatedTagsUI {
      * Updates header content
      */
     #updateHeader() {
-        // Find the tag data for the current tag
-        let tagData = Object.values(TagSource)
-            .map((source) => {
-                if (source in autoCompleteData && autoCompleteData[source].tagMap.has(this.currentTag)) {
-                    return autoCompleteData[source].tagMap.get(this.currentTag);
-                }
-            })
-            .find((tagData) => tagData !== undefined);
+        let tagData = this.getCurrentTagData();
 
         if (!tagData) {
             // Create a dummy TagData if not found
@@ -629,7 +644,7 @@ class RelatedTagsUI {
 
     /** Highlights the item (row) at the given index */
     #highlightItem() {
-        if (this.getSelectedTag() === null) return; // No valid selection
+        if (this.getSelectedTagData() === null) return; // No valid selection
 
         const items = this.tagsContainer.children; // Get rows
         for (let i = 0; i < items.length; i++) {
@@ -662,7 +677,7 @@ class RelatedTagsUI {
     }
 
     insertSelectedTag() {
-        const selectedTag = this.getSelectedTag();
+        const selectedTag = this.getSelectedTagData();
         if (selectedTag) {
             this.#insertTag(selectedTag.tag);
         }
@@ -810,7 +825,7 @@ export class RelatedTagsEventHandler {
                     break;
                 case 'Enter':
                 case 'Tab':
-                    if (this.relatedTagsUI.getSelectedTag() !== null) {
+                    if (this.relatedTagsUI.getSelectedTagData() !== null) {
                         event.preventDefault(); // Prevent Tab from changing focus
                         this.relatedTagsUI.insertSelectedTag();
                     } else if (!this.relatedTagsUI.isPinned) { // If nothing selected and not pinned, hide the panel
@@ -819,7 +834,7 @@ export class RelatedTagsEventHandler {
                     break;
                 case 'F1':
                     event.preventDefault();
-                    const tagData = this.relatedTagsUI.getSelectedTag();
+                    const tagData = this.relatedTagsUI.getSelectedTagData() || this.relatedTagsUI.getCurrentTagData();
                     if (tagData && tagData.hasWikiPage) {
                         openTagWikiUrl(tagData.source, tagData.tag);
                     }
