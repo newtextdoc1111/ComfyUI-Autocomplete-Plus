@@ -79,6 +79,10 @@
             "manual": "Manual"
         }
     },
+    "AutocompletePlus_AutoFormatter_UseTrailingComma": {
+        "name": "Use Trailing Comma",
+        "tooltip": "When enabled, ensures all lines end with a trailing comma.\nWhen disabled, removes trailing commas."
+    },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "Enable Auto Format"
     }

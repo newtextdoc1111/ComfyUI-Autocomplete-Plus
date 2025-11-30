@@ -654,3 +654,47 @@ export function getScrollbarWidth() {
 
     return _cachedScrollbarWidth;
 }
+
+/**
+ * Opens a wiki URL in a new browser tab for the given tag.
+ * @param {string} tagSource - The source of the tag ('danbooru', 'e621', 'embeddings', 'lora')
+ * @param {string} tagName - The name of the tag
+ * @returns {boolean} - True if URL was opened, false if not applicable
+ */
+export function openTagWikiUrl(tagSource, tagName) {
+    if (!tagSource || !tagName) {
+        console.warn('[Autocomplete-Plus] Cannot open wiki: missing tagSource or tagName');
+        return false;
+    }
+
+    let wikiUrl = null;
+
+    switch (tagSource) {
+        case 'danbooru':
+            const danbooruTag = encodeURIComponent(tagName.replace(/ /g, '_'));
+            wikiUrl = `https://danbooru.donmai.us/wiki_pages/${danbooruTag}`;
+            break;
+
+        case 'e621':
+            const e621Tag = encodeURIComponent(tagName.replace(/ /g, '_'));
+            wikiUrl = `https://e621.net/wiki_pages/${e621Tag}`;
+            break;
+
+        case 'embeddings':
+        case 'lora':
+            // console.debug('[Autocomplete-Plus] Model tags do not have wiki pages');
+            return false;
+
+        default:
+            console.warn(`[Autocomplete-Plus] Unknown tag source: ${tagSource}`);
+            return false;
+    }
+
+    if (wikiUrl) {
+        // console.debug(`[Autocomplete-Plus] Opening wiki URL: ${wikiUrl}`);
+        window.open(wikiUrl, '_blank', 'noopener,noreferrer');
+        return true;
+    }
+
+    return false;
+}

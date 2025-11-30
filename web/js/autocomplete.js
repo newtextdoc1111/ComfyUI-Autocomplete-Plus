@@ -1,6 +1,5 @@
 import {
     ModelTagSource,
-    TagCategory,
     TagData,
     autoCompleteData,
     getEnabledTagSourceInPriorityOrder
@@ -19,7 +18,8 @@ import {
     getViewportMargin,
     getScrollbarWidth,
     IconSvgHtmlString,
-    addWeightToLora
+    addWeightToLora,
+    openTagWikiUrl
 } from './utils.js';
 import { settingValues } from './settings.js';
 
@@ -263,7 +263,7 @@ function getCurrentPartialTag(inputElement) {
     if (!inputElement) {
         return "";
     }
-    
+
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
@@ -312,13 +312,13 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     if (!inputElement || !tagDataToInsert) {
         return;
     }
-    
+
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
     const tagRange = getCurrentTagRange(text, cursorPos);
     let tagStart, tagEnd, currentTag;
-    
+
     if (!tagRange) {
         // Fallback: insert at cursor position
         tagStart = cursorPos;
@@ -327,7 +327,7 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     } else {
         ({ start: tagStart, end: tagEnd, tag: currentTag } = tagRange);
     }
-    
+
     const replaceStart = Math.min(cursorPos, tagStart);
     let replaceEnd = cursorPos;
 
@@ -407,6 +407,16 @@ class AutocompleteUI {
 
         // Add event listener for clicks on items
         this.tagsList.addEventListener('mousedown', (e) => {
+            // Check if wiki icon was clicked first
+            const wikiIcon = e.target.closest('.autocomplete-plus-wiki-icon');
+            if (wikiIcon && !wikiIcon.classList.contains('disabled')) {
+                openTagWikiUrl(wikiIcon.dataset.tagSource, wikiIcon.dataset.tagName);
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // Check if row was clicked (existing behavior)
             const row = e.target.closest('.autocomplete-plus-item');
             if (row && row.dataset.index !== undefined) {
                 const tagData = this.candidates[parseInt(row.dataset.index, 10)];
@@ -480,7 +490,7 @@ class AutocompleteUI {
     /** Selects the currently highlighted item
      * @returns {TagData|null} The selected tag data.
      */
-    getSelectedTag() {
+    getSelectedTagData() {
         if (this.selectedIndex >= 0 && this.selectedIndex < this.candidates.length) {
             return this.candidates[this.selectedIndex];
         }
@@ -517,7 +527,7 @@ class AutocompleteUI {
      * @param {boolean} isExisting
      */
     #createTagElement(tagData, tagDataIndex, isExisting) {
-        const categoryText = TagCategory[tagData.source][tagData.category] || "unknown";
+        const categoryText = tagData.categoryText;
         const aliasText = tagData.alias.join(', ');
 
         const tagRow = document.createElement('div');
@@ -543,6 +553,18 @@ class AutocompleteUI {
             tagName.classList.add('autocomplete-plus-already-exists');
         }
 
+        // Wiki icon
+        const wikiIcon = document.createElement('span');
+        wikiIcon.className = 'autocomplete-plus-wiki-icon';
+        if (tagData.hasWikiPage) {
+            wikiIcon.dataset.tagName = tagData.tag;
+            wikiIcon.dataset.tagSource = tagData.source;
+            wikiIcon.textContent = '📖'
+            wikiIcon.title = 'Open wiki page';
+        } else {
+            wikiIcon.classList.add('disabled');
+        }
+
         // Alias
         const alias = document.createElement('span');
         alias.className = 'autocomplete-plus-alias';
@@ -558,7 +580,7 @@ class AutocompleteUI {
         tagCount.className = `autocomplete-plus-tag-count`;
         tagCount.textContent = formatCountHumanReadable(tagData.count);
 
-         // Create tooltip with more info
+        // Create tooltip with more info
         let tooltipText = `Count: ${tagData.count}\nCategory: ${categoryText}`;
         if (aliasText.length > 0) {
             tooltipText += `\nAlias: ${aliasText}`;
@@ -566,6 +588,7 @@ class AutocompleteUI {
         tagRow.title = tooltipText;
 
         tagRow.appendChild(tagName);
+        tagRow.appendChild(wikiIcon);
 
         if (!settingValues.hideAlias) {
             tagRow.appendChild(alias);
@@ -672,7 +695,7 @@ class AutocompleteUI {
 
     /** Highlights the item (row) at the given index */
     #highlightItem() {
-        if (!this.getSelectedTag()) return; // No valid selection
+        if (!this.getSelectedTagData()) return; // No valid selection
 
         const items = this.tagsList.children; // Get rows from tbody
         for (let i = 0; i < items.length; i++) {
@@ -973,11 +996,18 @@ export class AutocompleteEventHandler {
                 case 'Enter':
                 case 'Tab':
                     const modifierKeyPressed = event.shiftKey || event.ctrlKey || event.altKey || event.metaKey;
-                    if (!modifierKeyPressed && this.autocompleteUI.getSelectedTag() !== null) {
+                    if (!modifierKeyPressed && this.autocompleteUI.getSelectedTagData() !== null) {
                         event.preventDefault();
-                        insertTagToTextArea(event.target, this.autocompleteUI.getSelectedTag());
+                        insertTagToTextArea(event.target, this.autocompleteUI.getSelectedTagData());
                     }
                     this.autocompleteUI.hide();
+                    break;
+                case 'F1':
+                    event.preventDefault();
+                    const tagData = this.autocompleteUI.getSelectedTagData();
+                    if (tagData && tagData.hasWikiPage) {
+                        openTagWikiUrl(tagData.source, tagData.tag);
+                    }
                     break;
                 case 'Escape':
                     event.preventDefault();

@@ -2,6 +2,7 @@ import {
     formatPromptText,
     __test__
 } from "../../web/js/auto-formatter.js";
+import { settingValues } from "../../web/js/settings.js";
 
 const {
     shouldAutoFormat
@@ -44,37 +45,102 @@ describe('AutoFormatter Functions', () => {
     });
 
     describe('formatPromptText', () => {
-        test('should format text by adding comma and space after tags', () => {
-            const input = 'tag1,tag2,tag3';
-            const expected = 'tag1, tag2, tag3, ';
-            expect(formatPromptText(input)).toBe(expected);
+        // Store original setting value to restore after tests
+        const originalUseTrailingComma = settingValues.useTrailingComma;
+
+        afterEach(() => {
+            // Restore original setting after each test
+            settingValues.useTrailingComma = originalUseTrailingComma;
         });
 
-        test('should remove extra spaces around tags', () => {
-            const input = '  tag1  ,  tag2  ';
-            const expected = 'tag1, tag2, ';
-            expect(formatPromptText(input)).toBe(expected);
+        describe('with useTrailingComma enabled', () => {
+            beforeEach(() => {
+                settingValues.useTrailingComma = true;
+            });
+
+            test('should format text by adding comma and space after tags', () => {
+                const input = 'tag1,tag2,tag3';
+                const expected = 'tag1, tag2, tag3, ';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should remove extra spaces around tags', () => {
+                const input = '  tag1  ,  tag2  ';
+                const expected = 'tag1, tag2, ';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should preserve special syntax like weights', () => {
+                const input = '(tag1:1.2), [tag2]';
+                // Note: The current implementation splits by comma.
+                // If the input is "(tag1:1.2), [tag2]", it splits into "(tag1:1.2)" and "[tag2]".
+                // Then joins with ", ".
+                const expected = '(tag1:1.2), [tag2], ';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should handle multiple lines', () => {
+                const input = 'tag1, tag2\ntag3, tag4';
+                const expected = 'tag1, tag2, \ntag3, tag4, ';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should keep empty lines unchanged', () => {
+                const input = 'tag1, tag2\n\ntag3, tag4';
+                const expected = 'tag1, tag2, \n\ntag3, tag4, ';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should not modify text that already has trailing comma', () => {
+                const input = 'tag1, tag2, ';
+                const expected = 'tag1, tag2, ';
+                expect(formatPromptText(input)).toBe(expected);
+            });
         });
 
-        test('should preserve special syntax like weights', () => {
-            const input = '(tag1:1.2), [tag2]';
-            // Note: The current implementation splits by comma.
-            // If the input is "(tag1:1.2), [tag2]", it splits into "(tag1:1.2)" and "[tag2]".
-            // Then joins with ", ".
-            const expected = '(tag1:1.2), [tag2], ';
-            expect(formatPromptText(input)).toBe(expected);
-        });
+        describe('with useTrailingComma disabled', () => {
+            beforeEach(() => {
+                settingValues.useTrailingComma = false;
+            });
 
-        test('should handle multiple lines', () => {
-            const input = 'tag1, tag2\ntag3, tag4';
-            const expected = 'tag1, tag2, \ntag3, tag4, ';
-            expect(formatPromptText(input)).toBe(expected);
-        });
+            test('should format text by adding comma and space after tags without trailing comma', () => {
+                const input = 'tag1,tag2,tag3';
+                const expected = 'tag1, tag2, tag3';
+                expect(formatPromptText(input)).toBe(expected);
+            });
 
-        test('should keep empty lines unchanged', () => {
-            const input = 'tag1, tag2\n\ntag3, tag4';
-            const expected = 'tag1, tag2, \n\ntag3, tag4, ';
-            expect(formatPromptText(input)).toBe(expected);
+            test('should remove extra spaces around tags without trailing comma', () => {
+                const input = '  tag1  ,  tag2  ';
+                const expected = 'tag1, tag2';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should preserve special syntax like weights without trailing comma', () => {
+                const input = '(tag1:1.2), [tag2]';
+                // Note: The current implementation splits by comma.
+                // If the input is "(tag1:1.2), [tag2]", it splits into "(tag1:1.2)" and "[tag2]".
+                // Then joins with ", ".
+                const expected = '(tag1:1.2), [tag2]';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should handle multiple lines without trailing comma', () => {
+                const input = 'tag1, tag2\ntag3, tag4';
+                const expected = 'tag1, tag2\ntag3, tag4';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should keep empty lines unchanged without trailing comma', () => {
+                const input = 'tag1, tag2\n\ntag3, tag4';
+                const expected = 'tag1, tag2\n\ntag3, tag4';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should remove existing trailing comma when disabled', () => {
+                const input = 'tag1, tag2, ';
+                const expected = 'tag1, tag2';
+                expect(formatPromptText(input)).toBe(expected);
+            });
         });
 
         test('should handle empty input', () => {

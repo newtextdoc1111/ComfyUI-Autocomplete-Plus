@@ -43,6 +43,7 @@ When you type in a text input area, tags that partially match the text are displ
 - Tags that have already been entered are displayed grayed out.
 - You can display Danbooru and e621 tags at the same time. You can also change the priority from the settings.
 - Supports autocomplete for Lora and Embedding inputs. You can enable/disable this feature in the settings.
+- Clicking the 📖 icon opens the tag's Wiki page. If a tag is selected via keyboard, you can open it with the `F1` key.
 
 ## Related Tags
 
@@ -53,6 +54,7 @@ When you select any tag in a text input area, a list of highly related tags is d
 - The display position is primarily at the bottom of the text area and automatically adjusts vertically based on available space.
   - You can switch between vertical and horizontal display positions using the "↕️|↔️" button in the header.
 - You can toggle the pinned state of the displayed related tags using the "📌|🎯" button in the header. To close the UI when pinned, press the Esc key.
+- Clicking the tag in the header opens the tag's Wiki page.
 - Tags that have already been entered are displayed grayed out. If you try to insert a grayed-out tag, the already entered tag will instead be selected.
 - You can display related tags for the cursor position by pressing `Ctrl+Shift+Space`.
 
@@ -187,6 +189,7 @@ For example, by preparing the following CSV, you can quickly insert correspondin
 - **Auto Format Trigger**: Choose when formatting is applied.
   - **Auto**: Format automatically when leaving text field
   - **Manual**: Format only via keyboard shortcut (default: `Alt+Shift+F`)
+- **Use Trailing Comma**: If enabled, ensures all lines end with a trailing comma when formatting. If disabled, removes trailing commas.
 
 ## Advanced Settings
 

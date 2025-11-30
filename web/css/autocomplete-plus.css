@@ -1,15 +1,21 @@
 /* Light Theme */
  body {
-  --autocomplete-plus-text-color-cat-blue: var(--p-blue-600);
+  --autocomplete-plus-text-color-cat-blue: var(--p-blue-700);
   --autocomplete-plus-text-color-cat-red: var(--p-red-600);
   --autocomplete-plus-text-color-cat-purple: var(--p-purple-600);
-  --autocomplete-plus-text-color-cat-green: var(--p-green-600);
+  --autocomplete-plus-text-color-cat-green: var(--p-green-700);
   --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-600);
   --autocomplete-plus-text-color-cat-gray: var(--p-gray-600);
-  --autocomplete-plus-text-color-cat-sky: var(--p-sky-500);
+  --autocomplete-plus-text-color-cat-sky: var(--p-sky-600);
   --autocomplete-plus-text-color-cat-orange: var(--p-orange-600);
   --autocomplete-plus-text-color-cat-white: var(--p-neutral-700);
   --autocomplete-plus-text-color-disabled: var(--p-gray-400);
+  --autocomplete-plus-list-color-even: var(--p-neutral-300);
+  --autocomplete-plus-list-color-odd: var(--p-neutral-400);
+  --wiki-icon-text-color: var(--input-text);
+  --wiki-icon-opacity-normal: 0.7;
+  --wiki-icon-opacity-hover: 1.0;
+  --wiki-icon-opacity-disabled: 0;
 }
 
 /* Dark Theme */
@@ -24,6 +30,12 @@ body.dark-theme {
   --autocomplete-plus-text-color-cat-orange: var(--p-orange-400);
   --autocomplete-plus-text-color-cat-white: var(--p-neutral-200);
   --autocomplete-plus-text-color-disabled: var(--p-gray-500);
+  --autocomplete-plus-list-color-even: var(--p-neutral-800);
+  --autocomplete-plus-list-color-odd: var(--p-neutral-900);
+  --wiki-icon-text-color: var(--input-text);
+  --wiki-icon-opacity-normal: 0.5;
+  --wiki-icon-opacity-hover: 0.9;
+  --wiki-icon-opacity-disabled: 0;
 }
 
 #autocomplete-plus-root {
@@ -97,16 +109,17 @@ body.dark-theme {
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
-  grid-template-columns: max-content 1fr auto;
+  grid-template-columns: max-content max-content 1fr auto;
   overflow-y: auto;
 }
 
 #autocomplete-plus-list.no-alias {
-  grid-template-columns: max-content auto;
+  grid-template-columns: max-content max-content auto;
 }
 
 .autocomplete-plus-item {
   display: grid;
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
@@ -115,23 +128,22 @@ body.dark-theme {
 .autocomplete-plus-item span {
   align-content: center;
   padding: 4px 8px;
-  border-bottom: 1px solid var(--border-color);
 }
 
 /* Alternating row colors */
-.autocomplete-plus-item:nth-child(even) span {
-  background-color: var(--comfy-menu-bg);
+.autocomplete-plus-item:nth-child(even) {
+  background-color: var(--autocomplete-plus-list-color-even);
 }
 
-.autocomplete-plus-item:nth-child(odd) span {
-  background-color: var(--comfy-menu-secondary-bg);
+.autocomplete-plus-item:nth-child(odd) {
+  background-color: var(--autocomplete-plus-list-color-odd);
 }
 
-.autocomplete-plus-item.selected span {
+.autocomplete-plus-item.selected {
   background-color: var(--border-color);
 }
 
-.autocomplete-plus-item:hover span {
+.autocomplete-plus-item:hover {
   background-color: var(--comfy-hover-bg);
 }
 
@@ -158,6 +170,28 @@ body.dark-theme {
 
 .autocomplete-plus-item .autocomplete-plus-tag-count {
   text-align: right;
+}
+
+.autocomplete-plus-item .autocomplete-plus-wiki-icon {
+  padding: 0 8px;
+  color: var(--wiki-icon-text-color);
+  cursor: pointer;
+  font-size: 1.2em;
+  opacity: var(--wiki-icon-opacity-normal);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.autocomplete-plus-item .autocomplete-plus-wiki-icon:hover {
+  filter: brightness(1.1);
+  opacity: var(--wiki-icon-opacity-hover);
+}
+
+/* Hide wiki icon for tags without wiki pages */
+.autocomplete-plus-item .autocomplete-plus-wiki-icon.disabled {
+  cursor: default;
+  opacity: var(--wiki-icon-opacity-disabled);
+  pointer-events: none;
 }
 
 /* Related Tags UI Styles */
@@ -236,7 +270,7 @@ body.dark-theme {
   align-items: center;
   padding: 8px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--comfy-menu-bg);
+  background-color: var(--autocomplete-plus-list-color-even);
   color: var(--descrip-text);
   gap: 8px;
 }
@@ -255,8 +289,14 @@ body.dark-theme {
 }
 
 .related-tags-header-tag-name {
+  cursor: pointer;
   font-weight: bold;
   word-break: break-all;
+}
+
+.related-tags-header-tag-name.disabled {
+  cursor: default;
+  text-decoration: none;
 }
 
 .related-tags-header-tag-name .autocomplete-plus-tag-icon-svg {
@@ -296,16 +336,17 @@ body.dark-theme {
   display: grid;
   box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
   grid-auto-rows: auto;
-  grid-template-columns: max-content 1fr auto;
+  grid-template-columns: max-content max-content 1fr auto;
   overflow-y: auto;
 }
 
 #related-tags-list.no-alias {
-  grid-template-columns: max-content auto;
+  grid-template-columns: max-content max-content auto;
 }
 
 .related-tag-item {
   display: grid;
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
@@ -315,22 +356,21 @@ body.dark-theme {
 .related-tag-item span {
   align-content: center;
   padding: 4px 8px;
-  border-bottom: 1px solid var(--border-color);
 }
 
-.related-tag-item:nth-child(even) span {
-  background-color: var(--comfy-menu-bg);
+.related-tag-item:nth-child(even) {
+  background-color: var(--autocomplete-plus-list-color-even);
 }
 
-.related-tag-item:nth-child(odd) span {
-  background-color: var(--comfy-menu-secondary-bg);
+.related-tag-item:nth-child(odd) {
+  background-color: var(--autocomplete-plus-list-color-odd);
 }
 
-.related-tag-item:hover span {
+.related-tag-item:hover {
   background-color: var(--p-form-field-filled-hover-background);
 }
 
-.related-tag-item.selected span {
+.related-tag-item.selected {
   background-color: var(--border-color);
 }
 
@@ -353,6 +393,29 @@ body.dark-theme {
   color: var(--descrip-text);
   text-align: right;
   white-space: nowrap;
+}
+
+.related-tag-item .related-tag-wiki-icon {
+  padding: 0 8px;
+  color: var(--wiki-icon-text-color);
+  cursor: pointer;
+  font-size: 1.2em;
+  opacity: var(--wiki-icon-opacity-normal);
+  text-align: center;
+  transition: opacity 0.1s ease;
+  vertical-align: middle;
+}
+
+.related-tag-item .related-tag-wiki-icon:hover {
+  filter: brightness(1.1);
+  opacity: var(--wiki-icon-opacity-hover);
+}
+
+/* Hide wiki icon for tags without wiki pages */
+.related-tag-item .related-tag-wiki-icon.disabled {
+  cursor: default;
+  opacity: var(--wiki-icon-opacity-disabled);
+  pointer-events: none;
 }
 
 .related-tags-message {
