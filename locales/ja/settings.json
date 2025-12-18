@@ -85,5 +85,9 @@
     },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "自動フォーマット機能の有効化"
+    },
+    "AutocompletePlus_AutoFormatter_TrimSurroundingSpaces": {
+    "name": "先頭・末尾の空白を削除",
+    "tooltip": "有効時、プロンプトの先頭と末尾にある空行やスペースをすべて削除します。"
     }
 }
