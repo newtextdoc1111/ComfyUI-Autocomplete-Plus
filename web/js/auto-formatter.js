@@ -70,6 +70,11 @@ function shouldAutoFormat(text, nodeInfo) {
 export function formatPromptText(text) {
     if (!text || text.trim().length === 0) return text;
 
+    // Trim surrounding spaces of the entire prompt if the setting is enabled
+    if (settingValues.trimSurroundingSpaces) {
+        text = text.trim();
+    }
+
     // Split text into individual lines for processing
     const lines = text.split('\n');
     const formattedLines = [];
