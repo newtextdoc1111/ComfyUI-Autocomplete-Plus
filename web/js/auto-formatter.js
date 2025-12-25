@@ -15,7 +15,12 @@ import { NodeInfo } from './node-info.js';
  * @returns {boolean} - True if the text should be formatted, false otherwise.
  */
 function shouldAutoFormat(text, nodeInfo) {
-    if (!text || text.trim().length === 0) return false;
+    if (!text) return false;
+
+    // If trimSurroundingSpaces is enabled and there are surrounding spaces, return true to format
+    if (settingValues.trimSurroundingSpaces && text !== text.trim()) return true;
+
+    if (text.trim().length === 0) return false;
 
     // 1. Check if the node name is in the blocklist
     const blocklist = [
@@ -68,12 +73,15 @@ function shouldAutoFormat(text, nodeInfo) {
  * @returns {string} - The formatted text.
  */
 export function formatPromptText(text) {
-    if (!text || text.trim().length === 0) return text;
+    // Handle null or undefined input
+    if (text == null) return text;
 
     // Trim surrounding spaces of the entire prompt if the setting is enabled
     if (settingValues.trimSurroundingSpaces) {
         text = text.trim();
     }
+
+    if (text.length === 0) return text;
 
     // Split text into individual lines for processing
     const lines = text.split('\n');
