@@ -76,15 +76,24 @@ export function formatPromptText(text) {
     // Handle null or undefined input
     if (text == null) return text;
 
-    // Trim surrounding spaces of the entire prompt if the setting is enabled
-    if (settingValues.trimSurroundingSpaces) {
-        text = text.trim();
+    // If the text is empty or contains only spaces...
+    if (text.trim().length === 0) {
+        if (settingValues.trimSurroundingSpaces) {
+            // ...And trimSurroundingSpaces is enabled, return an empty string
+            return '';
+        } else {
+            // ...Otherwise, return the original text
+            return text;
+        }
     }
 
-    if (text.length === 0) return text;
+    let processedText = text;
+    if (settingValues.trimSurroundingSpaces) {
+        processedText = text.trim();
+    }
 
     // Split text into individual lines for processing
-    const lines = text.split('\n');
+    const lines = processedText.split('\n');
     const formattedLines = [];
 
     for (const line of lines) {
