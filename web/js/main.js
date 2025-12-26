@@ -491,6 +491,17 @@ app.registerExtension({
 
         // --- Auto format settings ---
         {
+            id: id + '.AutoFormatter.TrimSurroundingSpaces',
+            name: 'Trim Surrounding Spaces',
+            tooltip: 'When enabled, trim any blank lines from the beginning and end of the prompt.',
+            type: 'boolean',
+            defaultValue: false,
+            category: [name, 'AutoFormatter', 'Trim Surrounding Spaces'],
+            onChange: (newVal, oldVal) => {
+                settingValues.trimSurroundingSpaces = newVal;
+            },
+        },
+        {
             id: id + '.AutoFormatter.UseTrailingComma',
             name: 'Use Trailing Comma',
             tooltip: 'When enabled, ensures all lines end with a trailing comma.\nWhen disabled, removes trailing commas.',

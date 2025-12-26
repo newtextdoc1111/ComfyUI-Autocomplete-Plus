@@ -16,6 +16,14 @@ describe('AutoFormatter Functions', () => {
             inputName
         });
 
+        // Store original setting value to restore after tests
+        const originalTrimSurroundingSpaces = settingValues.trimSurroundingSpaces;
+
+        afterEach(() => {
+            // Restore original setting after each test
+            settingValues.trimSurroundingSpaces = originalTrimSurroundingSpaces;
+        });
+
         test('should return false for empty text', () => {
             expect(shouldAutoFormat('', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
             expect(shouldAutoFormat('   ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
@@ -42,20 +50,73 @@ describe('AutoFormatter Functions', () => {
             expect(shouldAutoFormat('hello world', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
             expect(shouldAutoFormat('tag1 tag2', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
         });
+
+        describe('blocklist priority with trimSurroundingSpaces', () => {
+            test('should prioritize blocklist over trimSurroundingSpaces when disabled', () => {
+                settingValues.trimSurroundingSpaces = false;
+
+                // Blocklisted nodes should return false even with surrounding spaces
+                expect(shouldAutoFormat('  some code  ', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('\nsome code\n', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('  0,0,0,1,1,1  ', mockNodeInfo('LoraLoaderBlockWeight //Inspire', 'block_vector'))).toBe(false);
+            });
+
+            test('should prioritize blocklist over trimSurroundingSpaces when enabled', () => {
+                settingValues.trimSurroundingSpaces = true;
+
+                // Blocklisted nodes should return false even with trimSurroundingSpaces enabled and surrounding spaces
+                expect(shouldAutoFormat('  some code  ', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('\nsome code\n', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('  function() { }  ', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('  0,0,0,1,1,1  ', mockNodeInfo('LoraLoaderBlockWeight //Inspire', 'block_vector'))).toBe(false);
+            });
+        });
+
+        describe('trimSurroundingSpaces with non-comma-separated text', () => {
+            test('should return false for non-comma-separated text when trimSurroundingSpaces is disabled', () => {
+                settingValues.trimSurroundingSpaces = false;
+
+                // Text without word+comma pattern should return false
+                expect(shouldAutoFormat('  hello world  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+                expect(shouldAutoFormat('\nhello world\n', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+                expect(shouldAutoFormat('  tag1 tag2  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+            });
+
+            test('should return true for non-comma-separated text with surrounding spaces when trimSurroundingSpaces is enabled', () => {
+                settingValues.trimSurroundingSpaces = true;
+
+                // Text with surrounding spaces should return true to format (trim them)
+                expect(shouldAutoFormat('  hello world  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+                expect(shouldAutoFormat('\nhello world\n', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+                expect(shouldAutoFormat('  tag1 tag2  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+                expect(shouldAutoFormat('  \nsome text\n  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+            });
+
+            test('should return false for text without surrounding spaces even when trimSurroundingSpaces is enabled', () => {
+                settingValues.trimSurroundingSpaces = true;
+
+                // Text without word+comma pattern and without surrounding spaces should return false
+                expect(shouldAutoFormat('hello world', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+                expect(shouldAutoFormat('tag1 tag2', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+            });
+        });
     });
 
     describe('formatPromptText', () => {
         // Store original setting value to restore after tests
         const originalUseTrailingComma = settingValues.useTrailingComma;
+        const originalTrimSurroundingSpaces = settingValues.trimSurroundingSpaces;
 
         afterEach(() => {
             // Restore original setting after each test
             settingValues.useTrailingComma = originalUseTrailingComma;
+            settingValues.trimSurroundingSpaces = originalTrimSurroundingSpaces;
         });
 
         describe('with useTrailingComma enabled', () => {
             beforeEach(() => {
                 settingValues.useTrailingComma = true;
+                settingValues.trimSurroundingSpaces = false;
             });
 
             test('should format text by adding comma and space after tags', () => {
@@ -101,6 +162,7 @@ describe('AutoFormatter Functions', () => {
         describe('with useTrailingComma disabled', () => {
             beforeEach(() => {
                 settingValues.useTrailingComma = false;
+                settingValues.trimSurroundingSpaces = false;
             });
 
             test('should format text by adding comma and space after tags without trailing comma', () => {
@@ -140,6 +202,59 @@ describe('AutoFormatter Functions', () => {
                 const input = 'tag1, tag2, ';
                 const expected = 'tag1, tag2';
                 expect(formatPromptText(input)).toBe(expected);
+            });
+        });
+
+        describe('with trimSurroundingSpaces enabled', () => {
+            beforeEach(() => {
+                settingValues.trimSurroundingSpaces = true;
+                settingValues.useTrailingComma = false;
+            });
+
+            test('should remove trailing newlines and spaces', () => {
+                const input = 'tag1, tag2\n\n  ';
+                const expected = 'tag1, tag2'; 
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should remove leading newlines and spaces', () => {
+                const input = '  \n\ntag1, tag2';
+                const expected = 'tag1, tag2';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should remove both leading and trailing whitespaces but keep middle empty lines', () => {
+                const input = '  \n\ntag1\n\ntag2\n\n  ';
+                const expected = 'tag1\n\ntag2'; 
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should return empty string if input is only whitespace', () => {
+                const input = '   \n   ';
+                expect(formatPromptText(input)).toBe('');
+            });
+        });
+
+        describe('with trimSurroundingSpaces disabled', () => {
+            beforeEach(() => {
+                settingValues.trimSurroundingSpaces = false;
+                settingValues.useTrailingComma = false;
+            });
+
+            test('should preserve trailing newlines', () => {
+                const input = 'tag1, tag2\n\n';
+                const expected = 'tag1, tag2\n\n';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should preserve leading spaces (as first line content)', () => {
+                const input = '   \ntag1';
+                const expected = '\ntag1'; 
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should handle input with only spaces', () => {
+                expect(formatPromptText('   ')).toBe('   ');
             });
         });
 

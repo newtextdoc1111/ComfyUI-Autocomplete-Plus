@@ -85,5 +85,9 @@
     },
     "AutocompletePlus_AutoFormatter_EnableAutoFormat": {
         "name": "Enable Auto Format"
+    },
+    "AutocompletePlus_AutoFormatter_TrimSurroundingSpaces": {
+        "name": "Trim Surrounding Spaces",
+        "tooltip": "When enabled, trim any blank lines from the beginning and end of the prompt."
     }
 }
