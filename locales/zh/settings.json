@@ -87,7 +87,7 @@
         "name": "启用自动格式化"
     },
     "AutocompletePlus_AutoFormatter_TrimSurroundingSpaces": {
-    "name": "去除首尾空白",
-    "tooltip": "启用时，清除提示词开头和结尾的所有空行和空格。"
+        "name": "去除首尾空白",
+        "tooltip": "启用时，清除提示词开头和结尾的所有空行和空格。"
     }
 }
