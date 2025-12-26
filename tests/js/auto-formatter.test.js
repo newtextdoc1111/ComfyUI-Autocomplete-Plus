@@ -16,6 +16,14 @@ describe('AutoFormatter Functions', () => {
             inputName
         });
 
+        // Store original setting value to restore after tests
+        const originalTrimSurroundingSpaces = settingValues.trimSurroundingSpaces;
+
+        afterEach(() => {
+            // Restore original setting after each test
+            settingValues.trimSurroundingSpaces = originalTrimSurroundingSpaces;
+        });
+
         test('should return false for empty text', () => {
             expect(shouldAutoFormat('', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
             expect(shouldAutoFormat('   ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
@@ -41,6 +49,56 @@ describe('AutoFormatter Functions', () => {
         test('should return false if "word + comma" pattern is not found', () => {
             expect(shouldAutoFormat('hello world', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
             expect(shouldAutoFormat('tag1 tag2', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+        });
+
+        describe('blocklist priority with trimSurroundingSpaces', () => {
+            test('should prioritize blocklist over trimSurroundingSpaces when disabled', () => {
+                settingValues.trimSurroundingSpaces = false;
+
+                // Blocklisted nodes should return false even with surrounding spaces
+                expect(shouldAutoFormat('  some code  ', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('\nsome code\n', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('  0,0,0,1,1,1  ', mockNodeInfo('LoraLoaderBlockWeight //Inspire', 'block_vector'))).toBe(false);
+            });
+
+            test('should prioritize blocklist over trimSurroundingSpaces when enabled', () => {
+                settingValues.trimSurroundingSpaces = true;
+
+                // Blocklisted nodes should return false even with trimSurroundingSpaces enabled and surrounding spaces
+                expect(shouldAutoFormat('  some code  ', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('\nsome code\n', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('  function() { }  ', mockNodeInfo('Power Puter (rgthree)', 'code'))).toBe(false);
+                expect(shouldAutoFormat('  0,0,0,1,1,1  ', mockNodeInfo('LoraLoaderBlockWeight //Inspire', 'block_vector'))).toBe(false);
+            });
+        });
+
+        describe('trimSurroundingSpaces with non-comma-separated text', () => {
+            test('should return false for non-comma-separated text when trimSurroundingSpaces is disabled', () => {
+                settingValues.trimSurroundingSpaces = false;
+
+                // Text without word+comma pattern should return false
+                expect(shouldAutoFormat('  hello world  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+                expect(shouldAutoFormat('\nhello world\n', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+                expect(shouldAutoFormat('  tag1 tag2  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+            });
+
+            test('should return true for non-comma-separated text with surrounding spaces when trimSurroundingSpaces is enabled', () => {
+                settingValues.trimSurroundingSpaces = true;
+
+                // Text with surrounding spaces should return true to format (trim them)
+                expect(shouldAutoFormat('  hello world  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+                expect(shouldAutoFormat('\nhello world\n', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+                expect(shouldAutoFormat('  tag1 tag2  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+                expect(shouldAutoFormat('  \nsome text\n  ', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+            });
+
+            test('should return false for text without surrounding spaces even when trimSurroundingSpaces is enabled', () => {
+                settingValues.trimSurroundingSpaces = true;
+
+                // Text without word+comma pattern and without surrounding spaces should return false
+                expect(shouldAutoFormat('hello world', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+                expect(shouldAutoFormat('tag1 tag2', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(false);
+            });
         });
     });
 
