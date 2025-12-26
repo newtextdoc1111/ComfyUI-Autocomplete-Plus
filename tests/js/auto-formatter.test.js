@@ -47,15 +47,18 @@ describe('AutoFormatter Functions', () => {
     describe('formatPromptText', () => {
         // Store original setting value to restore after tests
         const originalUseTrailingComma = settingValues.useTrailingComma;
+        const originalTrimSurroundingSpaces = settingValues.trimSurroundingSpaces;
 
         afterEach(() => {
             // Restore original setting after each test
             settingValues.useTrailingComma = originalUseTrailingComma;
+            settingValues.trimSurroundingSpaces = originalTrimSurroundingSpaces;
         });
 
         describe('with useTrailingComma enabled', () => {
             beforeEach(() => {
                 settingValues.useTrailingComma = true;
+                settingValues.trimSurroundingSpaces = false;
             });
 
             test('should format text by adding comma and space after tags', () => {
@@ -101,6 +104,7 @@ describe('AutoFormatter Functions', () => {
         describe('with useTrailingComma disabled', () => {
             beforeEach(() => {
                 settingValues.useTrailingComma = false;
+                settingValues.trimSurroundingSpaces = false;
             });
 
             test('should format text by adding comma and space after tags without trailing comma', () => {
@@ -140,6 +144,59 @@ describe('AutoFormatter Functions', () => {
                 const input = 'tag1, tag2, ';
                 const expected = 'tag1, tag2';
                 expect(formatPromptText(input)).toBe(expected);
+            });
+        });
+
+        describe('with trimSurroundingSpaces enabled', () => {
+            beforeEach(() => {
+                settingValues.trimSurroundingSpaces = true;
+                settingValues.useTrailingComma = false;
+            });
+
+            test('should remove trailing newlines and spaces', () => {
+                const input = 'tag1, tag2\n\n  ';
+                const expected = 'tag1, tag2'; 
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should remove leading newlines and spaces', () => {
+                const input = '  \n\ntag1, tag2';
+                const expected = 'tag1, tag2';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should remove both leading and trailing whitespaces but keep middle empty lines', () => {
+                const input = '  \n\ntag1\n\ntag2\n\n  ';
+                const expected = 'tag1\n\ntag2'; 
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should return empty string if input is only whitespace', () => {
+                const input = '   \n   ';
+                expect(formatPromptText(input)).toBe('');
+            });
+        });
+
+        describe('with trimSurroundingSpaces disabled', () => {
+            beforeEach(() => {
+                settingValues.trimSurroundingSpaces = false;
+                settingValues.useTrailingComma = false;
+            });
+
+            test('should preserve trailing newlines', () => {
+                const input = 'tag1, tag2\n\n';
+                const expected = 'tag1, tag2\n\n';
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should preserve leading spaces (as first line content)', () => {
+                const input = '   \ntag1';
+                const expected = '\ntag1'; 
+                expect(formatPromptText(input)).toBe(expected);
+            });
+
+            test('should handle input with only spaces', () => {
+                expect(formatPromptText('   ')).toBe('   ');
             });
         });
 
