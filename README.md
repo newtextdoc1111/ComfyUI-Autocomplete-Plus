@@ -189,7 +189,8 @@ For example, by preparing the following CSV, you can quickly insert correspondin
 - **Auto Format Trigger**: Choose when formatting is applied.
   - **Auto**: Format automatically when leaving text field
   - **Manual**: Format only via keyboard shortcut (default: `Alt+Shift+F`)
-- **Use Trailing Comma**: If enabled, ensures all lines end with a trailing comma when formatting. If disabled, removes trailing commas.
+- **Use Trailing Comma**: When enabled, ensures all lines end with a trailing comma when formatting. If disabled, removes trailing commas.
+- **Trim Surrounding Spaces**: When enabled, trim any blank lines or spaces from the beginning and end of the prompt.
 
 ## Advanced Settings
 
