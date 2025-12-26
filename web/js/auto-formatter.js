@@ -7,20 +7,17 @@ import { NodeInfo } from './node-info.js';
  *
  * Format conditions:
  * 1. Skip formatting if node is in blocklist
- * 2. Skip formatting if text contains only numbers or single letters (separated by commas)
- * 3. Format if text contains "word + comma" pattern at least twice
- * 4. Otherwise, don't format
+ * 2. If text is empty after trimming, format only if trimSurroundingSpaces is enabled, otherwise don't format
+ * 3. Skip formatting if text contains only numbers or single letters (separated by commas)
+ * 4. Format if text contains "word + comma" pattern
+ * 5. Format if trimSurroundingSpaces is enabled and there are surrounding spaces or line breaks
+ * 6. Otherwise, don't format
  *
  * @param {NodeInfo} nodeInfo - The node information.
  * @returns {boolean} - True if the text should be formatted, false otherwise.
  */
 function shouldAutoFormat(text, nodeInfo) {
     if (!text) return false;
-
-    // If trimSurroundingSpaces is enabled and there are surrounding spaces, return true to format
-    if (settingValues.trimSurroundingSpaces && text !== text.trim()) return true;
-
-    if (text.trim().length === 0) return false;
 
     // 1. Check if the node name is in the blocklist
     const blocklist = [
@@ -39,10 +36,14 @@ function shouldAutoFormat(text, nodeInfo) {
         // console.debug(`[Autocomplete-Plus] auto-formatter on blur => nodeType: ${nodeInfo.nodeType}, inputName: ${nodeInfo.inputName}`);
     }
 
-
     const trimmedText = text.trim();
 
-    // 2. Check if the text is purely numeric data or single-letter placeholders with commas
+    // 2. Check if the text is completely empty after trimming
+    if (trimmedText.length === 0) {
+        return settingValues.trimSurroundingSpaces;
+    }
+
+    // 3. Check if the text is purely numeric data or single-letter placeholders with commas
     // (e.g., "0,0,0,1,1,1" or "0.5, -1.2, 0.8" or "A,B,R" for LoRA Block Weight)
     const elements = trimmedText.split(',').map(el => el.trim());
     const isSingleLetterOrNumeric = elements.every(el => {
@@ -55,15 +56,18 @@ function shouldAutoFormat(text, nodeInfo) {
         return false; // Don't format numeric data or single-letter template patterns
     }
 
-    // 3. Check if the text contains the pattern "word + comma"
+    // 4. If text contains "word + comma" pattern, format it
     const wordCommaPattern = /\w+\s*,/g;
-    const matches = trimmedText.match(wordCommaPattern);
-
-    if (matches == null) {
-        return false;
+    if (trimmedText.match(wordCommaPattern)) {
+        return true;
     }
 
-    return true; // Text should be formatted
+    // 5. If trimSurroundingSpaces is enabled and there are surrounding spaces, format to trim them
+    if (settingValues.trimSurroundingSpaces && text !== trimmedText) {
+        return true;
+    }
+    
+    return false; // Otherwise, don't format
 }
 
 /**
