@@ -1,6 +1,44 @@
 import { settingValues } from './settings.js';
 import { NodeInfo } from './node-info.js';
 
+/**
+ * Heuristic detection for JSON content.
+ *
+ * Autocomplete-Plus auto formatter is designed for prompt tags (comma-separated).
+ * If we format JSON, we will destroy structural commas like:
+ *   "key": "value",
+ *
+ * This function tries to detect JSON-ish textarea content and skip formatting.
+ * We intentionally treat "looks like JSON" as sufficient (no strict parse needed),
+ * because users may be in the middle of editing.
+ */
+function looksLikeJson(text) {
+    if (!text) return false;
+    const t = text.trim();
+    if (t.length < 2) return false;
+
+    const first = t[0];
+
+    // Object
+    if (first === '{') {
+        // Typical JSON key pattern: "key":
+        return /"[^"\n]+"\s*:/.test(t);
+    }
+
+    // Array (less strict, but still try to avoid false positives)
+    if (first === '[') {
+        const rest = t.slice(1);
+        if (/"[^"\n]*"/.test(t)) return true; // string elements
+        if (rest.includes('{')) return true; // object elements
+        if (rest.includes('[')) return true; // nested arrays
+        if (/\d/.test(rest)) return true; // numbers
+        if (/\b(true|false|null)\b/.test(rest)) return true; // JSON literals
+        return false;
+    }
+
+    return false;
+}
+
 
 /**
  * Determines if the text content should be auto-formatted.
@@ -8,10 +46,11 @@ import { NodeInfo } from './node-info.js';
  * Format conditions:
  * 1. Skip formatting if node is in blocklist
  * 2. If text is empty after trimming, format only if trimSurroundingSpaces is enabled, otherwise don't format
- * 3. Skip formatting if text contains only numbers or single letters (separated by commas)
- * 4. Format if text contains "word + comma" pattern
- * 5. Format if trimSurroundingSpaces is enabled and there are surrounding spaces or line breaks
- * 6. Otherwise, don't format
+ * 3. Skip formatting if text looks like JSON
+ * 4. Skip formatting if text contains only numbers or single letters (separated by commas)
+ * 5. Format if text contains "word + comma" pattern
+ * 6. Format if trimSurroundingSpaces is enabled and there are surrounding spaces or line breaks
+ * 7. Otherwise, don't format
  *
  * @param {NodeInfo} nodeInfo - The node information.
  * @returns {boolean} - True if the text should be formatted, false otherwise.
@@ -43,7 +82,12 @@ function shouldAutoFormat(text, nodeInfo) {
         return settingValues.trimSurroundingSpaces;
     }
 
-    // 3. Check if the text is purely numeric data or single-letter placeholders with commas
+    // 3. Skip JSON-like content (do not destroy JSON commas)
+    if (looksLikeJson(trimmedText)) {
+        return false;
+    }
+
+    // 4. Check if the text is purely numeric data or single-letter placeholders with commas
     // (e.g., "0,0,0,1,1,1" or "0.5, -1.2, 0.8" or "A,B,R" for LoRA Block Weight)
     const elements = trimmedText.split(',').map(el => el.trim());
     const isSingleLetterOrNumeric = elements.every(el => {
@@ -56,13 +100,13 @@ function shouldAutoFormat(text, nodeInfo) {
         return false; // Don't format numeric data or single-letter template patterns
     }
 
-    // 4. If text contains "word + comma" pattern, format it
+    // 5. If text contains "word + comma" pattern, format it
     const wordCommaPattern = /\w+\s*,/g;
     if (trimmedText.match(wordCommaPattern)) {
         return true;
     }
 
-    // 5. If trimSurroundingSpaces is enabled and there are surrounding spaces, format to trim them
+    // 6. If trimSurroundingSpaces is enabled and there are surrounding spaces, format to trim them
     if (settingValues.trimSurroundingSpaces && text !== trimmedText) {
         return true;
     }
