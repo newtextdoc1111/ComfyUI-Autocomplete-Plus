@@ -31,6 +31,9 @@
     "AutocompletePlus_Autocompletion_EnableModels": {
         "name": "Enable Loras and Embeddings"
     },
+    "AutocompletePlus_Autocompletion_PrefixArtist": {
+        "name": "String to add before artist tags"
+    },
     "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
         "name": "Replace '_' with 'Space'",
         "tooltip": "This setting also affects related tags display."

@@ -351,11 +351,13 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     const needsSpaceBefore = text[replaceStart - 1] === ',';
     const prefix = needsSpaceBefore ? ' ' : '';
 
+    const prefixArtist = tagDataToInsert.categoryText == 'artist' ? settingValues.prefixArtist : '';
+
     // Standard separator (comma + space, or empty if autoInsertComma is disabled)
     const needsSuffixAfter = !",:".includes(text[replaceEnd]); // TODO: If ":" is part of the emoticon, a suffix is ​​required (e.g. ":o")
     const suffix = (needsSuffixAfter && settingValues.autoInsertComma) ? ', ' : '';
 
-    const textToInsertWithAffixes = prefix + normalizedTag + suffix;
+    const textToInsertWithAffixes = prefix + prefixArtist + normalizedTag + suffix;
 
     // --- Use execCommand for Undo support ---
     // 1. Select the text range to be replaced

@@ -31,6 +31,9 @@
     "AutocompletePlus_Autocompletion_EnableModels": {
         "name": "LoraとEmbeddingを候補に表示する"
     },
+    "AutocompletePlus_Autocompletion_PrefixArtist": {
+        "name": "アーティストタグの前に追加する文字列"
+    },
     "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
         "name": "'_' を 'スペース' に置き換える",
         "tooltip": "この設定は関連タグ表示にも影響します"

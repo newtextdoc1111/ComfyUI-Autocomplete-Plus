@@ -31,6 +31,9 @@
     "AutocompletePlus_Autocompletion_EnableModels": {
         "name": "顯示Lora和Embedding"
     },
+    "AutocompletePlus_Autocompletion_PrefixArtist": {
+        "name": "在藝術家標籤前添加的字串"
+    },
     "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
         "name": "將'_'替換為'空格'",
         "tooltip": "此設定也會影響相關標籤顯示"

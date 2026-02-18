@@ -378,6 +378,16 @@ app.registerExtension({
             }
         },
         {
+            id: id + ".Autocompletion.PrefixArtist",
+            name: "String to add before artist tags",
+            type: "text",
+            defaultValue: '',
+            category: [name, "Autocompletion", "String to add before artist tags"],
+            onChange: (newVal, oldVal) => {
+                settingValues.prefixArtist = newVal;
+            }
+        },
+        {
             id: id + ".Autocompletion.ReplaceUnderscoreWithSpace",
             name: "Replace '_' with 'Space'",
             tooltip: "This setting also affects related tags display.",

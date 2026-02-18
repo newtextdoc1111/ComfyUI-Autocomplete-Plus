@@ -10,6 +10,7 @@ export const settingValues = {
     enableModels: true, // Enable Lora and Embedding suggestions
     useFastSearch: false,
     replaceUnderscoreWithSpace: true, // Replace underscores with spaces in tag insertion
+    prefixArtist: '', // Prefix to be attached before artist tags
     autoInsertComma: true,
 
     // Related tags feature settings
