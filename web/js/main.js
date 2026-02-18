@@ -63,8 +63,8 @@ function initializeEventHandlers() {
                     const nodeInfo = new NodeInfo(node.comfyClass || node.constructor.name, inputName);
                     attachListeners(inputEl, nodeInfo);
                 }
-                return result;
             }
+            return result;
         };
     }
 
