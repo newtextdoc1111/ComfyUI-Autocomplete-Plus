@@ -941,6 +941,25 @@ export class AutocompleteEventHandler {
     constructor() {
         this.autocompleteUI = new AutocompleteUI();
         this.keyDownWithModifier = new Map(); // Keep track of keydown events with modifiers
+        this._debounceTimer = null; // Timer ID for debounced search
+    }
+
+    /**
+     * Calls autocompleteUI.updateDisplay() with debounce for sequential search, or immediately for fast search.
+     * @param {HTMLTextAreaElement} target
+     */
+    _triggerUpdateDisplay(target) {
+        if (settingValues.useFastSearch || settingValues.searchDebounceTime <= 0) {
+            // FastSearch or debounce disabled: immediate update
+            this.autocompleteUI.updateDisplay(target);
+        } else {
+            // Sequential search: debounced update
+            clearTimeout(this._debounceTimer);
+            this._debounceTimer = setTimeout(() => {
+                this.autocompleteUI.updateDisplay(target);
+                this._debounceTimer = null;
+            }, settingValues.searchDebounceTime);
+        }
     }
 
     /**
@@ -954,6 +973,7 @@ export class AutocompleteEventHandler {
 
         const partialTag = getCurrentPartialTag(event.target);
         if (partialTag.length <= 0) {
+            clearTimeout(this._debounceTimer); // Cancel pending debounced search
             this.autocompleteUI.hide();
         }
     }
@@ -1064,7 +1084,7 @@ export class AutocompleteEventHandler {
         // and default action is not prevented, update the display.
         // This will typically be for character inputs, Delete, Backspace or IME composition.
         if (!event.defaultPrevented) {
-            this.autocompleteUI.updateDisplay(event.target);
+            this._triggerUpdateDisplay(event.target);
         }
     }
 

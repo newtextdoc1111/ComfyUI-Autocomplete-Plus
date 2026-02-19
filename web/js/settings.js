@@ -12,6 +12,7 @@ export const settingValues = {
     replaceUnderscoreWithSpace: true, // Replace underscores with spaces in tag insertion
     prefixArtist: '', // Prefix to be attached before artist tags
     autoInsertComma: true,
+    searchDebounceTime: 100, // Sequential search debounce time in milliseconds
 
     // Related tags feature settings
     enableRelatedTags: true,
