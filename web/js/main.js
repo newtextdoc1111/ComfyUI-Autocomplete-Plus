@@ -383,6 +383,7 @@ app.registerExtension({
         {
             id: id + ".Autocompletion.PrefixArtist",
             name: "String to add before artist tags",
+            tooltip: "Text to prepend when inserting an artist tag via autocomplete.\ne.g. '@' -> '@artist_name'.",
             type: "text",
             defaultValue: '',
             category: [name, "Autocompletion", "String to add before artist tags"],

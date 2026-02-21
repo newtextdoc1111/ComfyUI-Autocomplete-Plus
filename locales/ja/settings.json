@@ -32,7 +32,8 @@
         "name": "LoraとEmbeddingを候補に表示する"
     },
     "AutocompletePlus_Autocompletion_PrefixArtist": {
-        "name": "アーティストタグの前に追加する文字列"
+        "name": "アーティストタグの前に追加する文字列",
+        "tooltip": "オートコンプリートからアーティストタグを挿入する際に付加する文字列。\n例: '@' -> '@artist_name'"
     },
     "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
         "name": "'_' を 'スペース' に置き換える",
