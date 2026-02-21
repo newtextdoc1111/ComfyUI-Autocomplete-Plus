@@ -33,7 +33,7 @@
     },
     "AutocompletePlus_Autocompletion_PrefixArtist": {
         "name": "在藝術家標籤前添加的字串",
-        "tooltip": "透過自動完成插入藝術家標籤時，在標籤前添加的文字。\n例： '@' -> '@artist_name'"
+        "tooltip": "透過自動完成插入藝術家標籤時，在標籤前添加的文字。\n例： '{'@'}' -> '{'@'}artist_name'."
     },
     "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
         "name": "將'_'替換為'空格'",
