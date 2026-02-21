@@ -31,6 +31,10 @@
     "AutocompletePlus_Autocompletion_EnableModels": {
         "name": "显示Lora和Embedding"
     },
+    "AutocompletePlus_Autocompletion_PrefixArtist": {
+        "name": "在艺术家标签前添加的字符串",
+        "tooltip": "通过自动完成插入艺术家标签时，在标签前添加的文本。\n例： '@' -> '@artist_name'"
+    },
     "AutocompletePlus_Autocompletion_ReplaceUnderscoreWithSpace": {
         "name": "将'_'替换为'空格'",
         "tooltip": "此设置也会影响相关标签显示"

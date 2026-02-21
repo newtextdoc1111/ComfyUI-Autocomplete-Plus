@@ -50,16 +50,19 @@ function initializeEventHandlers() {
         ComfyWidgets.STRING = function (node, inputName, inputData, appInstance) { // Use appInstance to avoid conflict with global app
             const result = originalStringWidget.apply(this, arguments);
 
-            // Check if the widget has an inputEl and if it's a TEXTAREA
+            // Check if the widget has an element and if it's a TEXTAREA
             // This is to ensure we are targeting multiline text inputs, related to '.comfy-multiline-input'
-            if (result && result.widget
-                && result.widget.inputEl && result.widget.inputEl.tagName === 'TEXTAREA' && !result.widget.inputEl.readOnly) {
-                const widgetConfig = inputData && inputData[1] ? inputData[1] : {};
-                // Future: Add checks for Autocomplete Plus specific configurations if needed
-                // e.g., if (widgetConfig["AutocompletePlus.enabled"] === false) return result;
+            if (result && result.widget) {
+                // fallback for older Comfyui frontend versions
+                const inputEl = result.widget.element ?? result.widget.inputEl;
+                if (inputEl && inputEl.tagName === 'TEXTAREA' && !inputEl.readOnly) {
+                    const widgetConfig = inputData && inputData[1] ? inputData[1] : {};
+                    // Future: Add checks for Autocomplete Plus specific configurations if needed
+                    // e.g., if (widgetConfig["AutocompletePlus.enabled"] === false) return result;
 
-                const nodeInfo = new NodeInfo(node.comfyClass || node.constructor.name, inputName);
-                attachListeners(result.widget.inputEl, nodeInfo);
+                    const nodeInfo = new NodeInfo(node.comfyClass || node.constructor.name, inputName);
+                    attachListeners(inputEl, nodeInfo);
+                }
             }
             return result;
         };
@@ -375,6 +378,17 @@ app.registerExtension({
             category: [name, "Autocompletion", "Enable Loras and Embeddings"],
             onChange: (newVal, oldVal) => {
                 settingValues.enableModels = newVal;
+            }
+        },
+        {
+            id: id + ".Autocompletion.PrefixArtist",
+            name: "String to add before artist tags",
+            tooltip: "Text to prepend when inserting an artist tag via autocomplete.\ne.g. '@' -> '@artist_name'.",
+            type: "text",
+            defaultValue: '',
+            category: [name, "Autocompletion", "String to add before artist tags"],
+            onChange: (newVal, oldVal) => {
+                settingValues.prefixArtist = newVal;
             }
         },
         {
