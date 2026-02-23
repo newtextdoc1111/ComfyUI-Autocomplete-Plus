@@ -55,6 +55,24 @@ describe('AutoFormatter Functions', () => {
             expect(shouldAutoFormat(jsonText, mockNodeInfo('SimpleChatTextInput', 'text'))).toBe(false);
         });
 
+        test('should return true for prompts containing comfyui-prompt-control scheduling syntax', () => {
+            // Range expression: [before:during:after:start,end]
+            expect(shouldAutoFormat('[black::white:0.3,0.7], 1girl, blue hair', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+
+            // Alternating: [a|b:pct]
+            expect(shouldAutoFormat('[cat|dog:0.1], 1girl, solo', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+
+            // Sequence: [SEQ:a:N1:b:N2:...]
+            expect(shouldAutoFormat('[SEQ:red:0.3:blue:0.6:green:0.9], 1girl', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+
+            // LoRA scheduling
+            expect(shouldAutoFormat('<lora:fulllora:1> [<lora:partiallora:1>::0.5], 1girl', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+
+            // Nested scheduling
+            expect(shouldAutoFormat('[red:[blue::0.7]:0.5] cat, 1girl', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
+        });
+
+
         test('should return true for text with "word + comma" pattern', () => {
             expect(shouldAutoFormat('1girl, blue hair,', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);
             expect(shouldAutoFormat('tag1, tag2', mockNodeInfo('CLIPTextEncode', 'text'))).toBe(true);

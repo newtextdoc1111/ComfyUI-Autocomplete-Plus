@@ -2,41 +2,23 @@ import { settingValues } from './settings.js';
 import { NodeInfo } from './node-info.js';
 
 /**
- * Heuristic detection for JSON content.
- *
- * Autocomplete-Plus auto formatter is designed for prompt tags (comma-separated).
- * If we format JSON, we will destroy structural commas like:
- *   "key": "value",
- *
- * This function tries to detect JSON-ish textarea content and skip formatting.
- * We intentionally treat "looks like JSON" as sufficient (no strict parse needed),
- * because users may be in the middle of editing.
+ * JSON content detection with actual parsing.
+ * 
+ * @param {string} text - The text to check for JSON content.
+ * @return {boolean} - True if the text is valid JSON, false otherwise.
  */
-function looksLikeJson(text) {
+function isJsonContent(text) {
     if (!text) return false;
     const t = text.trim();
     if (t.length < 2) return false;
+    if (t[0] !== '{' && t[0] !== '[') return false;
 
-    const first = t[0];
-
-    // Object
-    if (first === '{') {
-        // Typical JSON key pattern: "key":
-        return /"[^"\n]+"\s*:/.test(t);
-    }
-
-    // Array (less strict, but still try to avoid false positives)
-    if (first === '[') {
-        const rest = t.slice(1);
-        if (/"[^"\n]*"/.test(t)) return true; // string elements
-        if (rest.includes('{')) return true; // object elements
-        if (rest.includes('[')) return true; // nested arrays
-        if (/\d/.test(rest)) return true; // numbers
-        if (/\b(true|false|null)\b/.test(rest)) return true; // JSON literals
+    try {
+        JSON.parse(t);
+        return true;
+    } catch {
         return false;
     }
-
-    return false;
 }
 
 
@@ -46,7 +28,7 @@ function looksLikeJson(text) {
  * Format conditions:
  * 1. Skip formatting if node is in blocklist
  * 2. If text is empty after trimming, format only if trimSurroundingSpaces is enabled, otherwise don't format
- * 3. Skip formatting if text looks like JSON
+ * 3. Skip formatting if text is valid JSON
  * 4. Skip formatting if text contains only numbers or single letters (separated by commas)
  * 5. Format if text contains "word + comma" pattern
  * 6. Format if trimSurroundingSpaces is enabled and there are surrounding spaces or line breaks
@@ -82,8 +64,8 @@ function shouldAutoFormat(text, nodeInfo) {
         return settingValues.trimSurroundingSpaces;
     }
 
-    // 3. Skip JSON-like content (do not destroy JSON commas)
-    if (looksLikeJson(trimmedText)) {
+    // 3. Skip JSON content (do not destroy JSON commas)
+    if (isJsonContent(trimmedText)) {
         return false;
     }
 
@@ -101,7 +83,7 @@ function shouldAutoFormat(text, nodeInfo) {
     }
 
     // 5. If text contains "word + comma" pattern, format it
-    const wordCommaPattern = /\w+\s*,/g;
+    const wordCommaPattern = /[^\s,]+\s*,/g;
     if (trimmedText.match(wordCommaPattern)) {
         return true;
     }
