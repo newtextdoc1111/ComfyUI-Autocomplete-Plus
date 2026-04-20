@@ -267,12 +267,36 @@ function getCurrentPartialTag(inputElement) {
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
 
-    // Find the last newline or comma before the cursor
-    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
+    // Find the current logical segment start.
+    // At top level, commas/newlines separate tags.
+    // Inside wildcard syntax, commas/pipes separate options.
+    let braceDepth = 0;
+    let lastSeparator = -1;
 
-    // Get the position of the last separator (newline or comma) before cursor
-    const lastSeparator = Math.max(lastNewLine, lastComma);
+    for (let i = 0; i < cursorPos; i++) {
+        const char = text[i];
+
+        if (char === '{') {
+            braceDepth++;
+            lastSeparator = i;
+            continue;
+        }
+
+        if (char === '}') {
+            braceDepth = Math.max(0, braceDepth - 1);
+            lastSeparator = i;
+            continue;
+        }
+
+        if (braceDepth === 0) {
+            if (char === ',' || char === '\n') {
+                lastSeparator = i;
+            }
+        } else if (char === ',' || char === '|') {
+            lastSeparator = i;
+        }
+    }
+
     const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
 
     // Check if the cursor is inside a prompt weight modifier (e.g., :1.2, :.5, :1.)
@@ -288,16 +312,18 @@ function getCurrentPartialTag(inputElement) {
         }
     }
 
-    // Get the tag range at the cursor position
+    // Get the tag range at the cursor position so prompt wrappers like parentheses
+    // can still be excluded for normal tags.
     const tagRange = getCurrentTagRange(text, cursorPos);
+    const partialStart = tagRange ? Math.max(start, tagRange.start) : start;
 
-    // If no tag is found or the cursor is before the start of the tag, return empty string
-    if (!tagRange || cursorPos <= tagRange.start) {
+    // If the cursor is not past the current segment start, return empty string.
+    if (cursorPos <= partialStart) {
         return "";
     }
 
     // Extract the part of the tag up to the cursor position
-    const partial = text.substring(tagRange.start, cursorPos).trimStart();
+    const partial = text.substring(partialStart, cursorPos).trimStart();
 
     return normalizeTagToSearch(partial);
 }
