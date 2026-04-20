@@ -43,8 +43,8 @@ const REG_PROMPT_WEIGHT = /(.*?):([0-9](\.\d+)?)$/;
 const REG_STRIP_LEADING_PAREN = /^(?<!\\)\((.*)/s;
 const REG_STRIP_TRAILING_PAREN = /(.*)(?<!\\)\)$/s;
 
-const REG_WILDCARD_WEIGHTED_TAG = /(\d+)[_\s]*::(.*?)(?=\||$)/g;
-const REG_WILDCARD_SIMPLE_WORD = /[^{}_|]+/g;
+const REG_WILDCARD_WEIGHTED_TAG = /(\d+)[_\s]*::(.*?)(?=[|,]|$)/g;
+const REG_WILDCARD_SIMPLE_WORD = /[^{}|,]+/g;
 
 /**
  * Checks if the input text is longer than the maximum allowed tag length.
@@ -367,6 +367,37 @@ function parseWildcardSelection(tag, startPos, endPos) {
 }
 
 /**
+ * Finds the end index of the current top-level tag segment.
+ * Top-level segments are separated by commas or newlines unless inside balanced braces.
+ * @param {string} text The full text to scan
+ * @param {number} startPos The start position of the segment
+ * @returns {number} The exclusive end index of the segment
+ */
+function findTagSegmentEnd(text, startPos) {
+    let braceDepth = 0;
+
+    for (let i = startPos; i < text.length; i++) {
+        const char = text[i];
+
+        if (char === '{') {
+            braceDepth++;
+            continue;
+        }
+
+        if (char === '}') {
+            braceDepth = Math.max(0, braceDepth - 1);
+            continue;
+        }
+
+        if (braceDepth === 0 && (char === ',' || char === '\n')) {
+            return i;
+        }
+    }
+
+    return text.length;
+}
+
+/**
  * Finds all tag positions in the given text.
  * Searches for tags separated by commas or newlines.
  * Also handles wildcard selections in the format {tag1|tag2|tag3}.
@@ -389,14 +420,8 @@ export function findAllTagPositions(text) {
 
         if (startPos >= text.length) break;
 
-        // Find the end of this tag (next comma or newline)
-        let endPosComma = text.indexOf(',', startPos);
-        let endPosNewline = text.indexOf('\n', startPos);
-
-        if (endPosComma === -1) endPosComma = text.length;
-        if (endPosNewline === -1) endPosNewline = text.length;
-
-        const endPos = Math.min(endPosComma, endPosNewline);
+        // Find the end of this tag (next top-level comma or newline)
+        const endPos = findTagSegmentEnd(text, startPos);
         const tagText = text.substring(startPos, endPos);
 
         if (tagText.trim().length > 0) {
