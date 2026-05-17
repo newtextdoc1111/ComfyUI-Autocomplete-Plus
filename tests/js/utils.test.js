@@ -356,6 +356,24 @@ describe('getCurrentTagRange', () => {
         expect(result).not.toBeNull();
         expect(result.tag).toBe('from behind');
     });
+
+    test('should correctly identify tags in wildcard syntax mixed with commas and pipes', () => {
+        const text = '{tag1, tag2|tag3, tag4}';
+
+        expect(getCurrentTagRange(text, 2)).toEqual({ start: 1, end: 5, tag: 'tag1' });
+        expect(getCurrentTagRange(text, 8)).toEqual({ start: 7, end: 11, tag: 'tag2' });
+        expect(getCurrentTagRange(text, 13)).toEqual({ start: 12, end: 16, tag: 'tag3' });
+        expect(getCurrentTagRange(text, 19)).toEqual({ start: 18, end: 22, tag: 'tag4' });
+    });
+
+    test('should ignore trailing empty wildcard parts', () => {
+        const text = '{tag1, tag2|tag3|tag4|}';
+
+        expect(getCurrentTagRange(text, 2)).toEqual({ start: 1, end: 5, tag: 'tag1' });
+        expect(getCurrentTagRange(text, 8)).toEqual({ start: 7, end: 11, tag: 'tag2' });
+        expect(getCurrentTagRange(text, 13)).toEqual({ start: 12, end: 16, tag: 'tag3' });
+        expect(getCurrentTagRange(text, 18)).toEqual({ start: 17, end: 21, tag: 'tag4' });
+    });
 });
 
 describe('findAllTagPositions', () => {
@@ -439,6 +457,28 @@ describe('findAllTagPositions', () => {
         expect(positions[3].tag).toBe('choice');
         expect(positions[4].tag).toBe('simple');
         expect(positions[5].tag).toBe('last');
+    });
+
+    test('should treat commas inside wildcard syntax as part of the same segment', () => {
+        const text = '{tag1, tag2|tag3, tag4}';
+        const positions = findAllTagPositions(text);
+
+        expect(positions).toEqual([
+            { start: 1, end: 5, tag: 'tag1' },
+            { start: 7, end: 11, tag: 'tag2' },
+            { start: 12, end: 16, tag: 'tag3' },
+            { start: 18, end: 22, tag: 'tag4' }
+        ]);
+    });
+
+    test('should preserve underscores in wildcard tags', () => {
+        const text = '{blue_hair|red_eyes}';
+        const positions = findAllTagPositions(text);
+
+        expect(positions).toEqual([
+            { start: 1, end: 10, tag: 'blue_hair' },
+            { start: 11, end: 19, tag: 'red_eyes' }
+        ]);
     });
 });
 

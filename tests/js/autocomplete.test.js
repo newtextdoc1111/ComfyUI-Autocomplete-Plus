@@ -245,6 +245,30 @@ describe('Autocomplete Functions', () => {
             expect(result).toBe('blue_h');
         });
 
+        test('should extract the current wildcard option after an opening brace', () => {
+            const textarea = createMockTextarea('{tag1', 5);
+            const result = getCurrentPartialTag(textarea);
+
+            expect(typeof result).toBe('string');
+            expect(result).toBe('tag1');
+        });
+
+        test('should extract the current wildcard option after a pipe', () => {
+            const textarea = createMockTextarea('{tag1|tag2', 10);
+            const result = getCurrentPartialTag(textarea);
+
+            expect(typeof result).toBe('string');
+            expect(result).toBe('tag2');
+        });
+
+        test('should extract the current wildcard option after a comma inside braces', () => {
+            const textarea = createMockTextarea('{tag1, tag2', 11);
+            const result = getCurrentPartialTag(textarea);
+
+            expect(typeof result).toBe('string');
+            expect(result).toBe('tag2');
+        });
+
     });
 
     describe('searchCompletionCandidates', () => {

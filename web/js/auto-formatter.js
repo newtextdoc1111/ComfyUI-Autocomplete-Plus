@@ -66,7 +66,7 @@ function shouldAutoFormat(text, nodeInfo) {
     if (settingValues.trimSurroundingSpaces && text !== trimmedText) {
         return true;
     }
-    
+
     return false; // Otherwise, don't format
 }
 
@@ -153,6 +153,9 @@ export function formatTextareaOnBlur(textarea) {
         // Try to preserve cursor position
         const newCursorPos = Math.min(cursorPos, formattedText.length);
         textarea.setSelectionRange(newCursorPos, newCursorPos);
+
+        // Notify ComfyUI's legacy and Vue widget layers that the DOM value changed.
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
 }
 
