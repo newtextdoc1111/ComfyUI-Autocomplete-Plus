@@ -866,8 +866,8 @@ class AutocompleteUI {
         const rect = element.getBoundingClientRect();
 
         // Adjust the coordinates to be relative to the viewport
-        coordinates.top = rect.top + element.scrollTop + coordinates.top;
-        coordinates.left = rect.left + element.scrollLeft + coordinates.left;
+        coordinates.top = rect.top - element.scrollTop + coordinates.top;
+        coordinates.left = rect.left - element.scrollLeft + coordinates.left;
 
         if (debug) {
             span.style.backgroundColor = "#aaa";
