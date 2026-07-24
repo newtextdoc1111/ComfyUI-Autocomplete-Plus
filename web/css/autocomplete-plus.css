@@ -1,5 +1,31 @@
+/* Dark Theme (Default) */
+body,
+body.dark-theme,
+body.dark,
+[data-theme="dark"],
+[data-theme*="dark"] {
+  --autocomplete-plus-text-color-cat-blue: var(--p-blue-400);
+  --autocomplete-plus-text-color-cat-red: var(--p-red-400);
+  --autocomplete-plus-text-color-cat-purple: var(--p-purple-400);
+  --autocomplete-plus-text-color-cat-green: var(--p-green-400);
+  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-400);
+  --autocomplete-plus-text-color-cat-gray: var(--p-gray-400);
+  --autocomplete-plus-text-color-cat-sky: var(--p-sky-300);
+  --autocomplete-plus-text-color-cat-orange: var(--p-orange-400);
+  --autocomplete-plus-text-color-cat-white: var(--p-neutral-200);
+  --autocomplete-plus-text-color-disabled: var(--p-gray-500);
+  --autocomplete-plus-list-color-even: var(--p-neutral-800);
+  --autocomplete-plus-list-color-odd: var(--p-neutral-900);
+  --wiki-icon-text-color: var(--input-text);
+  --wiki-icon-opacity-normal: 0.5;
+  --wiki-icon-opacity-hover: 0.9;
+  --wiki-icon-opacity-disabled: 0;
+}
+
 /* Light Theme */
- body {
+body.light-theme,
+body.light,
+[data-theme="light"] {
   --autocomplete-plus-text-color-cat-blue: var(--p-blue-700);
   --autocomplete-plus-text-color-cat-red: var(--p-red-600);
   --autocomplete-plus-text-color-cat-purple: var(--p-purple-600);
@@ -18,25 +44,6 @@
   --wiki-icon-opacity-disabled: 0;
 }
 
-/* Dark Theme */
-body.dark-theme {
-  --autocomplete-plus-text-color-cat-blue: var(--p-blue-400);
-  --autocomplete-plus-text-color-cat-red: var(--p-red-400);
-  --autocomplete-plus-text-color-cat-purple: var(--p-purple-400);
-  --autocomplete-plus-text-color-cat-green: var(--p-green-400);
-  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-400);
-  --autocomplete-plus-text-color-cat-gray: var(--p-gray-400);
-  --autocomplete-plus-text-color-cat-sky: var(--p-sky-300);
-  --autocomplete-plus-text-color-cat-orange: var(--p-orange-400);
-  --autocomplete-plus-text-color-cat-white: var(--p-neutral-200);
-  --autocomplete-plus-text-color-disabled: var(--p-gray-500);
-  --autocomplete-plus-list-color-even: var(--p-neutral-800);
-  --autocomplete-plus-list-color-odd: var(--p-neutral-900);
-  --wiki-icon-text-color: var(--input-text);
-  --wiki-icon-opacity-normal: 0.5;
-  --wiki-icon-opacity-hover: 0.9;
-  --wiki-icon-opacity-disabled: 0;
-}
 
 #autocomplete-plus-root {
   position: absolute;
