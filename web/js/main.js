@@ -1,6 +1,6 @@
-import { app } from "/scripts/app.js";
-import { $el } from "/scripts/ui.js";
-import { ComfyWidgets } from "/scripts/widgets.js";
+import { app } from "../../../scripts/app.js";
+import { $el } from "../../../scripts/ui.js";
+import { ComfyWidgets } from "../../../scripts/widgets.js";
 import { settingValues } from "./settings.js";
 import { loadCSS } from "./utils.js";
 import { TagSource, loadDataAsync } from "./data.js";
@@ -182,7 +182,7 @@ async function addExtraSettings() {
         });
 
         try {
-            const response = await fetch('/autocomplete-plus/csv/force-check-updates', {
+            const response = await fetch('autocomplete-plus/csv/force-check-updates', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -210,7 +210,7 @@ async function addExtraSettings() {
     // Fetch last check time from API
     let lastCheckTimeText = "Loading...";
     try {
-        const response = await fetch('/autocomplete-plus/csv/last-check-time');
+        const response = await fetch('autocomplete-plus/csv/last-check-time');
         const data = await response.json();
 
         if (data.last_check_time) {
