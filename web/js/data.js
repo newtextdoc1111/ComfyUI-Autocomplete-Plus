@@ -384,7 +384,7 @@ function parseCSVLine(line) {
  */
 async function fetchCsvList() {
     try {
-        const response = await fetch('/autocomplete-plus/csv');
+        const response = await fetch('autocomplete-plus/csv');
         if (!response.ok) {
             throw new Error(`[Autocomplete-Plus] Failed to fetch CSV list: ${response.status} ${response.statusText}`);
         }
@@ -426,8 +426,8 @@ async function initializeDataFromCSV(csvListData, source) {
         const extraTagsFileList = csvListData[source].extra_tags || [];
         const extraCooccurrenceFileList = csvListData[source].extra_cooccurrence || [];
 
-        const tagsUrl = `/autocomplete-plus/csv/${source}/tags`;
-        const cooccurrenceUrl = `/autocomplete-plus/csv/${source}/tags_cooccurrence`;
+        const tagsUrl = `autocomplete-plus/csv/${source}/tags`;
+        const cooccurrenceUrl = `autocomplete-plus/csv/${source}/tags_cooccurrence`;
 
         // Factory for loading tags for the current sourte
         const siteTagsLoaderFactory = async () => {
@@ -494,7 +494,7 @@ async function initializeDataFromCSV(csvListData, source) {
  */
 async function loadEmbeddings() {
     try {
-        const response = await fetch('/autocomplete-plus/embeddings', { cache: "no-store" });
+        const response = await fetch('autocomplete-plus/embeddings', { cache: "no-store" });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -529,7 +529,7 @@ async function loadEmbeddings() {
  */
 async function loadLoras() {
     try {
-        const response = await fetch('/autocomplete-plus/loras', { cache: "no-store" });
+        const response = await fetch('autocomplete-plus/loras', { cache: "no-store" });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
