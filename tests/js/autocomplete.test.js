@@ -117,14 +117,14 @@ describe('Autocomplete Functions', () => {
         // Mock global document
         global.document = {
             execCommand: (commandId, showUI, value) => {
-                switch (commandId) {
-                    case "insertText":
-                        if (document.focusedElement) {
-                            document.focusedElement.value += value;
-                        }
-                        break;
-                    default:
-                        throw new Error('Not implemented!');
+                if (commandId === "insertText" && document.focusedElement) {
+                    const el = document.focusedElement;
+                    const start = el.selectionStart;
+                    const end = el.selectionEnd;
+                    // Perform actual replacement logic
+                    el.value = el.value.substring(0, start) + value + el.value.substring(end);
+                    // Update cursor position to after the inserted text
+                    el.selectionStart = el.selectionEnd = start + value.length;
                 }
             },
             createElement: () => ({
@@ -245,6 +245,78 @@ describe('Autocomplete Functions', () => {
             expect(result).toBe('blue_h');
         });
 
+        test('should extract the current wildcard option after an opening brace', () => {
+            const textarea = createMockTextarea('{tag1', 5);
+            const result = getCurrentPartialTag(textarea);
+
+            expect(typeof result).toBe('string');
+            expect(result).toBe('tag1');
+        });
+
+        test('should extract the current wildcard option after a pipe', () => {
+            const textarea = createMockTextarea('{tag1|tag2', 10);
+            const result = getCurrentPartialTag(textarea);
+
+            expect(typeof result).toBe('string');
+            expect(result).toBe('tag2');
+        });
+
+        test('should extract the current wildcard option after a comma inside braces', () => {
+            const textarea = createMockTextarea('{tag1, tag2', 11);
+            const result = getCurrentPartialTag(textarea);
+
+            expect(typeof result).toBe('string');
+            expect(result).toBe('tag2');
+        });
+
+    });
+
+    describe("insertTagToTextArea - Wildcard & Segment Logic", () => {
+      test("should replace only the current wildcard option", () => {
+        // Cursor is inside 'backlig' within a wildcard group
+        const textarea = createMockTextarea("{spotlight|backlig|dim lighting}", 20);
+        const tagData = { tag: "backlighting", source: "danbooru" };
+    
+        // Manually set selection to simulate the state before insertion
+        textarea.selectionStart = 12; // start of 'backlig'
+        textarea.selectionEnd = 19; // end of 'backlig'
+    
+        insertTagToTextArea(textarea, tagData);
+    
+        // Should replace 'backlig' with 'backlighting' without affecting neighbors
+        expect(textarea.value).toBe("{spotlight|backlighting|dim lighting}");
+      });
+
+      test("should not leak into the next comma-separated group", () => {
+        // Cursor is at the end of 'dark' in a mixed group
+        const textarea = createMockTextarea(
+          "{spotlight|backlighting}, dark",
+          30,
+        );
+        const tagData = { tag: "light particles", source: "danbooru" };
+
+        textarea.selectionStart = 26; // start of 'dark'
+        textarea.selectionEnd = 30; // end of 'dark'
+
+        insertTagToTextArea(textarea, tagData);
+
+        // Added the trailing ", " to match the autoInsertComma behavior
+        expect(textarea.value).toBe(
+          "{spotlight|backlighting}, light particles, ",
+        );
+      });
+
+      test("should handle top-level typing replacement correctly", () => {
+        const textarea = createMockTextarea("wor", 3);
+        const tagData = { tag: "world", source: "danbooru" };
+    
+        textarea.selectionStart = 0;
+        textarea.selectionEnd = 3;
+    
+        insertTagToTextArea(textarea, tagData);
+    
+        expect(textarea.value).toBe("world, ");
+      });
     });
 
     describe('searchCompletionCandidates', () => {

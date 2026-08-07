@@ -5,22 +5,23 @@ import {
     getEnabledTagSourceInPriorityOrder
 } from './data.js';
 import {
-    isLongText,
-    hiraToKata,
-    kataToHira,
-    formatCountHumanReadable,
-    escapeHtml,
-    isContainsLetterOrNumber,
-    normalizeTagToInsert,
-    normalizeTagToSearch,
-    extractTagsFromTextArea,
-    getCurrentTagRange,
-    getViewportMargin,
-    getScrollbarWidth,
-    IconSvgHtmlString,
-    addWeightToLora,
-    openTagWikiUrl
-} from './utils.js';
+  isLongText,
+  hiraToKata,
+  kataToHira,
+  formatCountHumanReadable,
+  escapeHtml,
+  isContainsLetterOrNumber,
+  normalizeTagToInsert,
+  normalizeTagToSearch,
+  extractTagsFromTextArea,
+  getCurrentTagRange,
+  getViewportMargin,
+  getScrollbarWidth,
+  IconSvgHtmlString,
+  addWeightToLora,
+  openTagWikiUrl,
+  findWildcardSegmentBounds
+} from "./utils.js";
 import { settingValues } from './settings.js';
 
 // --- Autocomplete Logic ---
@@ -266,15 +267,8 @@ function getCurrentPartialTag(inputElement) {
 
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
-
-    // Find the last newline or comma before the cursor
-    const lastNewLine = text.lastIndexOf('\n', cursorPos - 1);
-    const lastComma = text.lastIndexOf(',', cursorPos - 1);
-
-    // Get the position of the last separator (newline or comma) before cursor
-    const lastSeparator = Math.max(lastNewLine, lastComma);
-    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
-
+    const { start } = findWildcardSegmentBounds(text, cursorPos);
+    // ...rest of the weight-modifier + tagRange logic unchanged, using `start`
     // Check if the cursor is inside a prompt weight modifier (e.g., :1.2, :.5, :1.)
     const segmentBeforeCursor = text.substring(start, cursorPos);
     const lastColon = segmentBeforeCursor.lastIndexOf(':');
@@ -290,14 +284,15 @@ function getCurrentPartialTag(inputElement) {
 
     // Get the tag range at the cursor position
     const tagRange = getCurrentTagRange(text, cursorPos);
+    const partialStart = tagRange ? Math.max(start, tagRange.start) : start;
 
-    // If no tag is found or the cursor is before the start of the tag, return empty string
-    if (!tagRange || cursorPos <= tagRange.start) {
+    // If the cursor is not past the current segment start, return empty string.
+    if (cursorPos <= partialStart) {
         return "";
     }
 
     // Extract the part of the tag up to the cursor position
-    const partial = text.substring(tagRange.start, cursorPos).trimStart();
+    const partial = text.substring(partialStart, cursorPos).trimStart();
 
     return normalizeTagToSearch(partial);
 }
@@ -315,6 +310,8 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
 
     const text = inputElement.value;
     const cursorPos = inputElement.selectionStart;
+    const { start: segmentStart, end: segmentEnd } = findWildcardSegmentBounds(text, cursorPos);
+    // ...rest unchanged, using segmentStart/segmentEnd
 
     const tagRange = getCurrentTagRange(text, cursorPos);
     let tagStart, tagEnd, currentTag;
@@ -328,9 +325,7 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
         ({ start: tagStart, end: tagEnd, tag: currentTag } = tagRange);
     }
 
-    const replaceStart = Math.min(cursorPos, tagStart);
-    let replaceEnd = cursorPos;
-
+    // Determine the normalized tag first
     let normalizedTag;
     if (tagDataToInsert.source === ModelTagSource.Lora) {
         // If the tag is from a LoRA source, add weight to it
@@ -342,10 +337,39 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
         normalizedTag = normalizeTagToInsert(tagDataToInsert.tag);
     }
 
-    const currentTagAfterCursor = text.substring(cursorPos, tagEnd).trimEnd();
-    if (normalizedTag.lastIndexOf(currentTagAfterCursor) !== -1) {
-        replaceEnd = cursorPos + currentTagAfterCursor.length;
+    // -----------------------------------------------------------------------
+    // FIX: Constrain the replace boundaries to the current logical segment.
+    // If tagStart is before segmentStart (e.g., unclosed wildcard treated as 
+    // one big tag by getCurrentTagRange), we must find the actual start of 
+    // the word within the current segment to preserve formatting (newlines/spaces).
+    // -----------------------------------------------------------------------
+    let actualWordStart = segmentStart;
+    while (actualWordStart < cursorPos && /\s/.test(text[actualWordStart])) {
+        actualWordStart++;
     }
+    const wordStart = actualWordStart < cursorPos ? actualWordStart : cursorPos;
+
+    // Use wordStart if tagStart is erroneously pulled back before segmentStart
+    const replaceStart = tagStart >= segmentStart ? Math.max(segmentStart, tagStart) : wordStart;
+
+    // Only extend beyond cursor if the remaining text matches the completion
+    const selectionEnd = inputElement.selectionEnd;
+    const currentTagAfterCursor = text.substring(cursorPos, tagEnd).trimEnd();
+    let replaceEnd = cursorPos;
+
+    if (selectionEnd > cursorPos) {
+      // User has an active selection — replace exactly what's selected.
+      replaceEnd = selectionEnd;
+    } else if (
+      currentTagAfterCursor &&
+      normalizedTag.endsWith(currentTagAfterCursor)
+    ) {
+      // No selection, cursor mid-word — only extend if it's a real completion suffix.
+      replaceEnd = cursorPos + currentTagAfterCursor.length;
+    }
+
+    replaceEnd = Math.min(replaceEnd, segmentEnd);
+    // -----------------------------------------------------------------------
 
     // Add space if the previous separator was a comma and we are not at the beginning
     const needsSpaceBefore = text[replaceStart - 1] === ',';
@@ -354,7 +378,7 @@ function insertTagToTextArea(inputElement, tagDataToInsert) {
     const prefixArtist = tagDataToInsert.categoryText == 'artist' ? settingValues.prefixArtist : '';
 
     // Standard separator (comma + space, or empty if autoInsertComma is disabled)
-    const needsSuffixAfter = !",:".includes(text[replaceEnd]); // TODO: If ":" is part of the emoticon, a suffix is ​​required (e.g. ":o")
+    const needsSuffixAfter = !",:|}".includes(text[replaceEnd]); // TODO: If ":" is part of the emoticon, a suffix is ​​required (e.g. ":o")
     const suffix = (needsSuffixAfter && settingValues.autoInsertComma) ? ', ' : '';
 
     const textToInsertWithAffixes = prefix + prefixArtist + normalizedTag + suffix;

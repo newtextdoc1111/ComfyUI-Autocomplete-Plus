@@ -356,6 +356,66 @@ describe('getCurrentTagRange', () => {
         expect(result).not.toBeNull();
         expect(result.tag).toBe('from behind');
     });
+
+    test('should correctly identify tags in wildcard syntax mixed with commas and pipes', () => {
+        const text = '{tag1, tag2|tag3, tag4}';
+
+        expect(getCurrentTagRange(text, 2)).toEqual({ start: 1, end: 5, tag: 'tag1' });
+        expect(getCurrentTagRange(text, 8)).toEqual({ start: 7, end: 11, tag: 'tag2' });
+        expect(getCurrentTagRange(text, 13)).toEqual({ start: 12, end: 16, tag: 'tag3' });
+        expect(getCurrentTagRange(text, 19)).toEqual({ start: 18, end: 22, tag: 'tag4' });
+    });
+
+    test('should ignore trailing empty wildcard parts', () => {
+        const text = '{tag1, tag2|tag3|tag4|}';
+
+        expect(getCurrentTagRange(text, 2)).toEqual({ start: 1, end: 5, tag: 'tag1' });
+        expect(getCurrentTagRange(text, 8)).toEqual({ start: 7, end: 11, tag: 'tag2' });
+        expect(getCurrentTagRange(text, 13)).toEqual({ start: 12, end: 16, tag: 'tag3' });
+        expect(getCurrentTagRange(text, 18)).toEqual({ start: 17, end: 21, tag: 'tag4' });
+    });
+    
+    test("should treat nested wildcard braces as part of the outer group, not a new segment", () => {
+      const text = "{a|{b|c}}";
+      // Segment for "b" should end at its own '|' (index 5), not leak past the inner '}'
+      expect(getCurrentTagRange(text, 5)).toEqual({
+        start: 4,
+        end: 5,
+        tag: "b",
+      });
+      // Segment for "c" should end at the inner '}' (index 7), not the outer one
+      expect(getCurrentTagRange(text, 7)).toEqual({
+        start: 6,
+        end: 7,
+        tag: "c",
+      });
+    });
+
+    test("findAllTagPositions should not let a nested closing brace terminate the outer segment early", () => {
+      const text = "{a|{b|c}}, next";
+      const positions = findAllTagPositions(text);
+      expect(positions.map((p) => p.tag)).toEqual(["a", "b", "c", "next"]);
+    });
+
+    test("should extract just the hovered word from an embedded wildcard, not the whole phrase", () => {
+      const text = "zzz {aaa|bbb|ccc} ddd";
+
+      expect(getCurrentTagRange(text, 1)).toEqual({
+        start: 0,
+        end: 3,
+        tag: "zzz",
+      }); // cursor in "zzz"
+      expect(getCurrentTagRange(text, 6)).toEqual({
+        start: 5,
+        end: 8,
+        tag: "aaa",
+      }); // cursor in "aaa"
+      expect(getCurrentTagRange(text, 19)).toEqual({
+        start: 18,
+        end: 21,
+        tag: "ddd",
+      }); // cursor in "ddd"
+    });
 });
 
 describe('findAllTagPositions', () => {
@@ -439,6 +499,54 @@ describe('findAllTagPositions', () => {
         expect(positions[3].tag).toBe('choice');
         expect(positions[4].tag).toBe('simple');
         expect(positions[5].tag).toBe('last');
+    });
+
+    test('should treat commas inside wildcard syntax as part of the same segment', () => {
+        const text = '{tag1, tag2|tag3, tag4}';
+        const positions = findAllTagPositions(text);
+
+        expect(positions).toEqual([
+            { start: 1, end: 5, tag: 'tag1' },
+            { start: 7, end: 11, tag: 'tag2' },
+            { start: 12, end: 16, tag: 'tag3' },
+            { start: 18, end: 22, tag: 'tag4' }
+        ]);
+    });
+
+    test('should preserve underscores in wildcard tags', () => {
+        const text = '{blue_hair|red_eyes}';
+        const positions = findAllTagPositions(text);
+
+        expect(positions).toEqual([
+            { start: 1, end: 10, tag: 'blue_hair' },
+            { start: 11, end: 19, tag: 'red_eyes' }
+        ]);
+    });
+
+    test("should split plain words around an embedded wildcard group", () => {
+      const text = "zzz {aaa|bbb|ccc} ddd";
+      const positions = findAllTagPositions(text);
+
+      expect(positions).toEqual([
+        { start: 0, end: 3, tag: "zzz" },
+        { start: 5, end: 8, tag: "aaa" },
+        { start: 9, end: 12, tag: "bbb" },
+        { start: 13, end: 16, tag: "ccc" },
+        { start: 18, end: 21, tag: "ddd" },
+      ]);
+    });
+
+    test("should handle multiple plain words before and after a wildcard group", () => {
+      const text = "red {silk|wool|cloth} shirt";
+      const positions = findAllTagPositions(text);
+
+      expect(positions.map((p) => p.tag)).toEqual([
+        "red",
+        "silk",
+        "wool",
+        "cloth",
+        "shirt",
+      ]);
     });
 });
 

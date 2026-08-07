@@ -18,6 +18,10 @@ const autocompleteEventHandler = new AutocompleteEventHandler();
 const relatedTagsEventHandler = new RelatedTagsEventHandler();
 const autoFormatterEventHandler = new AutoFormatterEventHandler();
 const attachedElementNodeInfoMap = new WeakMap(); // Map to track attached elements and their node info
+const observedTextareaSelectors = [
+    '.comfy-multiline-input',
+    'textarea[data-capture-wheel="true"]',
+];
 
 // --- Functions ---
 /**
@@ -26,6 +30,7 @@ const attachedElementNodeInfoMap = new WeakMap(); // Map to track attached eleme
 function initializeEventHandlers() {
     // Function to attach listeners
     function attachListeners(element, nodeInfo) {
+        if (!element || element.tagName !== 'TEXTAREA' || element.readOnly || element.disabled) return;
         if (attachedElementNodeInfoMap.has(element)) return; // Prevent double attachment
 
         element.addEventListener('input', handleInput);
@@ -40,6 +45,45 @@ function initializeEventHandlers() {
         element.addEventListener('click', handleClick);
 
         attachedElementNodeInfoMap.set(element, nodeInfo); // Mark as attached and store node info
+    }
+
+    function getNodeInfoFromElement(element) {
+        const widgetLabel = element
+            ?.closest('.group, .comfy-widget, .comfy-multiline-input, [data-widget-name]')
+            ?.querySelector('label')
+            ?.textContent
+            ?.trim();
+
+        return new NodeInfo('DOM', widgetLabel || element?.name || element?.id || 'unknown');
+    }
+
+    function attachTextareasIn(root) {
+        if (
+            !root ||
+            ![Node.ELEMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE].includes(root.nodeType)
+        ) return;
+
+        if (root.matches?.(observedTextareaSelectors.join(','))) {
+            attachListeners(root, getNodeInfoFromElement(root));
+        }
+
+        root.querySelectorAll?.(observedTextareaSelectors.join(',')).forEach((element) => {
+            attachListeners(element, getNodeInfoFromElement(element));
+        });
+    }
+
+    function observeTextareas() {
+        attachTextareasIn(document.body);
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    attachTextareasIn(node);
+                });
+            });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
     }
 
     // Attempt Widget Override as the primary method
@@ -68,12 +112,11 @@ function initializeEventHandlers() {
         };
     }
 
+    observeTextareas();
+
     if (settingValues._useFallbackAttachmentForEventListener) {
         // Fallback and for dynamically added elements not caught by widget override: MutationObserver
-        const targetSelectors = [
-            '.comfy-multiline-input',
-            // Add other selectors if needed
-        ];
+        const targetSelectors = observedTextareaSelectors;
 
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {

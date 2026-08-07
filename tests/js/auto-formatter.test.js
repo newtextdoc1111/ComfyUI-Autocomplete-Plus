@@ -1,5 +1,10 @@
+/**
+ * @jest-environment jsdom
+ */
+import { jest } from "@jest/globals";
 import {
     formatPromptText,
+    formatTextareaOnBlur,
     __test__
 } from "../../web/js/auto-formatter.js";
 import { settingValues } from "../../web/js/settings.js";
@@ -267,5 +272,85 @@ describe('AutoFormatter Functions', () => {
         test('should handle input with only spaces', () => {
             expect(formatPromptText('   ')).toBe('   ');
         });
+    });
+
+    describe("formatTextareaOnBlur", () => {
+      // Store original setting values to restore after tests
+      const originalUseTrailingComma = settingValues.useTrailingComma;
+      const originalTrimSurroundingSpaces = settingValues.trimSurroundingSpaces;
+
+      function createMockTextarea(value, cursorPos = value.length) {
+        const el = document.createElement("textarea");
+        el.value = value;
+        el.selectionStart = el.selectionEnd = cursorPos;
+        return el;
+      }
+
+      beforeEach(() => {
+        settingValues.useTrailingComma = true;
+        settingValues.trimSurroundingSpaces = false;
+      });
+
+      afterEach(() => {
+        settingValues.useTrailingComma = originalUseTrailingComma;
+        settingValues.trimSurroundingSpaces = originalTrimSurroundingSpaces;
+      });
+
+      test("should update textarea value when formatting changes the text", () => {
+        const textarea = createMockTextarea("tag1,tag2");
+        formatTextareaOnBlur(textarea);
+        expect(textarea.value).toBe("tag1, tag2, ");
+      });
+
+      test("should not modify textarea value when formatting is a no-op", () => {
+        const textarea = createMockTextarea("tag1, tag2, ");
+        formatTextareaOnBlur(textarea);
+        expect(textarea.value).toBe("tag1, tag2, ");
+      });
+
+      test("should preserve cursor position after formatting, clamped to new text length", () => {
+        const textarea = createMockTextarea("tag1,tag2", 5);
+        formatTextareaOnBlur(textarea);
+        expect(textarea.selectionStart).toBe(
+          Math.min(5, textarea.value.length),
+        );
+      });
+
+      test("should dispatch a bubbling input event when the text changes", () => {
+        const textarea = createMockTextarea("tag1,tag2");
+        const dispatchSpy = jest.spyOn(textarea, "dispatchEvent");
+
+        formatTextareaOnBlur(textarea);
+
+        expect(dispatchSpy).toHaveBeenCalledTimes(1);
+        const evt = dispatchSpy.mock.calls[0][0];
+        expect(evt.type).toBe("input");
+        expect(evt.bubbles).toBe(true);
+      });
+
+      test("should NOT dispatch an input event when formatting is a no-op", () => {
+        const textarea = createMockTextarea("tag1, tag2, ");
+        const dispatchSpy = jest.spyOn(textarea, "dispatchEvent");
+
+        formatTextareaOnBlur(textarea);
+
+        expect(dispatchSpy).not.toHaveBeenCalled();
+      });
+
+      test("should not cause a second formatting pass via its own dispatched input event", () => {
+        const textarea = createMockTextarea("tag1,tag2");
+        let formatCallsTriggeredByInput = 0;
+
+        textarea.addEventListener("input", () => {
+          // A naive/buggy integration might re-run formatting here.
+          // This listener just counts how many times input fires;
+          // it should be exactly once, not more, per formatTextareaOnBlur call.
+          formatCallsTriggeredByInput++;
+        });
+
+        formatTextareaOnBlur(textarea);
+
+        expect(formatCallsTriggeredByInput).toBe(1);
+      });
     });
 });

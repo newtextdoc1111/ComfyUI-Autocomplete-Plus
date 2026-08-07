@@ -43,8 +43,8 @@ const REG_PROMPT_WEIGHT = /(.*?):([0-9](\.\d+)?)$/;
 const REG_STRIP_LEADING_PAREN = /^(?<!\\)\((.*)/s;
 const REG_STRIP_TRAILING_PAREN = /(.*)(?<!\\)\)$/s;
 
-const REG_WILDCARD_WEIGHTED_TAG = /(\d+)[_\s]*::(.*?)(?=\||$)/g;
-const REG_WILDCARD_SIMPLE_WORD = /[^{}_|]+/g;
+const REG_WILDCARD_WEIGHTED_TAG = /(\d+)[_\s]*::(.*?)(?=[|,]|$)/g;
+const REG_WILDCARD_SIMPLE_WORD = /[^{}|,]+/g;
 
 /**
  * Checks if the input text is longer than the maximum allowed tag length.
@@ -334,36 +334,143 @@ function extractAllWords(text, baseStart) {
 }
 
 /**
- * Parses a wildcard selection and returns individual tags.
- * Supports syntax like {tag1|tag2|tag3} and {weight::tag1|weight::tag2}.
- * Also handles nested wildcards like {tag1 {tag2|tag3}|tag4}.
- * @param {string} tag The complete tag text that might contain a wildcard
- * @param {number} startPos The starting position of the tag in the original text
- * @param {number} endPos The ending position of the tag in the original text
- * @returns {Array<{start: number, end: number, tag: string}>} Array of parsed tags or null
+ * Extracts all tag positions from a single top-level segment, correctly
+ * handling a wildcard group ({aaa|bbb|ccc}) anywhere within the segment --
+ * whether it's the whole segment ("{aaa|bbb|ccc}") or embedded among plain
+ * words ("zzz {aaa|bbb|ccc} ddd"). Plain text outside any wildcard group
+ * becomes its own tag(s); text inside a wildcard group is expanded
+ * into its individual options.
+ * @param {string} text The raw segment text (may include surrounding spaces)
+ * @param {number} baseStart The start offset of `text` within the original string
+ * @returns {Array<{start: number, end: number, tag: string}>}
  */
-function parseWildcardSelection(tag, startPos, endPos) {
-    // Trim the tag for matching but keep original position
-    const trimmedTag = tag.trim();
+function extractTagsFromSegment(text, baseStart) {
+    const positions = [];
+    let depth = 0;
+    let plainStart = 0;
+    let braceOpenIndex = -1;
 
-    // Check if this is a wildcard selection
-    if (!trimmedTag.startsWith('{') || !trimmedTag.endsWith('}')) {
-        return null; // Not a wildcard
+    const flushPlain = (from, to) => {
+        const plainText = text.substring(from, to);
+        if (plainText.trim().length > 0) {
+            positions.push(...extractAllWords(plainText, baseStart + from));
+        }
+    };
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+
+        if (char === '{') {
+            if (depth === 0) {
+                flushPlain(plainStart, i);
+                braceOpenIndex = i;
+            }
+            depth++;
+        } else if (char === '}') {
+            depth = Math.max(0, depth - 1);
+            if (depth === 0 && braceOpenIndex !== -1) {
+                const innerStart = braceOpenIndex + 1;
+                const innerText = text.substring(innerStart, i);
+                positions.push(...extractAllWords(innerText, baseStart + innerStart));
+                plainStart = i + 1;
+                braceOpenIndex = -1;
+            }
+        }
     }
 
-    // Calculate position offsets for the trim operation
-    const leadingSpaces = tag.length - tag.trimStart().length;
-    const tagStart = startPos + leadingSpaces;
+    // Trailing plain text after the last wildcard group (or the whole
+    // segment, if it never contained a top-level wildcard at all).
+    flushPlain(plainStart, text.length);
 
-    // For nested wildcards, we'll extract all words from the content
-    // This treats each word as a separate tag, regardless of nesting
-    // Extract the content between the outermost braces
-    const wildcardContent = trimmedTag.substring(1, trimmedTag.length - 1);
+    return positions;
+}
 
-    // Extract all words from the wildcard content, including those in nested structures
-    const allTags = extractAllWords(wildcardContent, tagStart + 1);
+/**
+ * Finds the end index of the current top-level tag segment.
+ * Top-level segments are separated by commas or newlines unless inside balanced braces.
+ * @param {string} text The full text to scan
+ * @param {number} startPos The start position of the segment
+ * @returns {number} The exclusive end index of the segment
+ */
+function findTagSegmentEnd(text, startPos) {
+    let braceDepth = 0;
 
-    return allTags.length > 0 ? allTags : null;
+    for (let i = startPos; i < text.length; i++) {
+        const char = text[i];
+
+        if (char === '{') {
+            braceDepth++;
+            continue;
+        }
+
+        if (char === '}') {
+            braceDepth = Math.max(0, braceDepth - 1);
+            continue;
+        }
+
+        if (braceDepth === 0 && (char === ',' || char === '\n')) {
+            return i;
+        }
+    }
+
+    return text.length;
+}
+
+/**
+ * Finds the boundaries of the current logical "segment" containing `pos`.
+ * At top level (outside {}), segments are separated by commas/newlines.
+ * Inside a wildcard group, segments are separated by commas/pipes and
+ * bounded by the group's own opening/closing brace (not a nested one).
+ *
+ * @param {string} text
+ * @param {number} pos
+ * @returns {{start: number, end: number, depth: number}}
+ */
+export function findWildcardSegmentBounds(text, pos) {
+    // Walk 0..pos tracking depth, remembering the last separator at any depth.
+    let braceDepth = 0;
+    let lastSeparator = -1;
+
+    for (let i = 0; i < pos; i++) {
+        const char = text[i];
+        if (char === '{') {
+            braceDepth++;
+            lastSeparator = i;
+        } else if (char === '}') {
+            braceDepth = Math.max(0, braceDepth - 1);
+            lastSeparator = i;
+        } else if (braceDepth === 0 && (char === ',' || char === '\n')) {
+            lastSeparator = i;
+        } else if (braceDepth > 0 && (char === ',' || char === '|')) {
+            lastSeparator = i;
+        }
+    }
+
+    const start = lastSeparator === -1 ? 0 : lastSeparator + 1;
+
+    // Recompute the depth AT start (independent walk, cheap and unambiguous).
+    let depth = 0;
+    for (let i = 0; i < start; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') depth = Math.max(0, depth - 1);
+    }
+
+    // Walk forward from start to find the end of THIS segment.
+    // Critical fix vs. the old code: a '}' only terminates the segment if it
+    // closes the group we're currently in (scanDepth === depth), not a nested one.
+    let end = text.length;
+    let scanDepth = depth;
+    for (let i = start; i < text.length; i++) {
+        const char = text[i];
+        if (scanDepth === depth) {
+            if (depth === 0 && (char === ',' || char === '\n')) { end = i; break; }
+            if (depth > 0 && (char === '|' || char === ',' || char === '}')) { end = i; break; }
+        }
+        if (char === '{') scanDepth++;
+        else if (char === '}') scanDepth = Math.max(0, scanDepth - 1);
+    }
+
+    return { start, end, depth };
 }
 
 /**
@@ -389,25 +496,21 @@ export function findAllTagPositions(text) {
 
         if (startPos >= text.length) break;
 
-        // Find the end of this tag (next comma or newline)
-        let endPosComma = text.indexOf(',', startPos);
-        let endPosNewline = text.indexOf('\n', startPos);
-
-        if (endPosComma === -1) endPosComma = text.length;
-        if (endPosNewline === -1) endPosNewline = text.length;
-
-        const endPos = Math.min(endPosComma, endPosNewline);
+        // Find the end of this tag (next top-level comma or newline)
+        const endPos = findTagSegmentEnd(text, startPos);
         const tagText = text.substring(startPos, endPos);
 
         if (tagText.trim().length > 0) {
             const trimmedTag = tagText.trim();
 
-            // Check if this is a wildcard selection
-            if (trimmedTag.startsWith('{') && trimmedTag.endsWith('}')) {
-                // Process wildcard using our existing wildcard parser
-                const wildcardTags = parseWildcardSelection(tagText, startPos, endPos);
-                if (wildcardTags) {
-                    positions.push(...wildcardTags);
+            // Check if this segment contains a wildcard group anywhere,
+            // not just as the entire segment.
+            if (trimmedTag.includes('{')) {
+                const segmentTags = extractTagsFromSegment(tagText, startPos);
+                if (segmentTags.length > 0) {
+                    positions.push(...segmentTags);
+                } else {
+                    positions.push({ start: startPos, end: endPos, tag: tagText });
                 }
             } else {
                 // Normal tag, add it directly
