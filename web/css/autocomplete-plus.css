@@ -19,7 +19,9 @@
 }
 
 /* Dark Theme */
-body.dark-theme {
+/* Old frontend puts .dark-theme on <body>; new Vue frontend puts it on <html> (documentElement) */
+body.dark-theme,
+:root.dark-theme body {
   --autocomplete-plus-text-color-cat-blue: var(--p-blue-400);
   --autocomplete-plus-text-color-cat-red: var(--p-red-400);
   --autocomplete-plus-text-color-cat-purple: var(--p-purple-400);
