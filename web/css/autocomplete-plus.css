@@ -19,6 +19,7 @@
 }
 
 /* Dark Theme */
+
 /* Old frontend puts .dark-theme on <body>; new Vue frontend puts it on <html> (documentElement) */
 body.dark-theme,
 :root.dark-theme body {
