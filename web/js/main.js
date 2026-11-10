@@ -68,42 +68,45 @@ function initializeEventHandlers() {
         };
     }
 
-    if (settingValues._useFallbackAttachmentForEventListener) {
-        // Fallback and for dynamically added elements not caught by widget override: MutationObserver
-        const targetSelectors = [
-            '.comfy-multiline-input',
-            // Add other selectors if needed
-        ];
+    // Multiline textareas in App mode and Nodes 2.0 may not use ComfyWidgets.STRING or
+    // .comfy-multiline-input, so scan the live DOM as well as the STRING widget hook.
+    const targetSelectors = [
+        '.comfy-multiline-input',
+        '[data-testid="app-mode-widget-item"] textarea',
+        '[data-testid="builder-widget-item"] textarea',
+        '[data-node-id] textarea',
+        '.lg-node-widget textarea',
+    ];
 
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === Node.ELEMENT_NODE) {
-                        targetSelectors.forEach(selector => {
-                            // Check if the added node itself matches or contains matching elements
-                            if (node.matches(selector)) {
-                                attachListeners(node, new NodeInfo('Fallback', 'unknown'));
-                            } else {
-                                node.querySelectorAll(selector).forEach(el => {
-                                    attachListeners(el, new NodeInfo('Fallback', 'unknown'));
-                                });
-                            }
-                        });
+    function attachMultilineTextarea(el) {
+        if (!(el instanceof HTMLTextAreaElement) || el.readOnly) {
+            return;
+        }
+        attachListeners(el, new NodeInfo('Fallback', 'unknown'));
+    }
+
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType !== Node.ELEMENT_NODE) {
+                    return;
+                }
+                targetSelectors.forEach(selector => {
+                    if (node.matches(selector)) {
+                        attachMultilineTextarea(node);
+                    } else {
+                        node.querySelectorAll(selector).forEach(attachMultilineTextarea);
                     }
                 });
             });
         });
+    });
 
-        // Initial scan for existing elements
-        targetSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(el => {
-                attachListeners(el, new NodeInfo('Fallback', 'unknown'));
-            });
-        });
+    targetSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(attachMultilineTextarea);
+    });
 
-        // Start observing the document body for changes
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
+    observer.observe(document.body, { childList: true, subtree: true });
 
     /**
      * Get NodeInfo for the event target element
