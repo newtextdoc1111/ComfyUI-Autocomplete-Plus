@@ -650,10 +650,26 @@ class RelatedTagsUI {
         for (let i = 0; i < items.length; i++) {
             if (i === this.selectedIndex) {
                 items[i].classList.add('selected'); // Use CSS class for selection
-                items[i].scrollIntoView({ block: 'nearest' });
+                this.#scrollListItemIntoView(items[i]);
             } else {
                 items[i].classList.remove('selected');
             }
+        }
+    }
+
+    #scrollListItemIntoView(item) {
+        const container = this.tagsContainer;
+        if (!container || !item) {
+            return;
+        }
+        const itemTop = item.offsetTop;
+        const itemBottom = itemTop + item.offsetHeight;
+        const viewTop = container.scrollTop;
+        const viewBottom = viewTop + container.clientHeight;
+        if (itemTop < viewTop) {
+            container.scrollTop = itemTop;
+        } else if (itemBottom > viewBottom) {
+            container.scrollTop = itemBottom - container.clientHeight;
         }
     }
 

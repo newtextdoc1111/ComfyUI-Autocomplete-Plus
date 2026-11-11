@@ -625,13 +625,16 @@ class AutocompleteUI {
         const viewportHeight = window.innerHeight;
         const margin = getViewportMargin();
 
-        const targetElmOffset = this.#calculateElementOffset(this.target);
-
-        const { top: caretTop, left: caretLeft, lineHeight: caretLineHeight } = this.#getCaretCoordinates(this.target);
+        const {
+            top: topPositionBelowCaret,
+            left: caretLeft,
+            caretLineTop,
+        } = this.#getCaretViewportOffset(this.target, scale);
 
         // Initial desired position: below the current text line where the caret is.
-        let topPosition = targetElmOffset.top + ((caretTop - targetElmOffset.top) + caretLineHeight) * scale;
-        let leftPosition = targetElmOffset.left + (caretLeft - targetElmOffset.left) * scale;;
+        let topPosition = topPositionBelowCaret;
+        let leftPosition = caretLeft;
+        const caretTop = caretLineTop;
 
         const naturalHeight = rootRect.height;
 
@@ -703,7 +706,7 @@ class AutocompleteUI {
         for (let i = 0; i < items.length; i++) {
             if (i === this.selectedIndex) {
                 items[i].classList.add('selected'); // Use CSS class for selection
-                items[i].scrollIntoView({ block: 'nearest' });
+                this.#scrollListItemIntoView(items[i]);
             } else {
                 items[i].classList.remove('selected');
             }
@@ -797,8 +800,10 @@ class AutocompleteUI {
         style.whiteSpace = 'pre-wrap';
         if (!isInput) style.wordWrap = 'break-word'; // only for textarea-s
 
-        // Position off-screen
-        style.position = 'absolute'; // required to return coordinates properly
+        // Keep off-screen so tall mirror content does not expand the document.
+        style.position = 'fixed';
+        style.top = '0px';
+        style.left = '-9999px';
         if (!debug) style.visibility = 'hidden'; // not 'display: none' because we want rendering
 
         // Transfer the element's properties to the div
@@ -862,13 +867,6 @@ class AutocompleteUI {
             lineHeight: numericLineHeight // Use the calculated numeric lineHeight
         };
 
-        // Calculate the bounding rect of the input element relative to the viewport
-        const rect = element.getBoundingClientRect();
-
-        // Adjust the coordinates to be relative to the viewport
-        coordinates.top = rect.top + element.scrollTop + coordinates.top;
-        coordinates.left = rect.left + element.scrollLeft + coordinates.left;
-
         if (debug) {
             span.style.backgroundColor = "#aaa";
         } else {
@@ -876,6 +874,39 @@ class AutocompleteUI {
         }
 
         return coordinates;
+    }
+
+    /**
+     * Caret position in viewport coordinates (for position:fixed popup), matching ComfyUI-Custom-Scripts.
+     * @param {HTMLTextAreaElement} element
+     * @param {number} scale ComfyUI canvas scale
+     */
+    #getCaretViewportOffset(element, scale) {
+        const rect = element.getBoundingClientRect();
+        const { top: caretTopInElement, left: caretLeftInElement, lineHeight } =
+            this.#getCaretCoordinates(element);
+
+        const caretLineTop = rect.top - (element.scrollTop * scale) + caretTopInElement * scale;
+        const caretLeft = rect.left - element.scrollLeft + caretLeftInElement;
+        const top = caretLineTop + lineHeight * scale;
+
+        return { top, left: caretLeft, caretLineTop, lineHeight };
+    }
+
+    #scrollListItemIntoView(item) {
+        const container = this.tagsList;
+        if (!container || !item) {
+            return;
+        }
+        const itemTop = item.offsetTop;
+        const itemBottom = itemTop + item.offsetHeight;
+        const viewTop = container.scrollTop;
+        const viewBottom = viewTop + container.clientHeight;
+        if (itemTop < viewTop) {
+            container.scrollTop = itemTop;
+        } else if (itemBottom > viewBottom) {
+            container.scrollTop = itemBottom - container.clientHeight;
+        }
     }
 
     /**
@@ -905,34 +936,6 @@ class AutocompleteUI {
         body.removeChild(tempNode);
 
         return height;
-    }
-
-    /**
-     * calculates the offset of the given element relative to the viewport.
-     * @param {HTMLElement} element
-     * @returns {{ top: number, left: number }}
-     */
-    #calculateElementOffset(element) {
-        const rect = element.getBoundingClientRect();
-        const owner = element.ownerDocument;
-        if (owner == null) {
-            throw new Error("Given element does not belong to document");
-        }
-
-        const { defaultView, documentElement } = owner;
-        if (defaultView == null) {
-            throw new Error("Given element does not belong to window");
-        }
-
-        const offset = {
-            top: rect.top + defaultView.pageYOffset,
-            left: rect.left + defaultView.pageXOffset,
-        };
-        if (documentElement) {
-            offset.top -= documentElement.clientTop;
-            offset.left -= documentElement.clientLeft;
-        }
-        return offset;
     }
 }
 
