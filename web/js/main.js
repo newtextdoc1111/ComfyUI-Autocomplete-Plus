@@ -18,8 +18,25 @@ const autocompleteEventHandler = new AutocompleteEventHandler();
 const relatedTagsEventHandler = new RelatedTagsEventHandler();
 const autoFormatterEventHandler = new AutoFormatterEventHandler();
 const attachedElementNodeInfoMap = new WeakMap(); // Map to track attached elements and their node info
+let attachToWidget = null; // Set by initializeEventHandlers(); used by the nodeCreated hook
 
 // --- Functions ---
+/**
+ * Find the node and widget that own a textarea, searching the root graph and the open subgraph.
+ * @param {HTMLElement} element
+ * @returns {NodeInfo|null}
+ */
+function findNodeInfo(element) {
+    const graphs = new Set([app.canvas?.graph, app.graph].filter(Boolean));
+    for (const graph of graphs) {
+        for (const node of graph.nodes ?? graph._nodes ?? []) {
+            const widget = node.widgets?.find(w => (w.element ?? w.inputEl) === element);
+            if (widget) return new NodeInfo(node.comfyClass || node.constructor.name, widget.name);
+        }
+    }
+    return null;
+}
+
 /**
  * Initialize event handlers for the autocomplete and related tags features.
  */
@@ -41,6 +58,25 @@ function initializeEventHandlers() {
 
         attachedElementNodeInfoMap.set(element, nodeInfo); // Mark as attached and store node info
     }
+
+    // Newer frontends (1.47+) no longer build multiline widgets through the exported
+    // ComfyWidgets.STRING, so the override below never runs there. Attach per node instead:
+    // the nodeCreated hook calls this for new nodes, and setup() for nodes already loaded.
+    attachToWidget = (node, widget) => {
+        const inputEl = widget?.element ?? widget?.inputEl;
+        if (inputEl && inputEl.tagName === 'TEXTAREA' && !inputEl.readOnly) {
+            attachListeners(inputEl, new NodeInfo(node.comfyClass || node.constructor.name, widget.name));
+        }
+    };
+
+    // Last resort for prompt textareas the hooks cannot see (e.g. widgets promoted to a subgraph node):
+    // attach on focus, before the first keystroke reaches them.
+    document.addEventListener('focusin', (event) => {
+        const el = event.target;
+        if (el?.tagName !== 'TEXTAREA' || el.readOnly || attachedElementNodeInfoMap.has(el)) return;
+        if (!el.classList.contains('comfy-multiline-input')) return;
+        attachListeners(el, findNodeInfo(el) ?? new NodeInfo('Fallback', 'unknown'));
+    }, true);
 
     // Attempt Widget Override as the primary method
     // The original ComfyWidgets.STRING arguments are (node, inputName, inputData, app)
@@ -271,12 +307,22 @@ app.registerExtension({
     async setup() {
         initializeEventHandlers();
 
+        // Nodes of the workflow restored at startup were created before setup()
+        for (const node of app.graph?.nodes ?? app.graph?._nodes ?? []) {
+            for (const widget of node.widgets ?? []) attachToWidget(node, widget);
+        }
+
         addExtraSettings();
 
         let rootPath = import.meta.url.replace("js/main.js", "");
         loadCSS(rootPath + "css/autocomplete-plus.css"); // Load CSS for autocomplete
 
         await loadDataAsync();
+    },
+
+    nodeCreated(node) {
+        if (!attachToWidget) return; // before setup(): handled by the scan in setup()
+        for (const widget of node.widgets ?? []) attachToWidget(node, widget);
     },
 
     // --- Commands ---

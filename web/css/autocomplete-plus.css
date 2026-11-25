@@ -1,17 +1,20 @@
 /* Light Theme */
+/* Newer frontends no longer define the PrimeVue palette (--p-*) and mark the theme with
+   `color-scheme` on <html> instead of a .dark-theme class: the fallbacks pick the same
+   palette values for the light or dark scheme. */
  body {
-  --autocomplete-plus-text-color-cat-blue: var(--p-blue-700);
-  --autocomplete-plus-text-color-cat-red: var(--p-red-600);
-  --autocomplete-plus-text-color-cat-purple: var(--p-purple-600);
-  --autocomplete-plus-text-color-cat-green: var(--p-green-700);
-  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-600);
-  --autocomplete-plus-text-color-cat-gray: var(--p-gray-600);
-  --autocomplete-plus-text-color-cat-sky: var(--p-sky-600);
-  --autocomplete-plus-text-color-cat-orange: var(--p-orange-600);
-  --autocomplete-plus-text-color-cat-white: var(--p-neutral-700);
-  --autocomplete-plus-text-color-disabled: var(--p-gray-400);
-  --autocomplete-plus-list-color-even: var(--p-neutral-300);
-  --autocomplete-plus-list-color-odd: var(--p-neutral-400);
+  --autocomplete-plus-text-color-cat-blue: var(--p-blue-700, light-dark(#1d4ed8, #60a5fa));
+  --autocomplete-plus-text-color-cat-red: var(--p-red-600, light-dark(#dc2626, #f87171));
+  --autocomplete-plus-text-color-cat-purple: var(--p-purple-600, light-dark(#9333ea, #c084fc));
+  --autocomplete-plus-text-color-cat-green: var(--p-green-700, light-dark(#15803d, #4ade80));
+  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-600, light-dark(#ca8a04, #facc15));
+  --autocomplete-plus-text-color-cat-gray: var(--p-gray-600, light-dark(#4b5563, #9ca3af));
+  --autocomplete-plus-text-color-cat-sky: var(--p-sky-600, light-dark(#0284c7, #7dd3fc));
+  --autocomplete-plus-text-color-cat-orange: var(--p-orange-600, light-dark(#ea580c, #fb923c));
+  --autocomplete-plus-text-color-cat-white: var(--p-neutral-700, light-dark(#404040, #e5e5e5));
+  --autocomplete-plus-text-color-disabled: var(--p-gray-400, light-dark(#9ca3af, #6b7280));
+  --autocomplete-plus-list-color-even: var(--p-neutral-300, light-dark(#d4d4d4, #262626));
+  --autocomplete-plus-list-color-odd: var(--p-neutral-400, light-dark(#a3a3a3, #171717));
   --wiki-icon-text-color: var(--input-text);
   --wiki-icon-opacity-normal: 0.7;
   --wiki-icon-opacity-hover: 1.0;
@@ -19,19 +22,21 @@
 }
 
 /* Dark Theme */
-body.dark-theme {
-  --autocomplete-plus-text-color-cat-blue: var(--p-blue-400);
-  --autocomplete-plus-text-color-cat-red: var(--p-red-400);
-  --autocomplete-plus-text-color-cat-purple: var(--p-purple-400);
-  --autocomplete-plus-text-color-cat-green: var(--p-green-400);
-  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-400);
-  --autocomplete-plus-text-color-cat-gray: var(--p-gray-400);
-  --autocomplete-plus-text-color-cat-sky: var(--p-sky-300);
-  --autocomplete-plus-text-color-cat-orange: var(--p-orange-400);
-  --autocomplete-plus-text-color-cat-white: var(--p-neutral-200);
-  --autocomplete-plus-text-color-disabled: var(--p-gray-500);
-  --autocomplete-plus-list-color-even: var(--p-neutral-800);
-  --autocomplete-plus-list-color-odd: var(--p-neutral-900);
+/* Older frontends put .dark-theme on <body>, some later ones on <html> */
+body.dark-theme,
+:root.dark-theme body {
+  --autocomplete-plus-text-color-cat-blue: var(--p-blue-400, #60a5fa);
+  --autocomplete-plus-text-color-cat-red: var(--p-red-400, #f87171);
+  --autocomplete-plus-text-color-cat-purple: var(--p-purple-400, #c084fc);
+  --autocomplete-plus-text-color-cat-green: var(--p-green-400, #4ade80);
+  --autocomplete-plus-text-color-cat-yellow: var(--p-yellow-400, #facc15);
+  --autocomplete-plus-text-color-cat-gray: var(--p-gray-400, #9ca3af);
+  --autocomplete-plus-text-color-cat-sky: var(--p-sky-300, #7dd3fc);
+  --autocomplete-plus-text-color-cat-orange: var(--p-orange-400, #fb923c);
+  --autocomplete-plus-text-color-cat-white: var(--p-neutral-200, #e5e5e5);
+  --autocomplete-plus-text-color-disabled: var(--p-gray-500, #6b7280);
+  --autocomplete-plus-list-color-even: var(--p-neutral-800, #262626);
+  --autocomplete-plus-list-color-odd: var(--p-neutral-900, #171717);
   --wiki-icon-text-color: var(--input-text);
   --wiki-icon-opacity-normal: 0.5;
   --wiki-icon-opacity-hover: 0.9;
@@ -144,7 +149,7 @@ body.dark-theme {
 }
 
 .autocomplete-plus-item:hover {
-  background-color: var(--comfy-hover-bg);
+  background-color: var(--comfy-hover-bg, var(--border-color));
 }
 
 .autocomplete-plus-item .autocomplete-plus-tag-name {
@@ -367,7 +372,7 @@ body.dark-theme {
 }
 
 .related-tag-item:hover {
-  background-color: var(--p-form-field-filled-hover-background);
+  background-color: var(--p-form-field-filled-hover-background, var(--border-color));
 }
 
 .related-tag-item.selected {
